@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { authManager } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +36,13 @@ export default function Sessions() {
 
   const { data: sessionsData, isLoading } = useQuery({
     queryKey: ['/api/auth/sessions'],
+    queryFn: async () => {
+      const response = await authManager.makeAuthenticatedRequest('GET', '/api/auth/sessions');
+      if (!response.ok) {
+        throw new Error('Failed to fetch sessions');
+      }
+      return response.json();
+    },
     staleTime: 30000, // 30 seconds
   });
 
@@ -43,7 +50,11 @@ export default function Sessions() {
 
   const logoutSessionMutation = useMutation({
     mutationFn: async (sessionId: string) => {
-      await apiRequest(`/api/auth/sessions/${sessionId}`, 'DELETE');
+      const response = await authManager.makeAuthenticatedRequest('DELETE', `/api/auth/sessions/${sessionId}`);
+      if (!response.ok) {
+        throw new Error('Failed to logout session');
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/sessions'] });
@@ -63,7 +74,11 @@ export default function Sessions() {
 
   const logoutAllOtherSessionsMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest('/api/auth/sessions', 'DELETE');
+      const response = await authManager.makeAuthenticatedRequest('DELETE', '/api/auth/sessions');
+      if (!response.ok) {
+        throw new Error('Failed to logout all other sessions');
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/sessions'] });

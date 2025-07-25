@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import cookieParser from "cookie-parser";
-import { loginSchema, registerSchema, forgotPasswordSchema, updateProfileSchema, changePasswordSchema, enable2FASchema, disable2FASchema, verifyEmailSchema } from "@shared/schema";
+import { loginSchema, registerSchema, forgotPasswordSchema, updateProfileSchema, changePasswordSchema, enable2FASchema, disable2FASchema, verifyEmailSchema, resendVerificationSchema } from "@shared/schema";
 import { randomBytes } from "crypto";
 import { authenticator } from "otplib";
 import * as QRCode from "qrcode";
@@ -162,13 +162,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      // Check if email is verified
-      if (!user.emailVerified) {
-        return res.status(403).json({ 
-          message: "Please verify your email address before logging in. Check your inbox for the verification email.",
-          emailVerificationRequired: true
-        });
-      }
+      // Allow login but mark verification status
+      const emailVerificationRequired = !user.emailVerified;
 
       // Check 2FA if enabled
       if (user.twoFactorEnabled) {
@@ -221,7 +216,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           firstName: user.firstName,
           lastName: user.lastName,
           twoFactorEnabled: user.twoFactorEnabled,
+          emailVerified: user.emailVerified,
         },
+        emailVerificationRequired,
       });
     } catch (error: any) {
       if (error.name === "ZodError") {
@@ -278,7 +275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Resend verification email endpoint
   app.post("/api/auth/resend-verification", async (req, res) => {
     try {
-      const { email } = req.body;
+      const { email } = resendVerificationSchema.parse(req.body);
 
       if (!email) {
         return res.status(400).json({ message: "Email is required" });
@@ -292,6 +289,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (user.emailVerified) {
         return res.status(400).json({ message: "Email is already verified" });
+      }
+
+      // Check rate limiting - 5 minutes between resend requests
+      if (user.lastVerificationEmailSent) {
+        const timeSinceLastSent = Date.now() - user.lastVerificationEmailSent.getTime();
+        const fiveMinutesInMs = 5 * 60 * 1000;
+        
+        if (timeSinceLastSent < fiveMinutesInMs) {
+          const remainingTime = Math.ceil((fiveMinutesInMs - timeSinceLastSent) / 1000 / 60);
+          return res.status(429).json({ 
+            message: `Please wait ${remainingTime} minute(s) before requesting another verification email.`,
+            retryAfter: remainingTime
+          });
+        }
       }
 
       // Generate new verification token
@@ -310,9 +321,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json({
-        message: "Verification email sent successfully. Please check your inbox."
+        message: "Verification email sent successfully. Please check your inbox.",
+        nextAllowedAt: new Date(Date.now() + 5 * 60 * 1000).toISOString()
       });
     } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({
+          message: "Validation error",
+          errors: error.errors,
+        });
+      }
       console.error("Resend verification error:", error);
       res.status(500).json({ message: "Internal server error" });
     }

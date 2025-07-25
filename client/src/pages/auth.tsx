@@ -84,7 +84,12 @@ export default function AuthPage() {
         });
         setCurrentView("twoFactor");
       } else {
-        setLocation("/");
+        // Check if email verification is required
+        if (result.emailVerificationRequired) {
+          setLocation("/pending-verification");
+        } else {
+          setLocation("/");
+        }
       }
     } catch (error) {
       // Error is handled by the mutation's onError
@@ -114,7 +119,12 @@ export default function AuthPage() {
       });
       
       if (!('requires2FA' in result)) {
-        setLocation("/");
+        // Check if email verification is required
+        if (result.emailVerificationRequired) {
+          setLocation("/pending-verification");
+        } else {
+          setLocation("/");
+        }
       }
     } catch (error) {
       // Error is handled by the mutation's onError

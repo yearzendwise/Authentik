@@ -9,10 +9,11 @@ import Dashboard from "@/pages/dashboard";
 import ProfilePage from "@/pages/profile";
 import SessionsPage from "@/pages/sessions";
 import VerifyEmailPage from "@/pages/verify-email";
+import PendingVerificationPage from "@/pages/pending-verification";
 import NotFound from "@/pages/not-found";
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return (
@@ -22,15 +23,29 @@ function Router() {
     );
   }
 
+  const isEmailVerified = user?.emailVerified ?? true; // Default to true if no user or status unknown
+
   return (
     <Switch>
-      {isAuthenticated ? (
+      {isAuthenticated && isEmailVerified ? (
         <>
           <Route path="/" component={Dashboard} />
           <Route path="/dashboard" component={Dashboard} />
           <Route path="/profile" component={ProfilePage} />
           <Route path="/sessions" component={SessionsPage} />
           <Route path="/auth" component={Dashboard} /> {/* Redirect logged-in users away from auth */}
+          <Route path="/pending-verification" component={Dashboard} /> {/* Redirect verified users away */}
+        </>
+      ) : isAuthenticated && !isEmailVerified ? (
+        <>
+          <Route path="/" component={PendingVerificationPage} />
+          <Route path="/pending-verification" component={PendingVerificationPage} />
+          <Route path="/verify-email" component={VerifyEmailPage} />
+          <Route path="/auth" component={PendingVerificationPage} /> {/* Redirect unverified users to pending */}
+          {/* Redirect protected routes to pending verification */}
+          <Route path="/dashboard" component={PendingVerificationPage} />
+          <Route path="/profile" component={PendingVerificationPage} />
+          <Route path="/sessions" component={PendingVerificationPage} />
         </>
       ) : (
         <>
@@ -41,6 +56,7 @@ function Router() {
           <Route path="/dashboard" component={AuthPage} />
           <Route path="/profile" component={AuthPage} />
           <Route path="/sessions" component={AuthPage} />
+          <Route path="/pending-verification" component={AuthPage} />
         </>
       )}
       <Route component={NotFound} />

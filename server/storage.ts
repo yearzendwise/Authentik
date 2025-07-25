@@ -36,6 +36,7 @@ export interface IStorage {
   setEmailVerificationToken(userId: string, token: string, expiresAt: Date): Promise<void>;
   getUserByEmailVerificationToken(token: string): Promise<User | undefined>;
   verifyUserEmail(userId: string): Promise<void>;
+  updateLastVerificationEmailSent(userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -176,6 +177,7 @@ export class DatabaseStorage implements IStorage {
       .set({ 
         emailVerificationToken: token,
         emailVerificationExpires: expiresAt,
+        lastVerificationEmailSent: new Date(),
         updatedAt: new Date()
       })
       .where(eq(users.id, userId));
@@ -199,6 +201,16 @@ export class DatabaseStorage implements IStorage {
         emailVerified: true,
         emailVerificationToken: null,
         emailVerificationExpires: null,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async updateLastVerificationEmailSent(userId: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        lastVerificationEmailSent: new Date(),
         updatedAt: new Date()
       })
       .where(eq(users.id, userId));

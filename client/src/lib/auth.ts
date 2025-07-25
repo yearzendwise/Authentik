@@ -10,12 +10,14 @@ export interface AuthUser {
   firstName: string;
   lastName: string;
   twoFactorEnabled?: boolean;
+  emailVerified?: boolean;
 }
 
 export interface AuthResponse {
   message: string;
   accessToken: string;
   user: AuthUser;
+  emailVerificationRequired?: boolean;
 }
 
 class AuthManager {

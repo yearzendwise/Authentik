@@ -1,6 +1,6 @@
-import { users, refreshTokens, type User, type InsertUser, type RefreshToken } from "@shared/schema";
+import { users, refreshTokens, type User, type InsertUser, type RefreshToken, type UserFilters, type CreateUserData, type UpdateUserData } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gt, desc, ne } from "drizzle-orm";
+import { eq, and, gt, desc, ne, or, ilike, count, sql } from "drizzle-orm";
 
 export interface DeviceInfo {
   deviceId?: string;
@@ -16,6 +16,14 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
+  
+  // User management operations
+  getAllUsers(filters?: UserFilters): Promise<User[]>;
+  getUserStats(): Promise<{ totalUsers: number; activeUsers: number; usersByRole: Record<string, number> }>;
+  createUserAsAdmin(userData: CreateUserData): Promise<User>;
+  updateUserAsAdmin(id: string, userData: UpdateUserData): Promise<User | undefined>;
+  deleteUser(id: string): Promise<void>;
+  toggleUserStatus(id: string, isActive: boolean): Promise<User | undefined>;
   
   // Refresh token operations with device tracking
   createRefreshToken(userId: string, token: string, expiresAt: Date, deviceInfo?: DeviceInfo): Promise<RefreshToken>;
@@ -224,6 +232,109 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date()
       })
       .where(eq(users.id, userId));
+  }
+
+  // User management methods
+  async getAllUsers(filters?: UserFilters): Promise<User[]> {
+    const conditions = [];
+
+    if (filters?.search) {
+      const searchTerm = `%${filters.search}%`;
+      conditions.push(
+        or(
+          ilike(users.firstName, searchTerm),
+          ilike(users.lastName, searchTerm),
+          ilike(users.email, searchTerm)
+        )
+      );
+    }
+
+    if (filters?.role) {
+      conditions.push(eq(users.role, filters.role));
+    }
+
+    if (filters?.status === 'active') {
+      conditions.push(eq(users.isActive, true));
+    } else if (filters?.status === 'inactive') {
+      conditions.push(eq(users.isActive, false));
+    } else if (!filters?.showInactive) {
+      conditions.push(eq(users.isActive, true));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    
+    const result = await db
+      .select()
+      .from(users)
+      .where(whereClause)
+      .orderBy(desc(users.createdAt));
+    
+    return result;
+  }
+
+  async getUserStats(): Promise<{ totalUsers: number; activeUsers: number; usersByRole: Record<string, number> }> {
+    // Get total and active user counts
+    const [totalResult] = await db.select({ count: count() }).from(users);
+    const [activeResult] = await db.select({ count: count() }).from(users).where(eq(users.isActive, true));
+
+    // Get user counts by role
+    const roleResults = await db
+      .select({ 
+        role: users.role, 
+        count: count() 
+      })
+      .from(users)
+      .where(eq(users.isActive, true))
+      .groupBy(users.role);
+
+    const usersByRole: Record<string, number> = {};
+    roleResults.forEach(result => {
+      usersByRole[result.role] = result.count;
+    });
+
+    return {
+      totalUsers: totalResult.count,
+      activeUsers: activeResult.count,
+      usersByRole
+    };
+  }
+
+  async createUserAsAdmin(userData: CreateUserData): Promise<User> {
+    const { confirmPassword, ...userInsertData } = userData;
+    const [user] = await db
+      .insert(users)
+      .values({
+        ...userInsertData,
+        emailVerified: true, // Admin-created users are automatically verified
+        updatedAt: new Date(),
+      })
+      .returning();
+    return user;
+  }
+
+  async updateUserAsAdmin(id: string, userData: UpdateUserData): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ ...userData, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    // First delete all refresh tokens
+    await db.delete(refreshTokens).where(eq(refreshTokens.userId, id));
+    // Then delete the user
+    await db.delete(users).where(eq(users.id, id));
+  }
+
+  async toggleUserStatus(id: string, isActive: boolean): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ isActive, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
   }
 }
 

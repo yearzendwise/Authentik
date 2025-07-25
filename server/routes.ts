@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import cookieParser from "cookie-parser";
-import { loginSchema, registerSchema, forgotPasswordSchema, updateProfileSchema, changePasswordSchema, enable2FASchema, disable2FASchema, verifyEmailSchema, resendVerificationSchema } from "@shared/schema";
+import { loginSchema, registerSchema, forgotPasswordSchema, updateProfileSchema, changePasswordSchema, enable2FASchema, disable2FASchema, verifyEmailSchema, resendVerificationSchema, createUserSchema, updateUserSchema, userFiltersSchema, type UserRole } from "@shared/schema";
 import { randomBytes } from "crypto";
 import { authenticator } from "otplib";
 import * as QRCode from "qrcode";
@@ -66,6 +66,27 @@ const authenticateToken = async (req: any, res: any, next: any) => {
     return res.status(403).json({ message: "Invalid access token" });
   }
 };
+
+// Middleware to check user permissions
+const requireRole = (allowedRoles: UserRole[]) => {
+  return (req: any, res: any, next: any) => {
+    if (!req.user) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ message: "Insufficient permissions" });
+    }
+
+    next();
+  };
+};
+
+// Middleware for admin-only operations
+const requireAdmin = requireRole(['Administrator']);
+
+// Middleware for manager+ operations
+const requireManagerOrAdmin = requireRole(['Manager', 'Administrator']);
 
 const generateTokens = (userId: string) => {
   const accessToken = jwt.sign({ userId }, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRES });
@@ -814,6 +835,224 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "All other sessions logged out successfully" });
     } catch (error) {
       console.error("Delete all sessions error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // User Management API Routes
+  
+  // Get all users (Admin/Manager only)
+  app.get("/api/users", authenticateToken, requireManagerOrAdmin, async (req: any, res) => {
+    try {
+      const filters = userFiltersSchema.parse(req.query);
+      const users = await storage.getAllUsers(filters);
+      
+      // Remove sensitive data before sending
+      const safeUsers = users.map(user => ({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        isActive: user.isActive,
+        emailVerified: user.emailVerified,
+        twoFactorEnabled: user.twoFactorEnabled,
+        lastLoginAt: user.lastLoginAt,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      }));
+      
+      res.json({ users: safeUsers });
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({
+          message: "Validation error",
+          errors: error.errors,
+        });
+      }
+      console.error("Get users error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get user statistics (Admin/Manager only)
+  app.get("/api/users/stats", authenticateToken, requireManagerOrAdmin, async (req: any, res) => {
+    try {
+      const stats = await storage.getUserStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Get user stats error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Create a new user (Admin only)
+  app.post("/api/users", authenticateToken, requireAdmin, async (req: any, res) => {
+    try {
+      const userData = createUserSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(userData.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(userData.password, 12);
+      
+      // Create user
+      const user = await storage.createUserAsAdmin({
+        ...userData,
+        password: hashedPassword,
+      });
+
+      // Remove sensitive data before sending
+      const safeUser = {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        isActive: user.isActive,
+        emailVerified: user.emailVerified,
+        createdAt: user.createdAt,
+      };
+
+      res.status(201).json({ 
+        message: "User created successfully", 
+        user: safeUser 
+      });
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({
+          message: "Validation error",
+          errors: error.errors,
+        });
+      }
+      console.error("Create user error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Update a user (Admin only)
+  app.put("/api/users/:id", authenticateToken, requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userData = updateUserSchema.parse(req.body);
+      
+      // Check if user exists
+      const existingUser = await storage.getUser(id);
+      if (!existingUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Check if email is being changed and if it's already taken
+      if (userData.email !== existingUser.email) {
+        const emailTaken = await storage.getUserByEmail(userData.email);
+        if (emailTaken) {
+          return res.status(400).json({ message: "Email already in use by another user" });
+        }
+      }
+
+      const updatedUser = await storage.updateUserAsAdmin(id, userData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // If user is deactivated, delete all their sessions
+      if (!userData.isActive) {
+        await storage.deleteUserRefreshTokens(id);
+      }
+
+      // Remove sensitive data before sending
+      const safeUser = {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        role: updatedUser.role,
+        isActive: updatedUser.isActive,
+        emailVerified: updatedUser.emailVerified,
+        updatedAt: updatedUser.updatedAt,
+      };
+
+      res.json({ 
+        message: "User updated successfully", 
+        user: safeUser 
+      });
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({
+          message: "Validation error",
+          errors: error.errors,
+        });
+      }
+      console.error("Update user error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Delete a user (Admin only)
+  app.delete("/api/users/:id", authenticateToken, requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Prevent admin from deleting themselves
+      if (id === req.user.id) {
+        return res.status(400).json({ message: "Cannot delete your own account" });
+      }
+
+      // Check if user exists
+      const existingUser = await storage.getUser(id);
+      if (!existingUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      await storage.deleteUser(id);
+
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Delete user error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Toggle user status (Admin only)
+  app.patch("/api/users/:id/status", authenticateToken, requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { isActive } = req.body;
+      
+      if (typeof isActive !== 'boolean') {
+        return res.status(400).json({ message: "isActive must be a boolean" });
+      }
+
+      // Prevent admin from deactivating themselves
+      if (id === req.user.id && !isActive) {
+        return res.status(400).json({ message: "Cannot deactivate your own account" });
+      }
+
+      const updatedUser = await storage.toggleUserStatus(id, isActive);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // If user is deactivated, delete all their sessions
+      if (!isActive) {
+        await storage.deleteUserRefreshTokens(id);
+      }
+
+      res.json({ 
+        message: `User ${isActive ? 'activated' : 'deactivated'} successfully`,
+        user: {
+          id: updatedUser.id,
+          isActive: updatedUser.isActive,
+        }
+      });
+    } catch (error) {
+      console.error("Toggle user status error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

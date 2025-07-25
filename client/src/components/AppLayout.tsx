@@ -6,7 +6,8 @@ import {
   Settings, 
   LogOut, 
   Shield,
-  Monitor
+  Monitor,
+  Users
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,11 +26,20 @@ import {
 } from "@/components/ui/tooltip";
 import { useAuth, useLogout, useUpdateMenuPreference } from "@/hooks/useAuth";
 
-const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: Home },
-  { name: "Profile", href: "/profile", icon: User },
-  { name: "Sessions", href: "/sessions", icon: Monitor },
-];
+const getNavigation = (userRole?: string) => {
+  const baseNavigation = [
+    { name: "Dashboard", href: "/dashboard", icon: Home },
+    { name: "Profile", href: "/profile", icon: User },
+    { name: "Sessions", href: "/sessions", icon: Monitor },
+  ];
+
+  // Add Users management for Admin and Manager roles
+  if (userRole === 'Administrator' || userRole === 'Manager') {
+    baseNavigation.push({ name: "Users", href: "/users", icon: Users });
+  }
+
+  return baseNavigation;
+};
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -40,6 +50,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { user } = useAuth();
   const logout = useLogout();
   const updateMenuPreference = useUpdateMenuPreference();
+  const navigation = getNavigation(user?.role);
   // Load initial menu state from localStorage or user preference
   const getInitialMenuState = () => {
     const localPref = localStorage.getItem('menuExpanded');

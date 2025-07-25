@@ -3,12 +3,17 @@ import { pgTable, text, varchar, timestamp, boolean } from "drizzle-orm/pg-core"
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// User roles enum
+export const userRoles = ['Employee', 'Manager', 'Administrator'] as const;
+export type UserRole = typeof userRoles[number];
+
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
   firstName: text("first_name"),
   lastName: text("last_name"),
+  role: text("role").default('Employee').notNull(), // User role for permissions
   isActive: boolean("is_active").default(true),
   twoFactorEnabled: boolean("two_factor_enabled").default(false),
   twoFactorSecret: text("two_factor_secret"),
@@ -16,6 +21,7 @@ export const users = pgTable("users", {
   emailVerificationToken: text("email_verification_token"),
   emailVerificationExpires: timestamp("email_verification_expires"),
   lastVerificationEmailSent: timestamp("last_verification_email_sent"),
+  lastLoginAt: timestamp("last_login_at"), // Track last login for user management
   menuExpanded: boolean("menu_expanded").default(false), // New field for menu preference
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -115,6 +121,38 @@ export const createDeviceSessionSchema = z.object({
   location: z.string().optional(),
 });
 
+// User management schemas
+export const createUserSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  role: z.enum(userRoles).default('Employee'),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+export const updateUserSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Please enter a valid email address"),
+  role: z.enum(userRoles),
+  isActive: z.boolean(),
+});
+
+export const userFiltersSchema = z.object({
+  search: z.string().optional(),
+  role: z.enum(userRoles).optional(),
+  status: z.enum(['active', 'inactive']).optional(),
+  showInactive: z.boolean().default(false),
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type LoginCredentials = z.infer<typeof loginSchema>;
@@ -130,3 +168,8 @@ export type DeviceSession = typeof refreshTokens.$inferSelect;
 export type CreateDeviceSessionData = z.infer<typeof createDeviceSessionSchema>;
 export type VerifyEmailData = z.infer<typeof verifyEmailSchema>;
 export type ResendVerificationData = z.infer<typeof resendVerificationSchema>;
+
+// User management types
+export type CreateUserData = z.infer<typeof createUserSchema>;
+export type UpdateUserData = z.infer<typeof updateUserSchema>;
+export type UserFilters = z.infer<typeof userFiltersSchema>;

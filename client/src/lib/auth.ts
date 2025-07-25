@@ -9,6 +9,7 @@ export interface AuthUser {
   email: string;
   firstName: string;
   lastName: string;
+  role: string;
   twoFactorEnabled?: boolean;
   emailVerified?: boolean;
   menuExpanded?: boolean;

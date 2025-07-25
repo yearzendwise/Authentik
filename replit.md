@@ -141,5 +141,9 @@ The architecture supports both development and production environments with hot 
 ✓ **Login Security**: Blocks unverified users from accessing the system
 ✓ **Automatic Verification Detection**: Added periodic checking and cache invalidation for email verification status
 ✓ **From Address Update**: Changed email from address to "dan@zendwise.work"
+✓ **Session Management Bug Fix**: Fixed "log out all devices" functionality that was incorrectly logging out current device
+✓ **Menu Preferences System**: Added persistent menu state management with user preferences
+✓ **Default Menu State**: Changed sidebar to be minimized by default with option to expand
+✓ **Profile Settings**: Added preferences tab in profile page for menu toggle control
 
-The email verification system is now production-ready with automatic verification detection. Users must verify their email addresses before they can log in. When unverified users login, they see a pending verification page that automatically redirects them after email verification. The system includes professional email templates and handles both successful deliveries and fallback scenarios during development.
+The authentication system now includes comprehensive session management with proper device isolation for logout operations. The navigation menu defaults to a minimized state showing only icons, with users able to toggle their preference both via the sidebar button and the profile preferences page. Menu preferences are saved to the database and persist across sessions.

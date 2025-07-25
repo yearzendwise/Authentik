@@ -467,8 +467,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastName: req.user.lastName,
         twoFactorEnabled: req.user.twoFactorEnabled,
         emailVerified: req.user.emailVerified,
+        menuExpanded: req.user.menuExpanded || false,
       },
     });
+  });
+
+  // Update menu preference endpoint
+  app.patch("/api/auth/menu-preference", authenticateToken, async (req: any, res) => {
+    try {
+      const { menuExpanded } = req.body;
+      
+      if (typeof menuExpanded !== 'boolean') {
+        return res.status(400).json({ message: "Menu preference must be a boolean value" });
+      }
+
+      await storage.updateUser(req.user.id, { menuExpanded });
+      
+      res.json({ 
+        message: "Menu preference updated successfully",
+        menuExpanded 
+      });
+    } catch (error) {
+      console.error("Update menu preference error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
   });
 
   // Logout from all devices

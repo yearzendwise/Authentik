@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useAuth, useUpdateProfile, useChangePassword, useDeleteAccount, useSetup2FA, useEnable2FA, useDisable2FA } from "@/hooks/useAuth";
+import { Switch } from "@/components/ui/switch";
+import { useAuth, useUpdateProfile, useChangePassword, useDeleteAccount, useSetup2FA, useEnable2FA, useDisable2FA, useUpdateMenuPreference } from "@/hooks/useAuth";
 import { updateProfileSchema, changePasswordSchema } from "@shared/schema";
 import type { UpdateProfileData, ChangePasswordData } from "@shared/schema";
 import { calculatePasswordStrength, getPasswordStrengthText, getPasswordStrengthColor } from "@/lib/authUtils";
@@ -23,7 +24,9 @@ import {
   EyeOff, 
   Loader2,
   AlertTriangle,
-  Smartphone
+  Smartphone,
+  Settings,
+  Menu
 } from "lucide-react";
 import { useLocation, Link } from "wouter";
 
@@ -36,6 +39,7 @@ export default function ProfilePage() {
   const setup2FAMutation = useSetup2FA();
   const enable2FAMutation = useEnable2FA();
   const disable2FAMutation = useDisable2FA();
+  const updateMenuPreferenceMutation = useUpdateMenuPreference();
 
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -180,10 +184,14 @@ export default function ProfilePage() {
       </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="profile" className="flex items-center space-x-2">
               <User className="w-4 h-4" />
               <span>Profile</span>
+            </TabsTrigger>
+            <TabsTrigger value="preferences" className="flex items-center space-x-2">
+              <Settings className="w-4 h-4" />
+              <span>Preferences</span>
             </TabsTrigger>
             <TabsTrigger value="security" className="flex items-center space-x-2">
               <Shield className="w-4 h-4" />
@@ -280,6 +288,41 @@ export default function ProfilePage() {
                     </Button>
                   </div>
                 </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Preferences Tab */}
+          <TabsContent value="preferences">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Settings className="w-5 h-5" />
+                  <span>Application Preferences</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* Menu Display Preference */}
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center space-x-2">
+                        <Menu className="w-4 h-4" />
+                        <Label className="text-base">Expanded Navigation Menu</Label>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Show navigation menu expanded by default with labels visible
+                      </p>
+                    </div>
+                    <Switch
+                      checked={user?.menuExpanded || false}
+                      onCheckedChange={(checked) => {
+                        updateMenuPreferenceMutation.mutate({ menuExpanded: checked });
+                      }}
+                      disabled={updateMenuPreferenceMutation.isPending}
+                    />
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

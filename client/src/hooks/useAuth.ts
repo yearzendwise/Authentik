@@ -220,6 +220,29 @@ export function useChangePassword() {
   });
 }
 
+export function useUpdateMenuPreference() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { menuExpanded: boolean }) => {
+      const response = await authManager.makeAuthenticatedRequest('PATCH', '/api/auth/menu-preference', data);
+      if (!response.ok) {
+        throw new Error('Failed to update menu preference');
+      }
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      // Update the cached user data with new menu preference
+      queryClient.setQueryData(["/api/auth/me"], (oldData: any) => {
+        if (oldData) {
+          return { ...oldData, menuExpanded: variables.menuExpanded };
+        }
+        return oldData;
+      });
+    },
+  });
+}
+
 export function useDeleteAccount() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

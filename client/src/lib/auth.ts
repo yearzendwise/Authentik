@@ -11,6 +11,7 @@ export interface AuthUser {
   lastName: string;
   twoFactorEnabled?: boolean;
   emailVerified?: boolean;
+  menuExpanded?: boolean;
 }
 
 export interface AuthResponse {

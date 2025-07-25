@@ -24,7 +24,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useAuth, useLogout } from "@/hooks/useAuth";
+import { useAuth, useLogout, useUpdateMenuPreference } from "@/hooks/useAuth";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
@@ -40,7 +40,19 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [location] = useLocation();
   const { user } = useAuth();
   const logout = useLogout();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const updateMenuPreference = useUpdateMenuPreference();
+  // Default to collapsed/minimized menu, use user preference if available
+  const [isCollapsed, setIsCollapsed] = useState(!user?.menuExpanded);
+
+  const handleMenuToggle = () => {
+    const newCollapsedState = !isCollapsed;
+    setIsCollapsed(newCollapsedState);
+    
+    // Update user preference in database
+    if (user) {
+      updateMenuPreference.mutate({ menuExpanded: !newCollapsedState });
+    }
+  };
 
   const handleLogout = () => {
     logout.mutate();
@@ -71,7 +83,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setIsCollapsed(!isCollapsed)}
+            onClick={handleMenuToggle}
             className="h-8 w-8 p-0"
           >
             <ChevronRight className={cn(

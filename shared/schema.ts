@@ -16,6 +16,7 @@ export const users = pgTable("users", {
   emailVerificationToken: text("email_verification_token"),
   emailVerificationExpires: timestamp("email_verification_expires"),
   lastVerificationEmailSent: timestamp("last_verification_email_sent"),
+  menuExpanded: boolean("menu_expanded").default(false), // New field for menu preference
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

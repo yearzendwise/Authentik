@@ -11,6 +11,12 @@ export class EmailService {
     const verificationUrl = `${this.baseUrl}/verify-email?token=${verificationToken}`;
     const displayName = firstName ? ` ${firstName}` : '';
 
+    // In development or when email fails, log the verification URL to console
+    console.log('\n🔗 EMAIL VERIFICATION URL:');
+    console.log(`   ${verificationUrl}`);
+    console.log(`   For user: ${email}${displayName}`);
+    console.log('   Copy this URL to your browser to verify the email\n');
+
     try {
       const { data, error } = await resend.emails.send({
         from: this.fromEmail,

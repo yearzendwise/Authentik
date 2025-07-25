@@ -119,11 +119,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await emailService.sendVerificationEmail(user.email, verificationToken, user.firstName || undefined);
       } catch (emailError) {
         console.error("Failed to send verification email:", emailError);
-        // Continue with registration even if email fails
+        // Continue with registration, console URL is already logged
       }
 
       res.status(201).json({
-        message: "User created successfully. Please check your email to verify your account.",
+        message: "User created successfully. Please check the server console for the verification URL since email delivery is restricted.",
         user: {
           id: user.id,
           email: user.email,
@@ -131,6 +131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lastName: user.lastName,
           emailVerified: false,
         },
+        developmentNote: "Check server console for verification URL"
       });
     } catch (error: any) {
       if (error.name === "ZodError") {
@@ -313,6 +314,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Resend verification error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Development endpoint to verify email without actual email
+  app.post("/api/auth/dev-verify-email", async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.emailVerified) {
+        return res.status(400).json({ message: "Email is already verified" });
+      }
+
+      // Verify the user's email directly
+      await storage.verifyUserEmail(user.id);
+
+      res.json({
+        message: "Email verified successfully! (Development mode)",
+        verified: true
+      });
+    } catch (error: any) {
+      console.error("Dev email verification error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

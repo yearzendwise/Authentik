@@ -20,6 +20,7 @@ export interface IStorage {
   // Refresh token operations with device tracking
   createRefreshToken(userId: string, token: string, expiresAt: Date, deviceInfo?: DeviceInfo): Promise<RefreshToken>;
   getRefreshToken(token: string): Promise<RefreshToken | undefined>;
+  updateRefreshToken(id: string, token: string): Promise<void>;
   deleteRefreshToken(token: string): Promise<void>;
   deleteUserRefreshTokens(userId: string): Promise<void>;
   cleanExpiredTokens(): Promise<void>;
@@ -29,6 +30,7 @@ export interface IStorage {
   updateSessionLastUsed(token: string): Promise<void>;
   deleteSession(sessionId: string, userId: string): Promise<void>;
   deleteAllUserSessions(userId: string): Promise<void>;
+  refreshTokenExists(refreshTokenId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -140,6 +142,26 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(refreshTokens)
       .where(eq(refreshTokens.userId, userId));
+  }
+
+  async updateRefreshToken(id: string, token: string): Promise<void> {
+    await db
+      .update(refreshTokens)
+      .set({ token })
+      .where(eq(refreshTokens.id, id));
+  }
+
+  async refreshTokenExists(refreshTokenId: string): Promise<boolean> {
+    const [token] = await db
+      .select({ id: refreshTokens.id })
+      .from(refreshTokens)
+      .where(and(
+        eq(refreshTokens.id, refreshTokenId),
+        eq(refreshTokens.isActive, true),
+        gt(refreshTokens.expiresAt, new Date())
+      ))
+      .limit(1);
+    return !!token;
   }
 }
 

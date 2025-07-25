@@ -36,7 +36,7 @@ function getDeviceInfo(req: any): { deviceId: string; deviceName: string; userAg
     ipAddress: req.ip || req.connection?.remoteAddress || "Unknown",
   };
 }
-const ACCESS_TOKEN_EXPIRES = "15m";
+const ACCESS_TOKEN_EXPIRES = "2m"; // Shorter expiry for more immediate logout
 const REFRESH_TOKEN_EXPIRES = "7d";
 
 // Middleware to verify JWT token

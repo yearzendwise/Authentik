@@ -33,6 +33,7 @@ The application follows a monorepo architecture with clear separation between cl
 - **Express Server**: RESTful API with comprehensive authentication middleware
 - **Database Layer**: Drizzle ORM with PostgreSQL for data persistence
 - **Authentication**: JWT access and refresh tokens with bcrypt password hashing
+- **Email Verification**: Resend service integration for account verification emails
 - **Two-Factor Authentication**: TOTP-based 2FA with QR code generation using otplib and qrcode
 - **Multi-Device Tracking**: Device detection with browser/OS identification and IP tracking
 - **Storage Interface**: Abstracted storage layer for all database operations
@@ -40,14 +41,16 @@ The application follows a monorepo architecture with clear separation between cl
 - **Profile Management**: Complete CRUD operations for user account management
 
 ### Database Schema
-- **Users Table**: Stores user credentials, profile information, and 2FA settings
+- **Users Table**: Stores user credentials, profile information, 2FA settings, and email verification status
 - **Refresh Tokens Table**: Enhanced with device tracking fields (device ID, name, user agent, IP address, location, last used)
 - **Schema Validation**: Zod schemas shared between frontend and backend
 
 ## Data Flow
 
 1. **Authentication Flow**:
-   - User submits login/registration form
+   - User submits registration form → system sends verification email via Resend
+   - User clicks verification link → email is verified → welcome email sent
+   - User submits login form with verified email
    - Frontend validates data using Zod schemas
    - API endpoint processes request and generates JWT tokens
    - If 2FA is enabled, user must provide TOTP code for verification

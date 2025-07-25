@@ -54,6 +54,8 @@ export function useLogin() {
       
       if (error.message.includes("401")) {
         message = "Invalid email or password. Please check your credentials.";
+      } else if (error.message.includes("403") && error.message.includes("verify")) {
+        message = "Please verify your email address before logging in. Check your inbox for the verification email.";
       } else if (error.message.includes("400")) {
         message = "Please check your input and try again.";
       }
@@ -76,8 +78,8 @@ export function useRegister() {
     },
     onSuccess: () => {
       toast({
-        title: "Success",
-        description: "Account created successfully! Please sign in with your credentials.",
+        title: "Account Created!",
+        description: "Please check your email to verify your account before logging in.",
       });
     },
     onError: (error: Error) => {

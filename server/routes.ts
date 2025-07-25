@@ -4,12 +4,13 @@ import { storage } from "./storage";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import cookieParser from "cookie-parser";
-import { loginSchema, registerSchema, forgotPasswordSchema, updateProfileSchema, changePasswordSchema, enable2FASchema, disable2FASchema } from "@shared/schema";
+import { loginSchema, registerSchema, forgotPasswordSchema, updateProfileSchema, changePasswordSchema, enable2FASchema, disable2FASchema, verifyEmailSchema } from "@shared/schema";
 import { randomBytes } from "crypto";
 import { authenticator } from "otplib";
 import * as QRCode from "qrcode";
 import { UAParser } from "ua-parser-js";
 import { createHash } from "crypto";
+import { emailService } from "./emailService";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key";
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || "your-super-secret-refresh-key";
@@ -106,13 +107,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastName: validatedData.lastName,
       });
 
+      // Generate email verification token
+      const verificationToken = randomBytes(32).toString('hex');
+      const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      // Set verification token in database
+      await storage.setEmailVerificationToken(user.id, verificationToken, verificationExpires);
+
+      // Send verification email
+      try {
+        await emailService.sendVerificationEmail(user.email, verificationToken, user.firstName || undefined);
+      } catch (emailError) {
+        console.error("Failed to send verification email:", emailError);
+        // Continue with registration even if email fails
+      }
+
       res.status(201).json({
-        message: "User created successfully",
+        message: "User created successfully. Please check your email to verify your account.",
         user: {
           id: user.id,
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
+          emailVerified: false,
         },
       });
     } catch (error: any) {
@@ -142,6 +159,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isValidPassword = await bcrypt.compare(password, user.password);
       if (!isValidPassword) {
         return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Check if email is verified
+      if (!user.emailVerified) {
+        return res.status(403).json({ 
+          message: "Please verify your email address before logging in. Check your inbox for the verification email.",
+          emailVerificationRequired: true
+        });
       }
 
       // Check 2FA if enabled
@@ -205,6 +230,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       console.error("Login error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Email verification endpoint
+  app.get("/api/auth/verify-email", async (req, res) => {
+    try {
+      const { token } = verifyEmailSchema.parse(req.query);
+
+      // Find user by verification token
+      const user = await storage.getUserByEmailVerificationToken(token);
+      if (!user) {
+        return res.status(400).json({ 
+          message: "Invalid or expired verification token. Please request a new verification email." 
+        });
+      }
+
+      // Verify the user's email
+      await storage.verifyUserEmail(user.id);
+
+      // Send welcome email
+      try {
+        await emailService.sendWelcomeEmail(user.email, user.firstName || undefined);
+      } catch (emailError) {
+        console.error("Failed to send welcome email:", emailError);
+        // Continue even if welcome email fails
+      }
+
+      res.json({
+        message: "Email verified successfully! You can now log in to your account.",
+        verified: true
+      });
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({
+          message: "Invalid verification token format",
+          errors: error.errors,
+        });
+      }
+      console.error("Email verification error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Resend verification email endpoint
+  app.post("/api/auth/resend-verification", async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.emailVerified) {
+        return res.status(400).json({ message: "Email is already verified" });
+      }
+
+      // Generate new verification token
+      const verificationToken = randomBytes(32).toString('hex');
+      const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      // Update verification token in database
+      await storage.setEmailVerificationToken(user.id, verificationToken, verificationExpires);
+
+      // Send verification email
+      try {
+        await emailService.sendVerificationEmail(user.email, verificationToken, user.firstName || undefined);
+      } catch (emailError) {
+        console.error("Failed to send verification email:", emailError);
+        return res.status(500).json({ message: "Failed to send verification email" });
+      }
+
+      res.json({
+        message: "Verification email sent successfully. Please check your inbox."
+      });
+    } catch (error: any) {
+      console.error("Resend verification error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

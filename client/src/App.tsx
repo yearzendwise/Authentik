@@ -8,6 +8,7 @@ import AuthPage from "@/pages/auth";
 import Dashboard from "@/pages/dashboard";
 import ProfilePage from "@/pages/profile";
 import SessionsPage from "@/pages/sessions";
+import VerifyEmailPage from "@/pages/verify-email";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -35,6 +36,7 @@ function Router() {
         <>
           <Route path="/" component={AuthPage} />
           <Route path="/auth" component={AuthPage} />
+          <Route path="/verify-email" component={VerifyEmailPage} />
           {/* Redirect any other route to auth for unauthenticated users */}
           <Route path="/dashboard" component={AuthPage} />
           <Route path="/profile" component={AuthPage} />

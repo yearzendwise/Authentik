@@ -31,6 +31,11 @@ export interface IStorage {
   deleteSession(sessionId: string, userId: string): Promise<void>;
   deleteAllUserSessions(userId: string): Promise<void>;
   refreshTokenExists(refreshTokenId: string): Promise<boolean>;
+  
+  // Email verification
+  setEmailVerificationToken(userId: string, token: string, expiresAt: Date): Promise<void>;
+  getUserByEmailVerificationToken(token: string): Promise<User | undefined>;
+  verifyUserEmail(userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -162,6 +167,41 @@ export class DatabaseStorage implements IStorage {
       ))
       .limit(1);
     return !!token;
+  }
+
+  // Email verification methods
+  async setEmailVerificationToken(userId: string, token: string, expiresAt: Date): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        emailVerificationToken: token,
+        emailVerificationExpires: expiresAt,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async getUserByEmailVerificationToken(token: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(and(
+        eq(users.emailVerificationToken, token),
+        gt(users.emailVerificationExpires, new Date())
+      ));
+    return user;
+  }
+
+  async verifyUserEmail(userId: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        emailVerified: true,
+        emailVerificationToken: null,
+        emailVerificationExpires: null,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId));
   }
 }
 

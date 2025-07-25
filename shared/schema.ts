@@ -12,6 +12,9 @@ export const users = pgTable("users", {
   isActive: boolean("is_active").default(true),
   twoFactorEnabled: boolean("two_factor_enabled").default(false),
   twoFactorSecret: text("two_factor_secret"),
+  emailVerified: boolean("email_verified").default(false),
+  emailVerificationToken: text("email_verification_token"),
+  emailVerificationExpires: timestamp("email_verification_expires"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -69,6 +72,10 @@ export const updateProfileSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 
+export const verifyEmailSchema = z.object({
+  token: z.string().min(1, "Verification token is required"),
+});
+
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
   newPassword: z.string()
@@ -115,3 +122,4 @@ export type Verify2FAData = z.infer<typeof verify2FASchema>;
 export type RefreshToken = typeof refreshTokens.$inferSelect;
 export type DeviceSession = typeof refreshTokens.$inferSelect;
 export type CreateDeviceSessionData = z.infer<typeof createDeviceSessionSchema>;
+export type VerifyEmailData = z.infer<typeof verifyEmailSchema>;

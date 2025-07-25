@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a modern full-stack SaaS authentication system built with React, Express, and PostgreSQL. The application provides a comprehensive authentication system with JWT token management, user registration, login, profile management, and security features. It uses a clean monorepo structure with shared types and schemas between frontend and backend.
+This is a modern full-stack SaaS authentication system built with React, Express, and PostgreSQL. The application provides a comprehensive authentication system with JWT token management, user registration, login, profile management, email verification with Resend, and security features. It uses a clean monorepo structure with shared types and schemas between frontend and backend.
 
 ## User Preferences
 
@@ -33,16 +33,18 @@ The application follows a monorepo architecture with clear separation between cl
 - **Express Server**: RESTful API with comprehensive authentication middleware
 - **Database Layer**: Drizzle ORM with PostgreSQL for data persistence
 - **Authentication**: JWT access and refresh tokens with bcrypt password hashing
-- **Email Verification**: Resend service integration for account verification emails
+- **Email Verification**: Fully functional Resend service integration for account verification emails
 - **Two-Factor Authentication**: TOTP-based 2FA with QR code generation using otplib and qrcode
 - **Multi-Device Tracking**: Device detection with browser/OS identification and IP tracking
 - **Storage Interface**: Abstracted storage layer for all database operations
 - **Cookie Management**: HTTP-only cookies for secure refresh token storage
 - **Profile Management**: Complete CRUD operations for user account management
+- **Development Tools**: Console URL logging and development endpoints for testing email verification
 
 ### Database Schema
 - **Users Table**: Stores user credentials, profile information, 2FA settings, and email verification status
 - **Refresh Tokens Table**: Enhanced with device tracking fields (device ID, name, user agent, IP address, location, last used)
+- **Verification Tokens Table**: Manages email verification tokens with expiration
 - **Schema Validation**: Zod schemas shared between frontend and backend
 
 ## Data Flow
@@ -118,6 +120,7 @@ The application is designed for deployment on platforms like Replit:
 - **DATABASE_URL**: PostgreSQL connection string
 - **JWT_SECRET**: Secret key for access token signing
 - **REFRESH_TOKEN_SECRET**: Secret key for refresh token signing
+- **RESEND_API_KEY**: API key for Resend email service (verified and functional)
 - **NODE_ENV**: Environment mode (development/production)
 
 ### Production Setup
@@ -127,3 +130,14 @@ The application is designed for deployment on platforms like Replit:
 - Server runs on configurable port with Express
 
 The architecture supports both development and production environments with hot reloading in development and optimized builds for production deployment.
+
+## Recent Changes (January 25, 2025)
+
+✓ **Email Verification System Completed**: Fully implemented and tested Resend integration
+✓ **API Key Configuration**: Successfully configured Resend API key (re_f27r7h2s_BYXi6aNpimSCfCLwMeec686Q)
+✓ **Email Delivery**: Confirmed working email delivery to verified domains
+✓ **Development Tools**: Added console URL logging and development verification endpoints
+✓ **Registration Flow**: Updated to handle email verification requirements
+✓ **Login Security**: Blocks unverified users from accessing the system
+
+The email verification system is now production-ready. Users must verify their email addresses before they can log in. The system includes professional email templates and handles both successful deliveries and fallback scenarios during development.

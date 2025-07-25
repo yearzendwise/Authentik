@@ -466,6 +466,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         firstName: req.user.firstName,
         lastName: req.user.lastName,
         twoFactorEnabled: req.user.twoFactorEnabled,
+        emailVerified: req.user.emailVerified,
       },
     });
   });

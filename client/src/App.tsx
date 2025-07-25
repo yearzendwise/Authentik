@@ -23,11 +23,12 @@ function Router() {
     );
   }
 
-  const isEmailVerified = user?.emailVerified ?? true; // Default to true if no user or status unknown
+  // Only determine email verification status if we have a user object
+  const isEmailVerified = user ? user.emailVerified : undefined;
 
   return (
     <Switch>
-      {isAuthenticated && isEmailVerified ? (
+      {isAuthenticated && isEmailVerified === true ? (
         <>
           <Route path="/" component={Dashboard} />
           <Route path="/dashboard" component={Dashboard} />
@@ -36,7 +37,7 @@ function Router() {
           <Route path="/auth" component={Dashboard} /> {/* Redirect logged-in users away from auth */}
           <Route path="/pending-verification" component={Dashboard} /> {/* Redirect verified users away */}
         </>
-      ) : isAuthenticated && !isEmailVerified ? (
+      ) : isAuthenticated && isEmailVerified === false ? (
         <>
           <Route path="/" component={PendingVerificationPage} />
           <Route path="/pending-verification" component={PendingVerificationPage} />

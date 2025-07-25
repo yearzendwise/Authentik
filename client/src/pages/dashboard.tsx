@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth, useLogout } from "@/hooks/useAuth";
 import { authManager } from "@/lib/auth";
-import { Shield, Users, Clock, TrendingUp, LogOut, RefreshCw } from "lucide-react";
+import { Shield, Users, Clock, TrendingUp, LogOut, RefreshCw, Settings } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function Dashboard() {
@@ -99,6 +99,9 @@ export default function Dashboard() {
                 <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                 <span className="text-xs text-gray-600">Token Valid</span>
               </div>
+              <Button variant="ghost" size="sm" onClick={() => setLocation("/profile")}>
+                <Settings className="w-4 h-4" />
+              </Button>
               <Button variant="ghost" size="sm" onClick={handleLogout} disabled={logoutMutation.isPending}>
                 <LogOut className="w-4 h-4" />
               </Button>

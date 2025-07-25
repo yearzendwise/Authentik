@@ -81,7 +81,7 @@ export class DatabaseStorage implements IStorage {
 
   async cleanExpiredTokens(): Promise<void> {
     await db.delete(refreshTokens).where(
-      gt(new Date(), refreshTokens.expiresAt)
+      gt(refreshTokens.expiresAt, new Date())
     );
   }
 }

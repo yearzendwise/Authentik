@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import cookieParser from "cookie-parser";
-import { loginSchema, registerSchema, forgotPasswordSchema } from "@shared/schema";
+import { loginSchema, registerSchema, forgotPasswordSchema, updateProfileSchema, changePasswordSchema } from "@shared/schema";
 import { randomBytes } from "crypto";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key";
@@ -252,6 +252,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Logged out from all devices" });
     } catch (error) {
       console.error("Logout all error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Update profile endpoint
+  app.put("/api/auth/profile", authenticateToken, async (req: any, res) => {
+    try {
+      const updateData = updateProfileSchema.parse(req.body);
+      
+      // Check if email is already taken by another user
+      if (updateData.email !== req.user.email) {
+        const existingUser = await storage.getUserByEmail(updateData.email);
+        if (existingUser && existingUser.id !== req.user.id) {
+          return res.status(409).json({ message: "Email already taken by another user" });
+        }
+      }
+
+      const updatedUser = await storage.updateUser(req.user.id, updateData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({
+        message: "Profile updated successfully",
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+        },
+      });
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({
+          message: "Validation error",
+          errors: error.errors,
+        });
+      }
+      console.error("Profile update error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Change password endpoint
+  app.put("/api/auth/change-password", authenticateToken, async (req: any, res) => {
+    try {
+      const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
+      
+      // Verify current password
+      const isValidPassword = await bcrypt.compare(currentPassword, req.user.password);
+      if (!isValidPassword) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+      // Update password
+      const updatedUser = await storage.updateUser(req.user.id, { password: hashedPassword });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Revoke all refresh tokens to force re-authentication on all devices
+      await storage.deleteUserRefreshTokens(req.user.id);
+
+      res.json({ message: "Password changed successfully. Please log in again." });
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({
+          message: "Validation error",
+          errors: error.errors,
+        });
+      }
+      console.error("Password change error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Delete account endpoint
+  app.delete("/api/auth/account", authenticateToken, async (req: any, res) => {
+    try {
+      // Deactivate user instead of deleting
+      const updatedUser = await storage.updateUser(req.user.id, { isActive: false });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Revoke all refresh tokens
+      await storage.deleteUserRefreshTokens(req.user.id);
+      
+      // Clear refresh token cookie
+      res.clearCookie("refreshToken");
+
+      res.json({ message: "Account deleted successfully" });
+    } catch (error) {
+      console.error("Account deletion error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

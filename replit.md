@@ -1,8 +1,8 @@
-# Full-Stack Authentication Application
+# Full-Stack SaaS Authentication Application
 
 ## Overview
 
-This is a modern full-stack web application built with React, Express, and PostgreSQL. The application provides a complete authentication system with login, registration, and password recovery features. It uses a clean monorepo structure with shared types and schemas between frontend and backend.
+This is a modern full-stack SaaS authentication system built with React, Express, and PostgreSQL. The application provides a comprehensive authentication system with JWT token management, user registration, login, profile management, and security features. It uses a clean monorepo structure with shared types and schemas between frontend and backend.
 
 ## User Preferences
 
@@ -29,11 +29,12 @@ The application follows a monorepo architecture with clear separation between cl
 - **State Management**: TanStack Query for API state, React Context for auth state
 
 ### Backend Architecture
-- **Express Server**: RESTful API with middleware for authentication
-- **Database Layer**: Drizzle ORM with Neon serverless PostgreSQL
-- **Authentication**: JWT tokens with bcrypt for password hashing
-- **Storage Interface**: Abstracted storage layer for database operations
-- **Cookie Management**: HTTP-only cookies for refresh token storage
+- **Express Server**: RESTful API with comprehensive authentication middleware
+- **Database Layer**: Drizzle ORM with PostgreSQL for data persistence
+- **Authentication**: JWT access and refresh tokens with bcrypt password hashing
+- **Storage Interface**: Abstracted storage layer for all database operations
+- **Cookie Management**: HTTP-only cookies for secure refresh token storage
+- **Profile Management**: Complete CRUD operations for user account management
 
 ### Database Schema
 - **Users Table**: Stores user credentials and profile information
@@ -46,18 +47,24 @@ The application follows a monorepo architecture with clear separation between cl
    - User submits login/registration form
    - Frontend validates data using Zod schemas
    - API endpoint processes request and generates JWT tokens
-   - Access token stored in memory, refresh token in HTTP-only cookie
-   - Protected routes verify access token on each request
+   - Access token stored in localStorage, refresh token in HTTP-only cookie
+   - Protected routes verify access token with automatic refresh handling
 
-2. **API Communication**:
+2. **Profile Management Flow**:
+   - User updates profile information through secure forms
+   - Password changes trigger token revocation across all devices
+   - Account deletion marks user as inactive and clears all tokens
+   - Real-time validation with password strength indicators
+
+3. **API Communication**:
    - Frontend uses TanStack Query for API calls
-   - Custom query client handles token refresh automatically
-   - Error handling with toast notifications for user feedback
+   - Custom auth manager handles token refresh automatically
+   - Comprehensive error handling with toast notifications
 
-3. **Database Operations**:
+4. **Database Operations**:
    - Drizzle ORM provides type-safe database queries
-   - Storage interface abstracts database operations
-   - Connection pooling with Neon serverless PostgreSQL
+   - Storage interface abstracts all database operations
+   - Connection pooling with PostgreSQL database
 
 ## External Dependencies
 

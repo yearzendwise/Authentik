@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { authManager } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import type { AuthUser, AuthResponse } from "@/lib/auth";
-import type { LoginCredentials, RegisterData } from "@shared/schema";
+import type { LoginCredentials, RegisterData, UpdateProfileData, ChangePasswordData } from "@shared/schema";
 
 export function useAuth() {
   const { data: user, isLoading, error } = useQuery<AuthUser | null>({
@@ -138,6 +138,105 @@ export function useForgotPassword() {
       toast({
         title: "Error",
         description: "Failed to send reset link. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useUpdateProfile() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (data: UpdateProfileData) => {
+      return authManager.updateProfile(data);
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["/api/auth/me"], data.user);
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      toast({
+        title: "Success",
+        description: "Profile updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      let message = "Failed to update profile. Please try again.";
+      
+      if (error.message.includes("409")) {
+        message = "Email already taken by another user.";
+      } else if (error.message.includes("400")) {
+        message = "Please check your input and try again.";
+      }
+      
+      toast({
+        title: "Update Failed",
+        description: message,
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useChangePassword() {
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (data: ChangePasswordData) => {
+      return authManager.changePassword(data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Password changed successfully. Please log in again.",
+      });
+      // Redirect to login after a short delay
+      setTimeout(() => {
+        window.location.href = "/auth";
+      }, 2000);
+    },
+    onError: (error: Error) => {
+      let message = "Failed to change password. Please try again.";
+      
+      if (error.message.includes("Current password is incorrect")) {
+        message = "Current password is incorrect.";
+      } else if (error.message.includes("400")) {
+        message = "Please check your input and try again.";
+      }
+      
+      toast({
+        title: "Password Change Failed",
+        description: message,
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useDeleteAccount() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async () => {
+      return authManager.deleteAccount();
+    },
+    onSuccess: () => {
+      queryClient.setQueryData(["/api/auth/me"], null);
+      queryClient.clear();
+      toast({
+        title: "Account Deleted",
+        description: "Your account has been successfully deleted.",
+      });
+      // Redirect to auth page after a short delay
+      setTimeout(() => {
+        window.location.href = "/auth";
+      }, 2000);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Deletion Failed",
+        description: "Failed to delete account. Please try again.",
         variant: "destructive",
       });
     },

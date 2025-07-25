@@ -173,6 +173,48 @@ class AuthManager {
     return response.json();
   }
 
+  async updateProfile(data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  }): Promise<{ message: string; user: AuthUser }> {
+    const response = await this.makeAuthenticatedRequest("PUT", "/api/auth/profile", data);
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to update profile");
+    }
+
+    return response.json();
+  }
+
+  async changePassword(data: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }): Promise<{ message: string }> {
+    const response = await this.makeAuthenticatedRequest("PUT", "/api/auth/change-password", data);
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to change password");
+    }
+
+    return response.json();
+  }
+
+  async deleteAccount(): Promise<{ message: string }> {
+    const response = await this.makeAuthenticatedRequest("DELETE", "/api/auth/account");
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to delete account");
+    }
+
+    this.clearTokens();
+    return response.json();
+  }
+
   isAuthenticated(): boolean {
     return !!this.getAccessToken();
   }

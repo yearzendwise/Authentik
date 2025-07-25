@@ -98,13 +98,20 @@ export default function Sessions() {
 
   if (isLoading) {
     return (
-      <div className="container max-w-4xl mx-auto py-8">
+      <div className="max-w-4xl mx-auto p-6">
         <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-bold">Active Sessions</h1>
-            <p className="text-muted-foreground">
-              Manage your active login sessions across different devices
-            </p>
+          <div className="mb-8">
+            <div className="flex items-center space-x-4">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <Monitor className="text-white w-6 h-6" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Active Sessions</h1>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Manage your active login sessions across different devices
+                </p>
+              </div>
+            </div>
           </div>
           <div className="grid gap-4">
             {[1, 2, 3].map((i) => (
@@ -125,14 +132,21 @@ export default function Sessions() {
   const otherSessions = sessions.filter((s: Session) => !s.isCurrent);
 
   return (
-    <div className="container max-w-4xl mx-auto py-8">
+    <div className="max-w-4xl mx-auto p-6">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Active Sessions</h1>
-            <p className="text-muted-foreground">
-              Manage your active login sessions across different devices
-            </p>
+          <div className="mb-8">
+            <div className="flex items-center space-x-4">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <Monitor className="text-white w-6 h-6" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Active Sessions</h1>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Manage your active login sessions across different devices
+                </p>
+              </div>
+            </div>
           </div>
           {otherSessions.length > 0 && (
             <AlertDialog>

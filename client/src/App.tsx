@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
+import { AppLayout } from "@/components/AppLayout";
 import AuthPage from "@/pages/auth";
 import Dashboard from "@/pages/dashboard";
 import ProfilePage from "@/pages/profile";
@@ -29,14 +30,16 @@ function Router() {
   return (
     <Switch>
       {isAuthenticated && isEmailVerified === true ? (
-        <>
-          <Route path="/" component={Dashboard} />
-          <Route path="/dashboard" component={Dashboard} />
-          <Route path="/profile" component={ProfilePage} />
-          <Route path="/sessions" component={SessionsPage} />
-          <Route path="/auth" component={Dashboard} /> {/* Redirect logged-in users away from auth */}
-          <Route path="/pending-verification" component={Dashboard} /> {/* Redirect verified users away */}
-        </>
+        <AppLayout>
+          <Switch>
+            <Route path="/" component={Dashboard} />
+            <Route path="/dashboard" component={Dashboard} />
+            <Route path="/profile" component={ProfilePage} />
+            <Route path="/sessions" component={SessionsPage} />
+            <Route path="/auth" component={Dashboard} /> {/* Redirect logged-in users away from auth */}
+            <Route path="/pending-verification" component={Dashboard} /> {/* Redirect verified users away */}
+          </Switch>
+        </AppLayout>
       ) : isAuthenticated && isEmailVerified === false ? (
         <>
           <Route path="/" component={PendingVerificationPage} />

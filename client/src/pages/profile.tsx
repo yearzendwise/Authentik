@@ -165,44 +165,19 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setLocation("/dashboard")}
-                className="flex items-center space-x-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Back to Dashboard</span>
-              </Button>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/sessions">
-                <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                  <Smartphone className="w-4 h-4" />
-                  <span>Active Sessions</span>
-                </Button>
-              </Link>
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                <User className="text-white w-4 h-4" />
-              </div>
-              <span className="text-sm font-medium text-gray-900">Profile Settings</span>
-            </div>
+    <div className="max-w-4xl mx-auto p-6">
+      {/* Page Header */}
+      <div className="mb-8">
+        <div className="flex items-center space-x-4">
+          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+            <User className="text-white w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Account Settings</h1>
+            <p className="text-gray-600 dark:text-gray-400">Manage your account information and security settings</p>
           </div>
         </div>
       </div>
-
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Account Settings</h1>
-          <p className="text-gray-600 mt-1">Manage your account information and security settings</p>
-        </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4">
@@ -651,7 +626,6 @@ export default function ProfilePage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </div>
     </div>
   );
 }

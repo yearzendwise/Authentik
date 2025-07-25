@@ -77,41 +77,21 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Shield className="text-white w-6 h-6" />
-              </div>
-              <div>
-                <h1 className="text-lg font-semibold text-gray-900">Dashboard</h1>
-                <p className="text-sm text-gray-600">
-                  Welcome back, {user.firstName} {user.lastName}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              {/* Token Status Indicator */}
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                <span className="text-xs text-gray-600">Token Valid</span>
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => setLocation("/profile")}>
-                <Settings className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="sm" onClick={handleLogout} disabled={logoutMutation.isPending}>
-                <LogOut className="w-4 h-4" />
-              </Button>
-            </div>
+    <div className="p-6">
+      {/* Page Header */}
+      <div className="mb-8">
+        <div className="flex items-center space-x-4">
+          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+            <Shield className="text-white w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Welcome back, {user.firstName} {user.lastName}
+            </p>
           </div>
         </div>
       </div>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>
@@ -217,6 +197,5 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
-}
+    );
+  }

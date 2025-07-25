@@ -22,6 +22,14 @@ export const refreshTokens = pgTable("refresh_tokens", {
   token: text("token").notNull().unique(),
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
+  // Device tracking fields
+  deviceId: text("device_id").default(sql`gen_random_uuid()`).notNull(), // Unique identifier for the device/session
+  deviceName: text("device_name"), // User-friendly device name
+  userAgent: text("user_agent"), // Browser/app user agent
+  ipAddress: text("ip_address"), // IP address at login
+  location: text("location"), // Approximate location (optional)
+  lastUsed: timestamp("last_used").defaultNow(),
+  isActive: boolean("is_active").default(true),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -86,6 +94,14 @@ export const verify2FASchema = z.object({
   token: z.string().min(6, "Please enter a 6-digit code").max(6, "Please enter a 6-digit code"),
 });
 
+// Device session management schemas
+export const createDeviceSessionSchema = z.object({
+  deviceName: z.string().optional(),
+  userAgent: z.string().optional(),
+  ipAddress: z.string().optional(),
+  location: z.string().optional(),
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type LoginCredentials = z.infer<typeof loginSchema>;
@@ -97,3 +113,5 @@ export type Enable2FAData = z.infer<typeof enable2FASchema>;
 export type Disable2FAData = z.infer<typeof disable2FASchema>;
 export type Verify2FAData = z.infer<typeof verify2FASchema>;
 export type RefreshToken = typeof refreshTokens.$inferSelect;
+export type DeviceSession = typeof refreshTokens.$inferSelect;
+export type CreateDeviceSessionData = z.infer<typeof createDeviceSessionSchema>;

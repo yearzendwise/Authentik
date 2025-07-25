@@ -22,9 +22,10 @@ import {
   Eye, 
   EyeOff, 
   Loader2,
-  AlertTriangle
+  AlertTriangle,
+  Smartphone
 } from "lucide-react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 
 export default function ProfilePage() {
   const [, setLocation] = useLocation();
@@ -181,6 +182,12 @@ export default function ProfilePage() {
               </Button>
             </div>
             <div className="flex items-center space-x-4">
+              <Link href="/sessions">
+                <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                  <Smartphone className="w-4 h-4" />
+                  <span>Active Sessions</span>
+                </Button>
+              </Link>
               <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
                 <User className="text-white w-4 h-4" />
               </div>

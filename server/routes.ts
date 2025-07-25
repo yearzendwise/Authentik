@@ -8,9 +8,33 @@ import { loginSchema, registerSchema, forgotPasswordSchema, updateProfileSchema,
 import { randomBytes } from "crypto";
 import { authenticator } from "otplib";
 import * as QRCode from "qrcode";
+import { UAParser } from "ua-parser-js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key";
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || "your-super-secret-refresh-key";
+
+// Utility function to extract device information from request
+function getDeviceInfo(req: any): { deviceId: string; deviceName: string; userAgent?: string; ipAddress?: string } {
+  const userAgentString = req.get("User-Agent") || "Unknown";
+  const parser = new UAParser(userAgentString);
+  const result = parser.getResult();
+  
+  // Create a unique device identifier based on user agent and IP
+  const deviceFingerprint = `${result.browser.name}-${result.os.name}-${req.ip}`;
+  const deviceId = require("crypto").createHash("sha256").update(deviceFingerprint).digest("hex").substring(0, 16);
+  
+  // Generate user-friendly device name
+  const browserName = result.browser.name || "Unknown Browser";
+  const osName = result.os.name || "Unknown OS";
+  const deviceName = `${browserName} on ${osName}`;
+  
+  return {
+    deviceId,
+    deviceName,
+    userAgent: userAgentString,
+    ipAddress: req.ip || req.connection?.remoteAddress || "Unknown",
+  };
+}
 const ACCESS_TOKEN_EXPIRES = "15m";
 const REFRESH_TOKEN_EXPIRES = "7d";
 
@@ -146,9 +170,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate tokens
       const { accessToken, refreshToken } = generateTokens(user.id);
 
-      // Store refresh token in database
+      // Get device information
+      const deviceInfo = getDeviceInfo(req);
+
+      // Store refresh token in database with device info
       const refreshTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-      await storage.createRefreshToken(user.id, refreshToken, refreshTokenExpiry);
+      await storage.createRefreshToken(user.id, refreshToken, refreshTokenExpiry, deviceInfo);
 
       // Set refresh token as httpOnly cookie
       res.cookie("refreshToken", refreshToken, {
@@ -205,13 +232,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "User not found or inactive" });
       }
 
+      // Update session last used time
+      await storage.updateSessionLastUsed(refreshToken);
+
       // Generate new tokens
       const { accessToken, refreshToken: newRefreshToken } = generateTokens(user.id);
 
-      // Remove old refresh token and store new one
+      // Get device info to preserve it in the new token
+      const deviceInfo = getDeviceInfo(req);
+
+      // Remove old refresh token and store new one with preserved device info
       await storage.deleteRefreshToken(refreshToken);
       const refreshTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-      await storage.createRefreshToken(user.id, newRefreshToken, refreshTokenExpiry);
+      await storage.createRefreshToken(user.id, newRefreshToken, refreshTokenExpiry, {
+        deviceId: storedToken.deviceId || deviceInfo.deviceId,
+        deviceName: storedToken.deviceName || deviceInfo.deviceName,
+        userAgent: deviceInfo.userAgent,
+        ipAddress: deviceInfo.ipAddress,
+      });
 
       // Set new refresh token as httpOnly cookie
       res.cookie("refreshToken", newRefreshToken, {
@@ -518,6 +556,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       console.error("Forgot password error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Device session management endpoints
+  
+  // Get user's active sessions
+  app.get("/api/auth/sessions", authenticateToken, async (req: any, res) => {
+    try {
+      const sessions = await storage.getUserSessions(req.user.id);
+      
+      // Get current session token to mark it as current
+      const currentRefreshToken = req.cookies.refreshToken;
+      
+      const sessionData = sessions.map(session => ({
+        id: session.id,
+        deviceId: session.deviceId,
+        deviceName: session.deviceName || "Unknown Device",
+        ipAddress: session.ipAddress,
+        location: session.location,
+        lastUsed: session.lastUsed,
+        isCurrent: session.token === currentRefreshToken,
+        createdAt: session.createdAt,
+      }));
+      
+      res.json({ sessions: sessionData });
+    } catch (error) {
+      console.error("Get sessions error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Delete a specific session (logout from specific device)
+  app.delete("/api/auth/sessions/:sessionId", authenticateToken, async (req: any, res) => {
+    try {
+      const { sessionId } = req.params;
+      const userId = req.user.id;
+      
+      await storage.deleteSession(sessionId, userId);
+      
+      res.json({ message: "Session deleted successfully" });
+    } catch (error) {
+      console.error("Delete session error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Delete all other sessions (logout from all other devices)
+  app.delete("/api/auth/sessions", authenticateToken, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const currentRefreshToken = req.cookies.refreshToken;
+      
+      // Get all user sessions
+      const sessions = await storage.getUserSessions(userId);
+      
+      // Delete all sessions except the current one
+      for (const session of sessions) {
+        if (session.token !== currentRefreshToken) {
+          await storage.deleteSession(session.id, userId);
+        }
+      }
+      
+      res.json({ message: "All other sessions logged out successfully" });
+    } catch (error) {
+      console.error("Delete all sessions error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

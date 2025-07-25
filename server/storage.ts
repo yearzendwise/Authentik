@@ -1,6 +1,14 @@
 import { users, refreshTokens, type User, type InsertUser, type RefreshToken } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gt } from "drizzle-orm";
+import { eq, and, gt, desc } from "drizzle-orm";
+
+export interface DeviceInfo {
+  deviceId?: string;
+  deviceName?: string;
+  userAgent?: string;
+  ipAddress?: string;
+  location?: string;
+}
 
 export interface IStorage {
   // User operations
@@ -9,12 +17,18 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
   
-  // Refresh token operations
-  createRefreshToken(userId: string, token: string, expiresAt: Date): Promise<RefreshToken>;
+  // Refresh token operations with device tracking
+  createRefreshToken(userId: string, token: string, expiresAt: Date, deviceInfo?: DeviceInfo): Promise<RefreshToken>;
   getRefreshToken(token: string): Promise<RefreshToken | undefined>;
   deleteRefreshToken(token: string): Promise<void>;
   deleteUserRefreshTokens(userId: string): Promise<void>;
   cleanExpiredTokens(): Promise<void>;
+  
+  // Device session management
+  getUserSessions(userId: string): Promise<RefreshToken[]>;
+  updateSessionLastUsed(token: string): Promise<void>;
+  deleteSession(sessionId: string, userId: string): Promise<void>;
+  deleteAllUserSessions(userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -48,13 +62,20 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createRefreshToken(userId: string, token: string, expiresAt: Date): Promise<RefreshToken> {
+  async createRefreshToken(userId: string, token: string, expiresAt: Date, deviceInfo?: DeviceInfo): Promise<RefreshToken> {
     const [refreshToken] = await db
       .insert(refreshTokens)
       .values({
         userId,
         token,
         expiresAt,
+        deviceId: deviceInfo?.deviceId,
+        deviceName: deviceInfo?.deviceName,
+        userAgent: deviceInfo?.userAgent,
+        ipAddress: deviceInfo?.ipAddress,
+        location: deviceInfo?.location,
+        lastUsed: new Date(),
+        isActive: true,
       })
       .returning();
     return refreshToken;
@@ -83,6 +104,42 @@ export class DatabaseStorage implements IStorage {
     await db.delete(refreshTokens).where(
       gt(refreshTokens.expiresAt, new Date())
     );
+  }
+
+  // Device session management methods
+  async getUserSessions(userId: string): Promise<RefreshToken[]> {
+    const sessions = await db
+      .select()
+      .from(refreshTokens)
+      .where(and(
+        eq(refreshTokens.userId, userId),
+        eq(refreshTokens.isActive, true),
+        gt(refreshTokens.expiresAt, new Date())
+      ))
+      .orderBy(desc(refreshTokens.lastUsed));
+    return sessions;
+  }
+
+  async updateSessionLastUsed(token: string): Promise<void> {
+    await db
+      .update(refreshTokens)
+      .set({ lastUsed: new Date() })
+      .where(eq(refreshTokens.token, token));
+  }
+
+  async deleteSession(sessionId: string, userId: string): Promise<void> {
+    await db
+      .delete(refreshTokens)
+      .where(and(
+        eq(refreshTokens.id, sessionId),
+        eq(refreshTokens.userId, userId)
+      ));
+  }
+
+  async deleteAllUserSessions(userId: string): Promise<void> {
+    await db
+      .delete(refreshTokens)
+      .where(eq(refreshTokens.userId, userId));
   }
 }
 

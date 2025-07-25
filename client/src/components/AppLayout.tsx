@@ -69,8 +69,9 @@ export function AppLayout({ children }: AppLayoutProps) {
       }
     };
 
-    const handleMenuPreferenceChange = (e: CustomEvent) => {
-      setIsCollapsed(!e.detail.menuExpanded);
+    const handleMenuPreferenceChange = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      setIsCollapsed(!customEvent.detail.menuExpanded);
     };
 
     window.addEventListener('storage', handleStorageChange);

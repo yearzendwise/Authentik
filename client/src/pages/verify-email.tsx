@@ -4,10 +4,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, XCircle, Mail, Loader2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function VerifyEmailPage() {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isVerifying, setIsVerifying] = useState(true);
   const [isVerified, setIsVerified] = useState(false);
   const [error, setError] = useState("");
@@ -30,6 +32,8 @@ export default function VerifyEmailPage() {
         
         if (response.ok) {
           setIsVerified(true);
+          // Invalidate user cache to refresh the verification status
+          queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
           toast({
             title: "Email Verified!",
             description: "Your account has been successfully verified. You can now log in.",

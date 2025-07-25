@@ -6,11 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Mail, Loader2, Clock, CheckCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function PendingVerificationPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [isResending, setIsResending] = useState(false);
   const [nextAllowedTime, setNextAllowedTime] = useState<Date | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
@@ -21,6 +23,16 @@ export default function PendingVerificationPage() {
       setLocation("/");
     }
   }, [user, setLocation]);
+
+  // Periodically check for verification status updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Refresh user data to check if email was verified
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+    }, 10000); // Check every 10 seconds
+    
+    return () => clearInterval(interval);
+  }, [queryClient]);
 
   // Countdown timer for rate limiting
   useEffect(() => {

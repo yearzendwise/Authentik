@@ -3,7 +3,7 @@ import { Resend } from 'resend';
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export class EmailService {
-  private fromEmail = process.env.FROM_EMAIL || 'onboarding@resend.dev';
+  private fromEmail = process.env.FROM_EMAIL || 'dan@zendwise.work';
   private appName = process.env.APP_NAME || 'SaaS Auth App';
   private baseUrl = process.env.BASE_URL || 'http://localhost:5000';
 

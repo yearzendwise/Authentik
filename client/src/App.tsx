@@ -29,11 +29,16 @@ function Router() {
           <Route path="/dashboard" component={Dashboard} />
           <Route path="/profile" component={ProfilePage} />
           <Route path="/sessions" component={SessionsPage} />
+          <Route path="/auth" component={Dashboard} /> {/* Redirect logged-in users away from auth */}
         </>
       ) : (
         <>
           <Route path="/" component={AuthPage} />
           <Route path="/auth" component={AuthPage} />
+          {/* Redirect any other route to auth for unauthenticated users */}
+          <Route path="/dashboard" component={AuthPage} />
+          <Route path="/profile" component={AuthPage} />
+          <Route path="/sessions" component={AuthPage} />
         </>
       )}
       <Route component={NotFound} />

@@ -770,15 +770,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const currentRefreshToken = req.cookies.refreshToken;
       
-      // Get all user sessions
-      const sessions = await storage.getUserSessions(userId);
-      
-      // Delete all sessions except the current one
-      for (const session of sessions) {
-        if (session.token !== currentRefreshToken) {
-          await storage.deleteSession(session.id, userId);
-        }
+      if (!currentRefreshToken) {
+        return res.status(400).json({ message: "No current session found" });
       }
+      
+      // Delete all sessions except the current one using database query directly
+      // This is more efficient and safer than iterating through sessions
+      await storage.deleteOtherUserSessions(userId, currentRefreshToken);
       
       res.json({ message: "All other sessions logged out successfully" });
     } catch (error) {

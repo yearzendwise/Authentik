@@ -1,6 +1,6 @@
 import { users, refreshTokens, type User, type InsertUser, type RefreshToken } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gt, desc } from "drizzle-orm";
+import { eq, and, gt, desc, ne } from "drizzle-orm";
 
 export interface DeviceInfo {
   deviceId?: string;
@@ -30,6 +30,7 @@ export interface IStorage {
   updateSessionLastUsed(token: string): Promise<void>;
   deleteSession(sessionId: string, userId: string): Promise<void>;
   deleteAllUserSessions(userId: string): Promise<void>;
+  deleteOtherUserSessions(userId: string, currentRefreshToken: string): Promise<void>;
   refreshTokenExists(refreshTokenId: string): Promise<boolean>;
   
   // Email verification
@@ -148,6 +149,15 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(refreshTokens)
       .where(eq(refreshTokens.userId, userId));
+  }
+
+  async deleteOtherUserSessions(userId: string, currentRefreshToken: string): Promise<void> {
+    await db
+      .delete(refreshTokens)
+      .where(and(
+        eq(refreshTokens.userId, userId),
+        ne(refreshTokens.token, currentRefreshToken)
+      ));
   }
 
   async updateRefreshToken(id: string, token: string): Promise<void> {

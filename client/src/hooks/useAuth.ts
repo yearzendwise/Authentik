@@ -34,10 +34,15 @@ export function useLogin() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (credentials: LoginCredentials): Promise<AuthResponse> => {
-      return authManager.login(credentials.email, credentials.password);
+    mutationFn: async (credentials: LoginCredentials & { twoFactorToken?: string }) => {
+      return authManager.login(credentials.email, credentials.password, credentials.twoFactorToken);
     },
     onSuccess: (data) => {
+      if ('requires2FA' in data) {
+        // Handle 2FA required response - this will be handled by the component
+        return;
+      }
+      
       queryClient.setQueryData(["/api/auth/me"], data.user);
       toast({
         title: "Success",
@@ -237,6 +242,73 @@ export function useDeleteAccount() {
       toast({
         title: "Deletion Failed",
         description: "Failed to delete account. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useSetup2FA() {
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async () => {
+      return authManager.setup2FA();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "2FA Setup Failed",
+        description: error.message || "Failed to setup 2FA. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useEnable2FA() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (token: string) => {
+      return authManager.enable2FA(token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      toast({
+        title: "Success",
+        description: "Two-factor authentication has been enabled successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "2FA Enable Failed",
+        description: error.message || "Failed to enable 2FA. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useDisable2FA() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (token: string) => {
+      return authManager.disable2FA(token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      toast({
+        title: "Success",
+        description: "Two-factor authentication has been disabled successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "2FA Disable Failed",
+        description: error.message || "Failed to disable 2FA. Please try again.",
         variant: "destructive",
       });
     },

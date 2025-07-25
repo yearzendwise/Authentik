@@ -9,6 +9,7 @@ export interface AuthUser {
   email: string;
   firstName: string;
   lastName: string;
+  twoFactorEnabled?: boolean;
 }
 
 export interface AuthResponse {
@@ -114,13 +115,19 @@ class AuthManager {
     return response;
   }
 
-  async login(email: string, password: string): Promise<AuthResponse> {
+  async login(email: string, password: string, twoFactorToken?: string): Promise<AuthResponse | { requires2FA: boolean; tempLoginId: string }> {
     const response = await apiRequest("POST", "/api/auth/login", {
       email,
       password,
+      twoFactorToken,
     });
 
-    const data: AuthResponse = await response.json();
+    const data = await response.json();
+    
+    if (data.requires2FA) {
+      return data;
+    }
+
     this.setAccessToken(data.accessToken);
     return data;
   }
@@ -212,6 +219,39 @@ class AuthManager {
     }
 
     this.clearTokens();
+    return response.json();
+  }
+
+  async setup2FA(): Promise<{ secret: string; qrCode: string; backupCodes: string[] }> {
+    const response = await this.makeAuthenticatedRequest("POST", "/api/auth/2fa/setup");
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to setup 2FA");
+    }
+
+    return response.json();
+  }
+
+  async enable2FA(token: string): Promise<{ message: string }> {
+    const response = await this.makeAuthenticatedRequest("POST", "/api/auth/2fa/enable", { token });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to enable 2FA");
+    }
+
+    return response.json();
+  }
+
+  async disable2FA(token: string): Promise<{ message: string }> {
+    const response = await this.makeAuthenticatedRequest("POST", "/api/auth/2fa/disable", { token });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to disable 2FA");
+    }
+
     return response.json();
   }
 

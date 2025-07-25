@@ -14,7 +14,7 @@ import { calculatePasswordStrength, getPasswordStrengthText, getPasswordStrength
 import { Eye, EyeOff, Shield, CheckCircle, Mail, Lock, ArrowLeft, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
 
-type AuthView = "login" | "register" | "forgot";
+type AuthView = "login" | "register" | "forgot" | "twoFactor";
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
@@ -23,6 +23,11 @@ export default function AuthPage() {
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [rememberMe, setRememberMe] = useState(false);
+  const [twoFactorData, setTwoFactorData] = useState<{
+    email: string;
+    password: string;
+    tempLoginId: string;
+  } | null>(null);
 
   const loginMutation = useLogin();
   const registerMutation = useRegister();
@@ -54,6 +59,12 @@ export default function AuthPage() {
     },
   });
 
+  const twoFactorForm = useForm<{ token: string }>({
+    defaultValues: {
+      token: "",
+    },
+  });
+
   const watchPassword = registerForm.watch("password");
 
   useEffect(() => {
@@ -63,9 +74,20 @@ export default function AuthPage() {
   }, [watchPassword]);
 
   const onLogin = async (data: LoginCredentials) => {
-    const result = await loginMutation.mutateAsync(data);
-    if (result) {
-      setLocation("/");
+    try {
+      const result = await loginMutation.mutateAsync(data);
+      if ('requires2FA' in result) {
+        setTwoFactorData({
+          email: data.email,
+          password: data.password,
+          tempLoginId: result.tempLoginId,
+        });
+        setCurrentView("twoFactor");
+      } else {
+        setLocation("/");
+      }
+    } catch (error) {
+      // Error is handled by the mutation's onError
     }
   };
 
@@ -79,6 +101,24 @@ export default function AuthPage() {
 
   const onForgotPassword = async (data: ForgotPasswordData) => {
     await forgotPasswordMutation.mutateAsync(data.email);
+  };
+
+  const onTwoFactorSubmit = async (data: { token: string }) => {
+    if (!twoFactorData) return;
+    
+    try {
+      const result = await loginMutation.mutateAsync({
+        email: twoFactorData.email,
+        password: twoFactorData.password,
+        twoFactorToken: data.token,
+      });
+      
+      if (!('requires2FA' in result)) {
+        setLocation("/");
+      }
+    } catch (error) {
+      // Error is handled by the mutation's onError
+    }
   };
 
   const renderPasswordStrength = () => {
@@ -467,6 +507,76 @@ export default function AuthPage() {
                         </>
                       ) : (
                         "Send Reset Link"
+                      )}
+                    </Button>
+                  </form>
+                </div>
+              )}
+
+              {/* Two-Factor Authentication Form */}
+              {currentView === "twoFactor" && (
+                <div>
+                  <div className="mb-6">
+                    <button
+                      onClick={() => {
+                        setCurrentView("login");
+                        setTwoFactorData(null);
+                      }}
+                      className="flex items-center text-blue-600 hover:text-blue-700 mb-4"
+                    >
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      Back to login
+                    </button>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Two-Factor Authentication</h2>
+                    <p className="text-gray-600">Enter the 6-digit code from your authenticator app</p>
+                  </div>
+
+                  <form onSubmit={twoFactorForm.handleSubmit(onTwoFactorSubmit)} className="space-y-4">
+                    <div>
+                      <Label htmlFor="twoFactorToken">Authentication Code</Label>
+                      <div className="relative mt-2">
+                        <Input
+                          id="twoFactorToken"
+                          type="text"
+                          placeholder="000000"
+                          maxLength={6}
+                          className="text-center text-xl tracking-widest font-mono"
+                          {...twoFactorForm.register("token", {
+                            required: "Authentication code is required",
+                            pattern: {
+                              value: /^\d{6}$/,
+                              message: "Please enter a valid 6-digit code"
+                            }
+                          })}
+                        />
+                        <Shield className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      </div>
+                      {twoFactorForm.formState.errors.token && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {twoFactorForm.formState.errors.token.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <Alert>
+                      <Shield className="h-4 w-4" />
+                      <AlertDescription>
+                        Open your authenticator app (Google Authenticator, Authy, etc.) and enter the 6-digit code for SecureAuth.
+                      </AlertDescription>
+                    </Alert>
+
+                    <Button
+                      type="submit"
+                      className="w-full mt-6"
+                      disabled={loginMutation.isPending}
+                    >
+                      {loginMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Verifying...
+                        </>
+                      ) : (
+                        "Verify & Sign In"
                       )}
                     </Button>
                   </form>

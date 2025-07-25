@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useAuth, useUpdateProfile, useChangePassword, useDeleteAccount } from "@/hooks/useAuth";
+import { useAuth, useUpdateProfile, useChangePassword, useDeleteAccount, useSetup2FA, useEnable2FA, useDisable2FA } from "@/hooks/useAuth";
 import { updateProfileSchema, changePasswordSchema } from "@shared/schema";
 import type { UpdateProfileData, ChangePasswordData } from "@shared/schema";
 import { calculatePasswordStrength, getPasswordStrengthText, getPasswordStrengthColor } from "@/lib/authUtils";
@@ -32,12 +32,22 @@ export default function ProfilePage() {
   const updateProfileMutation = useUpdateProfile();
   const changePasswordMutation = useChangePassword();
   const deleteAccountMutation = useDeleteAccount();
+  const setup2FAMutation = useSetup2FA();
+  const enable2FAMutation = useEnable2FA();
+  const disable2FAMutation = useDisable2FA();
 
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [twoFactorSetup, setTwoFactorSetup] = useState<{
+    secret: string;
+    qrCode: string;
+    backupCodes: string[];
+  } | null>(null);
+  const [twoFactorToken, setTwoFactorToken] = useState("");
+  const [disableTwoFactorToken, setDisableTwoFactorToken] = useState("");
 
   const profileForm = useForm<UpdateProfileData>({
     resolver: zodResolver(updateProfileSchema),
@@ -78,6 +88,38 @@ export default function ProfilePage() {
   const onDeleteAccount = async () => {
     await deleteAccountMutation.mutateAsync();
     setShowDeleteDialog(false);
+  };
+
+  const onSetup2FA = async () => {
+    try {
+      const result = await setup2FAMutation.mutateAsync();
+      setTwoFactorSetup(result);
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const onEnable2FA = async () => {
+    if (!twoFactorToken.trim()) return;
+    
+    try {
+      await enable2FAMutation.mutateAsync(twoFactorToken);
+      setTwoFactorSetup(null);
+      setTwoFactorToken("");
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const onDisable2FA = async () => {
+    if (!disableTwoFactorToken.trim()) return;
+    
+    try {
+      await disable2FAMutation.mutateAsync(disableTwoFactorToken);
+      setDisableTwoFactorToken("");
+    } catch (error) {
+      // Error handled by mutation
+    }
   };
 
   const renderPasswordStrength = () => {
@@ -156,7 +198,7 @@ export default function ProfilePage() {
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="profile" className="flex items-center space-x-2">
               <User className="w-4 h-4" />
               <span>Profile</span>
@@ -164,6 +206,10 @@ export default function ProfilePage() {
             <TabsTrigger value="security" className="flex items-center space-x-2">
               <Shield className="w-4 h-4" />
               <span>Security</span>
+            </TabsTrigger>
+            <TabsTrigger value="2fa" className="flex items-center space-x-2">
+              <Lock className="w-4 h-4" />
+              <span>2FA</span>
             </TabsTrigger>
             <TabsTrigger value="danger" className="flex items-center space-x-2">
               <AlertTriangle className="w-4 h-4" />
@@ -366,6 +412,172 @@ export default function ProfilePage() {
                     </Button>
                   </div>
                 </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Two-Factor Authentication Tab */}
+          <TabsContent value="2fa">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Lock className="w-5 h-5" />
+                  <span>Two-Factor Authentication</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {user?.twoFactorEnabled ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                          <Shield className="w-4 h-4 text-green-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-green-800">2FA is enabled</h3>
+                          <p className="text-sm text-green-700">Your account is protected with two-factor authentication</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-gray-900">Disable Two-Factor Authentication</h4>
+                      <p className="text-sm text-gray-600">
+                        Enter a code from your authenticator app to disable 2FA protection
+                      </p>
+                      <div className="flex items-center space-x-3">
+                        <Input
+                          type="text"
+                          placeholder="000000"
+                          maxLength={6}
+                          value={disableTwoFactorToken}
+                          onChange={(e) => setDisableTwoFactorToken(e.target.value)}
+                          className="w-32 text-center font-mono"
+                        />
+                        <Button
+                          onClick={onDisable2FA}
+                          disabled={disable2FAMutation.isPending || !disableTwoFactorToken.trim()}
+                          variant="destructive"
+                          className="flex items-center space-x-2"
+                        >
+                          {disable2FAMutation.isPending ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>Disabling...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Lock className="w-4 h-4" />
+                              <span>Disable 2FA</span>
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                          <Shield className="w-4 h-4 text-yellow-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-yellow-800">2FA is disabled</h3>
+                          <p className="text-sm text-yellow-700">Add an extra layer of security to your account</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {!twoFactorSetup ? (
+                      <div className="space-y-4">
+                        <h4 className="font-medium text-gray-900">Enable Two-Factor Authentication</h4>
+                        <p className="text-sm text-gray-600">
+                          Two-factor authentication adds an extra layer of security to your account by requiring a code from your phone in addition to your password.
+                        </p>
+                        <Button
+                          onClick={onSetup2FA}
+                          disabled={setup2FAMutation.isPending}
+                          className="flex items-center space-x-2"
+                        >
+                          {setup2FAMutation.isPending ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>Setting up...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Shield className="w-4 h-4" />
+                              <span>Set up 2FA</span>
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-3">Step 1: Scan QR Code</h4>
+                          <p className="text-sm text-gray-600 mb-4">
+                            Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)
+                          </p>
+                          <div className="flex justify-center">
+                            <img 
+                              src={twoFactorSetup.qrCode} 
+                              alt="2FA QR Code" 
+                              className="w-48 h-48 border rounded-lg"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-3">Step 2: Enter Verification Code</h4>
+                          <p className="text-sm text-gray-600 mb-4">
+                            Enter the 6-digit code from your authenticator app to complete setup
+                          </p>
+                          <div className="flex items-center space-x-3">
+                            <Input
+                              type="text"
+                              placeholder="000000"
+                              maxLength={6}
+                              value={twoFactorToken}
+                              onChange={(e) => setTwoFactorToken(e.target.value)}
+                              className="w-32 text-center font-mono"
+                            />
+                            <Button
+                              onClick={onEnable2FA}
+                              disabled={enable2FAMutation.isPending || !twoFactorToken.trim()}
+                              className="flex items-center space-x-2"
+                            >
+                              {enable2FAMutation.isPending ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  <span>Enabling...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Shield className="w-4 h-4" />
+                                  <span>Enable 2FA</span>
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setTwoFactorSetup(null);
+                              setTwoFactorToken("");
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

@@ -10,6 +10,8 @@ export const users = pgTable("users", {
   firstName: text("first_name"),
   lastName: text("last_name"),
   isActive: boolean("is_active").default(true),
+  twoFactorEnabled: boolean("two_factor_enabled").default(false),
+  twoFactorSecret: text("two_factor_secret"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -31,6 +33,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
 export const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  twoFactorToken: z.string().optional(),
 });
 
 export const registerSchema = z.object({
@@ -71,6 +74,18 @@ export const changePasswordSchema = z.object({
   path: ["confirmPassword"],
 });
 
+export const enable2FASchema = z.object({
+  token: z.string().min(6, "Please enter a 6-digit code").max(6, "Please enter a 6-digit code"),
+});
+
+export const disable2FASchema = z.object({
+  token: z.string().min(6, "Please enter a 6-digit code").max(6, "Please enter a 6-digit code"),
+});
+
+export const verify2FASchema = z.object({
+  token: z.string().min(6, "Please enter a 6-digit code").max(6, "Please enter a 6-digit code"),
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type LoginCredentials = z.infer<typeof loginSchema>;
@@ -78,4 +93,7 @@ export type RegisterData = z.infer<typeof registerSchema>;
 export type ForgotPasswordData = z.infer<typeof forgotPasswordSchema>;
 export type UpdateProfileData = z.infer<typeof updateProfileSchema>;
 export type ChangePasswordData = z.infer<typeof changePasswordSchema>;
+export type Enable2FAData = z.infer<typeof enable2FASchema>;
+export type Disable2FAData = z.infer<typeof disable2FASchema>;
+export type Verify2FAData = z.infer<typeof verify2FASchema>;
 export type RefreshToken = typeof refreshTokens.$inferSelect;

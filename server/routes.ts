@@ -4,8 +4,10 @@ import { storage } from "./storage";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import cookieParser from "cookie-parser";
-import { loginSchema, registerSchema, forgotPasswordSchema, updateProfileSchema, changePasswordSchema } from "@shared/schema";
+import { loginSchema, registerSchema, forgotPasswordSchema, updateProfileSchema, changePasswordSchema, enable2FASchema, disable2FASchema } from "@shared/schema";
 import { randomBytes } from "crypto";
+import { authenticator } from "otplib";
+import * as QRCode from "qrcode";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key";
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || "your-super-secret-refresh-key";
@@ -103,7 +105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Login endpoint
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { email, password } = loginSchema.parse(req.body);
+      const { email, password, twoFactorToken } = loginSchema.parse(req.body);
 
       // Find user
       const user = await storage.getUserByEmail(email);
@@ -115,6 +117,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isValidPassword = await bcrypt.compare(password, user.password);
       if (!isValidPassword) {
         return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Check 2FA if enabled
+      if (user.twoFactorEnabled) {
+        if (!twoFactorToken) {
+          return res.status(200).json({ 
+            message: "2FA token required",
+            requires2FA: true,
+            tempLoginId: user.id // In production, use a temporary encrypted token
+          });
+        }
+
+        if (!user.twoFactorSecret) {
+          return res.status(500).json({ message: "2FA configuration error" });
+        }
+
+        const isValid2FA = authenticator.verify({
+          token: twoFactorToken,
+          secret: user.twoFactorSecret,
+        });
+
+        if (!isValid2FA) {
+          return res.status(401).json({ message: "Invalid 2FA token" });
+        }
       }
 
       // Generate tokens
@@ -140,6 +166,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
+          twoFactorEnabled: user.twoFactorEnabled,
         },
       });
     } catch (error: any) {
@@ -240,6 +267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: req.user.email,
         firstName: req.user.firstName,
         lastName: req.user.lastName,
+        twoFactorEnabled: req.user.twoFactorEnabled,
       },
     });
   });
@@ -329,6 +357,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       console.error("Password change error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Generate 2FA setup
+  app.post("/api/auth/2fa/setup", authenticateToken, async (req: any, res) => {
+    try {
+      if (req.user.twoFactorEnabled) {
+        return res.status(400).json({ message: "2FA is already enabled" });
+      }
+
+      // Generate secret
+      const secret = authenticator.generateSecret();
+      const serviceName = "SecureAuth";
+      const accountName = req.user.email;
+      
+      // Generate QR code URL
+      const otpauthUrl = authenticator.keyuri(accountName, serviceName, secret);
+      const qrCodeDataUrl = await QRCode.toDataURL(otpauthUrl);
+
+      // Store the secret temporarily (not enabled until verified)
+      await storage.updateUser(req.user.id, { twoFactorSecret: secret });
+
+      res.json({
+        secret,
+        qrCode: qrCodeDataUrl,
+        backupCodes: [] // In production, generate backup codes
+      });
+    } catch (error) {
+      console.error("2FA setup error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Enable 2FA
+  app.post("/api/auth/2fa/enable", authenticateToken, async (req: any, res) => {
+    try {
+      const { token } = enable2FASchema.parse(req.body);
+
+      if (req.user.twoFactorEnabled) {
+        return res.status(400).json({ message: "2FA is already enabled" });
+      }
+
+      if (!req.user.twoFactorSecret) {
+        return res.status(400).json({ message: "2FA setup not initiated" });
+      }
+
+      // Verify the token
+      const isValid = authenticator.verify({
+        token,
+        secret: req.user.twoFactorSecret,
+      });
+
+      if (!isValid) {
+        return res.status(400).json({ message: "Invalid 2FA token" });
+      }
+
+      // Enable 2FA
+      await storage.updateUser(req.user.id, { twoFactorEnabled: true });
+
+      res.json({ message: "2FA enabled successfully" });
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({
+          message: "Validation error",
+          errors: error.errors,
+        });
+      }
+      console.error("2FA enable error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Disable 2FA
+  app.post("/api/auth/2fa/disable", authenticateToken, async (req: any, res) => {
+    try {
+      const { token } = disable2FASchema.parse(req.body);
+
+      if (!req.user.twoFactorEnabled) {
+        return res.status(400).json({ message: "2FA is not enabled" });
+      }
+
+      if (!req.user.twoFactorSecret) {
+        return res.status(400).json({ message: "2FA configuration error" });
+      }
+
+      // Verify the token
+      const isValid = authenticator.verify({
+        token,
+        secret: req.user.twoFactorSecret,
+      });
+
+      if (!isValid) {
+        return res.status(400).json({ message: "Invalid 2FA token" });
+      }
+
+      // Disable 2FA and remove secret
+      await storage.updateUser(req.user.id, { 
+        twoFactorEnabled: false,
+        twoFactorSecret: null
+      });
+
+      res.json({ message: "2FA disabled successfully" });
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({
+          message: "Validation error",
+          errors: error.errors,
+        });
+      }
+      console.error("2FA disable error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

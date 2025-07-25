@@ -32,12 +32,13 @@ The application follows a monorepo architecture with clear separation between cl
 - **Express Server**: RESTful API with comprehensive authentication middleware
 - **Database Layer**: Drizzle ORM with PostgreSQL for data persistence
 - **Authentication**: JWT access and refresh tokens with bcrypt password hashing
+- **Two-Factor Authentication**: TOTP-based 2FA with QR code generation using otplib and qrcode
 - **Storage Interface**: Abstracted storage layer for all database operations
 - **Cookie Management**: HTTP-only cookies for secure refresh token storage
 - **Profile Management**: Complete CRUD operations for user account management
 
 ### Database Schema
-- **Users Table**: Stores user credentials and profile information
+- **Users Table**: Stores user credentials, profile information, and 2FA settings
 - **Refresh Tokens Table**: Manages JWT refresh tokens with expiration
 - **Schema Validation**: Zod schemas shared between frontend and backend
 
@@ -47,14 +48,23 @@ The application follows a monorepo architecture with clear separation between cl
    - User submits login/registration form
    - Frontend validates data using Zod schemas
    - API endpoint processes request and generates JWT tokens
+   - If 2FA is enabled, user must provide TOTP code for verification
    - Access token stored in localStorage, refresh token in HTTP-only cookie
    - Protected routes verify access token with automatic refresh handling
 
-2. **Profile Management Flow**:
+2. **Two-Factor Authentication Flow**:
+   - User initiates 2FA setup from profile page
+   - Server generates TOTP secret and QR code using otplib
+   - User scans QR code with authenticator app (Google Authenticator, Authy, etc.)
+   - User verifies setup by entering 6-digit TOTP code
+   - 2FA protection applies to all future login attempts
+
+3. **Profile Management Flow**:
    - User updates profile information through secure forms
    - Password changes trigger token revocation across all devices
    - Account deletion marks user as inactive and clears all tokens
    - Real-time validation with password strength indicators
+   - 2FA can be enabled/disabled with authenticator code verification
 
 3. **API Communication**:
    - Frontend uses TanStack Query for API calls

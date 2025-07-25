@@ -9,6 +9,7 @@ import { randomBytes } from "crypto";
 import { authenticator } from "otplib";
 import * as QRCode from "qrcode";
 import { UAParser } from "ua-parser-js";
+import { createHash } from "crypto";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key";
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || "your-super-secret-refresh-key";
@@ -21,7 +22,7 @@ function getDeviceInfo(req: any): { deviceId: string; deviceName: string; userAg
   
   // Create a unique device identifier based on user agent and IP
   const deviceFingerprint = `${result.browser.name}-${result.os.name}-${req.ip}`;
-  const deviceId = require("crypto").createHash("sha256").update(deviceFingerprint).digest("hex").substring(0, 16);
+  const deviceId = createHash("sha256").update(deviceFingerprint).digest("hex").substring(0, 16);
   
   // Generate user-friendly device name
   const browserName = result.browser.name || "Unknown Browser";

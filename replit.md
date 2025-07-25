@@ -27,19 +27,21 @@ The application follows a monorepo architecture with clear separation between cl
 - **UI Components**: shadcn/ui component library built on Radix UI primitives
 - **Styling**: Tailwind CSS with CSS variables for theming
 - **State Management**: TanStack Query for API state, React Context for auth state
+- **Device Session Management**: Complete interface for viewing and managing active login sessions
 
 ### Backend Architecture
 - **Express Server**: RESTful API with comprehensive authentication middleware
 - **Database Layer**: Drizzle ORM with PostgreSQL for data persistence
 - **Authentication**: JWT access and refresh tokens with bcrypt password hashing
 - **Two-Factor Authentication**: TOTP-based 2FA with QR code generation using otplib and qrcode
+- **Multi-Device Tracking**: Device detection with browser/OS identification and IP tracking
 - **Storage Interface**: Abstracted storage layer for all database operations
 - **Cookie Management**: HTTP-only cookies for secure refresh token storage
 - **Profile Management**: Complete CRUD operations for user account management
 
 ### Database Schema
 - **Users Table**: Stores user credentials, profile information, and 2FA settings
-- **Refresh Tokens Table**: Manages JWT refresh tokens with expiration
+- **Refresh Tokens Table**: Enhanced with device tracking fields (device ID, name, user agent, IP address, location, last used)
 - **Schema Validation**: Zod schemas shared between frontend and backend
 
 ## Data Flow
@@ -65,6 +67,13 @@ The application follows a monorepo architecture with clear separation between cl
    - Account deletion marks user as inactive and clears all tokens
    - Real-time validation with password strength indicators
    - 2FA can be enabled/disabled with authenticator code verification
+
+4. **Multi-Device Session Management Flow**:
+   - System tracks each login with device detection (browser, OS, IP address)
+   - Users can view all active sessions with device details and last used timestamps
+   - Individual device logout functionality with confirmation dialogs
+   - Bulk logout from all other devices except current session
+   - Automatic device fingerprinting for unique session identification
 
 3. **API Communication**:
    - Frontend uses TanStack Query for API calls

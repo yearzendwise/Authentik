@@ -236,6 +236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
+          role: user.role,
           twoFactorEnabled: user.twoFactorEnabled,
           emailVerified: user.emailVerified,
         },
@@ -448,6 +449,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
+          role: user.role,
+          twoFactorEnabled: user.twoFactorEnabled,
+          emailVerified: user.emailVerified,
+          menuExpanded: user.menuExpanded || false,
         },
       });
     } catch (error: any) {
@@ -486,6 +491,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: req.user.email,
         firstName: req.user.firstName,
         lastName: req.user.lastName,
+        role: req.user.role,
         twoFactorEnabled: req.user.twoFactorEnabled,
         emailVerified: req.user.emailVerified,
         menuExpanded: req.user.menuExpanded || false,

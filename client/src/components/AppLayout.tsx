@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { 
   Home, 
@@ -6,7 +6,6 @@ import {
   Settings, 
   LogOut, 
   Shield,
-  ChevronRight,
   Monitor
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -41,18 +40,47 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { user } = useAuth();
   const logout = useLogout();
   const updateMenuPreference = useUpdateMenuPreference();
-  // Default to collapsed/minimized menu, use user preference if available
-  const [isCollapsed, setIsCollapsed] = useState(!user?.menuExpanded);
-
-  const handleMenuToggle = () => {
-    const newCollapsedState = !isCollapsed;
-    setIsCollapsed(newCollapsedState);
-    
-    // Update user preference in database
-    if (user) {
-      updateMenuPreference.mutate({ menuExpanded: !newCollapsedState });
+  // Load initial menu state from localStorage or user preference
+  const getInitialMenuState = () => {
+    const localPref = localStorage.getItem('menuExpanded');
+    if (localPref !== null) {
+      return !JSON.parse(localPref); // inverted because isCollapsed is opposite of expanded
     }
+    return !user?.menuExpanded; // default to collapsed if no preference
   };
+
+  const [isCollapsed, setIsCollapsed] = useState(getInitialMenuState);
+
+  // Sync menu state when user data changes or localStorage changes
+  useEffect(() => {
+    const localPref = localStorage.getItem('menuExpanded');
+    if (localPref !== null) {
+      setIsCollapsed(!JSON.parse(localPref));
+    } else if (user?.menuExpanded !== undefined) {
+      setIsCollapsed(!user.menuExpanded);
+    }
+  }, [user?.menuExpanded]);
+
+  // Listen for localStorage changes from other tabs and immediate changes
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'menuExpanded' && e.newValue) {
+        setIsCollapsed(!JSON.parse(e.newValue));
+      }
+    };
+
+    const handleMenuPreferenceChange = (e: CustomEvent) => {
+      setIsCollapsed(!e.detail.menuExpanded);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('menuPreferenceChanged', handleMenuPreferenceChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('menuPreferenceChanged', handleMenuPreferenceChange);
+    };
+  }, []);
 
   const handleLogout = () => {
     logout.mutate();
@@ -74,23 +102,12 @@ export function AppLayout({ children }: AppLayoutProps) {
         isCollapsed ? "w-16" : "w-64"
       )}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-center p-4 border-b border-gray-200 dark:border-gray-700">
           {!isCollapsed && (
             <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
               SaaS Auth
             </h1>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleMenuToggle}
-            className="h-8 w-8 p-0"
-          >
-            <ChevronRight className={cn(
-              "h-4 w-4 transition-transform",
-              isCollapsed ? "rotate-0" : "rotate-180"
-            )} />
-          </Button>
         </div>
 
         {/* Navigation */}

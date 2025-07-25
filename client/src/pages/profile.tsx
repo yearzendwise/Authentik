@@ -317,6 +317,15 @@ export default function ProfilePage() {
                     <Switch
                       checked={user?.menuExpanded || false}
                       onCheckedChange={(checked) => {
+                        // Update localStorage immediately for instant UI feedback
+                        localStorage.setItem('menuExpanded', JSON.stringify(checked));
+                        
+                        // Dispatch custom event for immediate UI update in same tab
+                        window.dispatchEvent(new CustomEvent('menuPreferenceChanged', { 
+                          detail: { menuExpanded: checked } 
+                        }));
+                        
+                        // Update backend preference
                         updateMenuPreferenceMutation.mutate({ menuExpanded: checked });
                       }}
                       disabled={updateMenuPreferenceMutation.isPending}

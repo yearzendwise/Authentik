@@ -79,7 +79,7 @@ export default function UsersPage() {
       if (searchTerm) params.append('search', searchTerm);
       if (roleFilter) params.append('role', roleFilter);
       if (statusFilter) params.append('status', statusFilter);
-      params.append('showInactive', showInactive.toString());
+      if (showInactive) params.append('showInactive', 'true');
 
       const response = await authManager.makeAuthenticatedRequest('GET', `/api/users?${params}`);
       if (!response.ok) {
@@ -499,12 +499,12 @@ export default function UsersPage() {
               className="pl-10"
             />
           </div>
-          <Select value={roleFilter} onValueChange={(value) => setRoleFilter(value as UserRole | "")}>
+          <Select value={roleFilter} onValueChange={(value) => setRoleFilter(value === "all" ? "" : value as UserRole)}>
             <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filter by role" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Roles</SelectItem>
+              <SelectItem value="all">All Roles</SelectItem>
               {userRoles.map((role) => (
                 <SelectItem key={role} value={role}>
                   {role}
@@ -512,12 +512,12 @@ export default function UsersPage() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as "active" | "inactive" | "")}>
+          <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value === "all" ? "" : value as "active" | "inactive")}>
             <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Status</SelectItem>
+              <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="inactive">Inactive</SelectItem>
             </SelectContent>

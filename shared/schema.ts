@@ -150,7 +150,12 @@ export const userFiltersSchema = z.object({
   search: z.string().optional(),
   role: z.enum(userRoles).optional(),
   status: z.enum(['active', 'inactive']).optional(),
-  showInactive: z.boolean().default(false),
+  showInactive: z.preprocess((val) => {
+    if (typeof val === 'string') {
+      return val === 'true';
+    }
+    return val;
+  }, z.boolean()).default(false),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

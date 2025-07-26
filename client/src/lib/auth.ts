@@ -29,12 +29,30 @@ class AuthManager {
   private isInitialized = false;
 
   getAccessToken(): string | null {
-    return localStorage.getItem(this.ACCESS_TOKEN_KEY);
+    try {
+      const token = localStorage.getItem(this.ACCESS_TOKEN_KEY);
+      if (token) {
+        console.log("Retrieved token from localStorage successfully");
+      } else {
+        console.log("No token found in localStorage");
+      }
+      return token;
+    } catch (error) {
+      console.error("Error accessing localStorage for token:", error);
+      return null;
+    }
   }
 
   setAccessToken(token: string): void {
-    localStorage.setItem(this.ACCESS_TOKEN_KEY, token);
-    this.scheduleTokenRefresh(token);
+    try {
+      localStorage.setItem(this.ACCESS_TOKEN_KEY, token);
+      console.log("Token stored in localStorage successfully");
+      this.scheduleTokenRefresh(token);
+    } catch (error) {
+      console.error("Error storing token in localStorage:", error);
+      // Still schedule refresh even if storage fails
+      this.scheduleTokenRefresh(token);
+    }
   }
 
   clearTokens(): void {
@@ -121,21 +139,26 @@ class AuthManager {
           console.log("Token expires soon, refreshing immediately on initialization");
           this.refreshAccessToken().catch(error => {
             console.error("Initial token refresh failed:", error);
-            // Don't clear tokens immediately - give it another chance
-            console.log("Will retry token refresh in 30 seconds");
-            setTimeout(() => {
-              if (this.getAccessToken()) {
-                this.initialize();
-              }
-            }, 30000);
+            // Only clear tokens if it's a definitive auth failure
+            if (error.message?.includes("authentication required")) {
+              console.log("Authentication definitely failed, clearing tokens");
+              this.clearTokens();
+            } else {
+              console.log("Temporary refresh failure, will retry in 30 seconds");
+              setTimeout(() => {
+                if (this.getAccessToken()) {
+                  this.initialize();
+                }
+              }, 30000);
+            }
           });
         } else {
           this.scheduleTokenRefresh(token);
         }
       } catch (error) {
         console.error("Error parsing token during initialization:", error);
-        // Don't clear tokens immediately on parse errors - might be recoverable
-        console.log("Token parse failed, will keep token and try authentication");
+        // Don't clear tokens on parse errors - they might be recoverable
+        console.log("Token parse failed, will keep token and try authentication later");
       }
     } else {
       console.log("No token found during initialization");
@@ -290,8 +313,11 @@ class AuthManager {
     // First check if we have a token
     const token = this.getAccessToken();
     if (!token) {
+      console.log("getCurrentUser: No access token available");
       throw new Error("No access token available");
     }
+    
+    console.log("getCurrentUser: Found token, checking expiry and making request");
     
     // Check if token is about to expire (within 30 seconds)
     try {
@@ -302,20 +328,29 @@ class AuthManager {
       
       // If token expires in less than 30 seconds, refresh it first
       if (timeUntilExpiry < 30000) {
-        console.log("Token about to expire, refreshing before getCurrentUser...");
+        console.log("getCurrentUser: Token about to expire, refreshing first...");
         await this.refreshAccessToken();
       }
     } catch (error) {
-      console.error("Error checking token expiry:", error);
+      console.error("getCurrentUser: Error checking token expiry, proceeding anyway:", error);
     }
     
     const response = await this.makeAuthenticatedRequest("GET", "/api/auth/me");
     
     if (!response.ok) {
-      throw new Error("Failed to fetch user");
+      const errorText = await response.text();
+      console.error("getCurrentUser: Request failed with status", response.status, errorText);
+      
+      // Only throw authentication error for 401/403, not for server errors
+      if (response.status === 401 || response.status === 403) {
+        throw new Error("Authentication failed");
+      } else {
+        throw new Error("Failed to fetch user - server error");
+      }
     }
 
     const data = await response.json();
+    console.log("getCurrentUser: Successfully retrieved user data");
     return data.user;
   }
 
@@ -401,7 +436,10 @@ class AuthManager {
 
   isAuthenticated(): boolean {
     const token = this.getAccessToken();
-    if (!token) return false;
+    if (!token) {
+      console.log("No access token found in localStorage");
+      return false;
+    }
     
     try {
       // Check if token is expired
@@ -412,14 +450,16 @@ class AuthManager {
       // Token is valid if it hasn't expired yet
       const isValid = expTime > now;
       if (!isValid) {
-        console.log("Token has expired, clearing tokens");
-        this.clearTokens();
+        console.log("Token has expired, will attempt refresh instead of clearing");
+        // Don't clear tokens immediately - let the refresh mechanism handle it
         return false;
       }
       
+      console.log(`Token is valid, expires in ${Math.round((expTime - now) / 1000)} seconds`);
       return true;
     } catch (error) {
-      console.error("Error validating token:", error);
+      console.error("Error validating token, but keeping it for potential recovery:", error);
+      // Don't clear tokens on parse errors - they might be recoverable
       return false;
     }
   }

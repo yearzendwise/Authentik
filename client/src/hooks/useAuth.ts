@@ -8,6 +8,9 @@ export function useAuth() {
   const { data: user, isLoading, error, isError } = useQuery<AuthUser | null>({
     queryKey: ["/api/auth/me"],
     queryFn: async () => {
+      // Add a small delay to allow localStorage to be ready
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       try {
         if (!authManager.isAuthenticated()) {
           console.log("No valid token available for auth check");
@@ -19,8 +22,7 @@ export function useAuth() {
         console.log("Auth query failed:", error.message);
         
         // Only clear tokens for specific authentication failures (401/403)
-        if (error.message?.includes("Authentication failed") || 
-            error.message?.includes("No access token available")) {
+        if (error.message?.includes("Authentication failed")) {
           console.log("Authentication definitively failed, clearing tokens");
           authManager.clearTokens();
           return null;
@@ -33,8 +35,7 @@ export function useAuth() {
     },
     retry: (failureCount, error: any) => {
       // Don't retry if authentication actually failed
-      if (error?.message?.includes("Authentication failed") ||
-          error?.message?.includes("No access token available")) {
+      if (error?.message?.includes("Authentication failed")) {
         return false;
       }
       // Retry up to 3 times for other errors (network issues, etc.)
@@ -44,7 +45,7 @@ export function useAuth() {
     staleTime: 2 * 60 * 1000, // 2 minutes - reasonable cache time
     gcTime: 5 * 60 * 1000, // 5 minutes garbage collection time
     refetchOnWindowFocus: false, // Don't refetch when window regains focus
-    refetchOnMount: false, // Don't automatically refetch on mount to reduce requests
+    refetchOnMount: true, // Refetch on mount for fresh auth check
   });
 
   // Improved authentication state logic

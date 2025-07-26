@@ -23,7 +23,8 @@ function Router() {
 
   // Show loading state during authentication initialization
   // This prevents flash of login screen when user is actually authenticated
-  if (isLoading || (authManager.isAuthenticated() && !user && isAuthenticated)) {
+  // Also wait a bit longer for authentication to stabilize
+  if (isLoading || (authManager.isAuthenticated() && !user)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>

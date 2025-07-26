@@ -23,12 +23,16 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
-  // If user doesn't have subscription, redirect to subscription page
+  // If user doesn't have subscription, show subscription prompt instead of hard redirect
   useEffect(() => {
-    // Temporarily disabled to debug logout issue
-    // if (!subscriptionLoading && !subscription?.subscription) {
-    //   setLocation('/subscribe');
-    // }
+    if (!subscriptionLoading && !subscription?.subscription) {
+      // Only redirect if user has been on dashboard for a moment (not immediate)
+      const timer = setTimeout(() => {
+        setLocation('/subscribe');
+      }, 1500); // Give time for auth to stabilize
+      
+      return () => clearTimeout(timer);
+    }
   }, [subscription, subscriptionLoading, setLocation]);
 
   useEffect(() => {

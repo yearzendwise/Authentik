@@ -103,9 +103,15 @@ export default function Subscribe() {
     enabled: !!user,
   });
 
+  // Debug logging
+  console.log('Subscribe page - User:', user);
+  console.log('Subscribe page - Subscription data:', userSubscription);
+  console.log('Subscribe page - Subscription loading:', subscriptionLoading);
+
   // If user has subscription, redirect to dashboard
   useEffect(() => {
-    if (userSubscription && !subscriptionLoading) {
+    if (userSubscription?.subscription && !subscriptionLoading) {
+      console.log('Redirecting to dashboard - subscription found:', userSubscription);
       setLocation('/dashboard');
     }
   }, [userSubscription, subscriptionLoading, setLocation]);
@@ -147,11 +153,12 @@ export default function Subscribe() {
     });
   };
 
-  if (plansLoading) {
+  if (plansLoading || subscriptionLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center min-h-[400px]">
           <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-4">Loading subscription plans...</span>
         </div>
       </div>
     );

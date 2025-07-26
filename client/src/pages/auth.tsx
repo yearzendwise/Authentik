@@ -91,16 +91,10 @@ export default function AuthPage() {
     console.log("🔍 Auth page - isAuthenticated:", isAuthenticated);
     if (isAuthenticated) {
       console.log("✅ User is authenticated, redirecting to dashboard from useEffect");
-      setLocation("/dashboard");
-      // Double check with timeout
-      setTimeout(() => {
-        if (window.location.pathname !== "/dashboard") {
-          console.log("🔄 Redirect didn't work, forcing navigation");
-          window.location.href = "/dashboard";
-        }
-      }, 100);
+      // Force immediate navigation
+      window.location.href = "/dashboard";
     }
-  }, [isAuthenticated, authState, setLocation]);
+  }, [isAuthenticated, authState]);
 
   const onLogin = async (data: LoginCredentials) => {
     console.log("🚀 onLogin called with data:", data);
@@ -123,18 +117,11 @@ export default function AuthPage() {
           title: "Login Successful",
           description: "Welcome back! Redirecting to dashboard...",
         });
-        // Wait a moment for state to update, then force redirect if needed
+        // Force immediate redirect on successful login
         setTimeout(() => {
-          const currentAuthState = store.getState().auth;
-          console.log("🔍 Checking auth state after delay:", currentAuthState);
-          if (currentAuthState.isAuthenticated) {
-            console.log("✅ State updated, redirecting now");
-            setLocation("/dashboard");
-          } else {
-            console.log("❌ State not updated yet, forcing redirect");
-            window.location.href = "/dashboard";
-          }
-        }, 500);
+          console.log("🚀 Forcing redirect to dashboard after successful login");
+          window.location.href = "/dashboard";
+        }, 100);
       } else if (login.rejected.match(result)) {
         console.error("❌ Login rejected:", result.payload);
         toast({

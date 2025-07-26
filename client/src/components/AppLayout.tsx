@@ -9,10 +9,7 @@ import {
   Activity,
   Users,
   CreditCard,
-  ClipboardList,
-  Menu,
-  ChevronLeft,
-  ChevronRight
+  ClipboardList
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -105,19 +102,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     logout.mutate();
   };
 
-  const toggleMenu = () => {
-    const newExpandedState = isCollapsed;
-    setIsCollapsed(!isCollapsed);
-    localStorage.setItem('menuExpanded', JSON.stringify(newExpandedState));
-    
-    // Update user preference in database
-    updateMenuPreference.mutate({ menuExpanded: newExpandedState });
-    
-    // Dispatch event for other tabs
-    window.dispatchEvent(new CustomEvent('menuPreferenceChanged', {
-      detail: { menuExpanded: newExpandedState }
-    }));
-  };
+
 
   if (!user) {
     return <>{children}</>;
@@ -135,24 +120,12 @@ export function AppLayout({ children }: AppLayoutProps) {
         isCollapsed ? "w-16" : "w-64"
       )}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-center p-4 border-b border-gray-200 dark:border-gray-700">
           {!isCollapsed && (
             <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
               SaaS Auth
             </h1>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleMenu}
-            className="h-8 w-8 p-0"
-          >
-            {isCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronLeft className="h-4 w-4" />
-            )}
-          </Button>
         </div>
 
         {/* Navigation */}

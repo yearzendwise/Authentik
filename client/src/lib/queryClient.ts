@@ -13,7 +13,7 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   // Get access token from localStorage
-  const accessToken = localStorage.getItem('access_token');
+  const accessToken = localStorage.getItem('auth_access_token');
   
   const headers: Record<string, string> = {
     ...(data ? { "Content-Type": "application/json" } : {}),
@@ -38,7 +38,7 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     // Get access token from localStorage
-    const accessToken = localStorage.getItem('access_token');
+    const accessToken = localStorage.getItem('auth_access_token');
     
     const headers: Record<string, string> = {
       ...(accessToken ? { "Authorization": `Bearer ${accessToken}` } : {}),

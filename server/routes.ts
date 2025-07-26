@@ -1990,29 +1990,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
-  // Companies API Routes (tenant-aware)
+  // Company API Routes (single company per user)
 
-  // Get all companies
-  app.get("/api/companies", authenticateToken, async (req: any, res) => {
+  // Get user's company
+  app.get("/api/company", authenticateToken, async (req: any, res) => {
     try {
-      const companies = await storage.getAllCompanies(req.user.tenantId);
-      res.json(companies);
-    } catch (error) {
-      console.error("Get companies error:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  // Get specific company
-  app.get("/api/companies/:id", authenticateToken, async (req: any, res) => {
-    try {
-      const { id } = req.params;
-      const company = await storage.getCompany(id, req.user.tenantId);
-
-      if (!company) {
-        return res.status(404).json({ message: "Company not found" });
-      }
-
+      const company = await storage.getUserCompany(req.user.id, req.user.tenantId);
       res.json({ company });
     } catch (error) {
       console.error("Get company error:", error);
@@ -2020,10 +2003,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create new company
-  app.post("/api/companies", authenticateToken, async (req: any, res) => {
+  // Create user's company
+  app.post("/api/company", authenticateToken, async (req: any, res) => {
     try {
       const companyData = createCompanySchema.parse(req.body);
+
+      // Check if user already has a company
+      const existingCompany = await storage.getUserCompany(req.user.id, req.user.tenantId);
+      if (existingCompany) {
+        return res.status(400).json({ message: "Company already exists for this user" });
+      }
 
       const company = await storage.createCompany(
         companyData,
@@ -2047,20 +2036,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update company
-  app.patch("/api/companies/:id", authenticateToken, async (req: any, res) => {
+  // Update user's company
+  app.patch("/api/company", authenticateToken, async (req: any, res) => {
     try {
-      const { id } = req.params;
       const companyData = updateCompanySchema.parse(req.body);
 
-      // Check if company exists and belongs to user's tenant
-      const existingCompany = await storage.getCompany(id, req.user.tenantId);
+      // Check if user has a company
+      const existingCompany = await storage.getUserCompany(req.user.id, req.user.tenantId);
       if (!existingCompany) {
         return res.status(404).json({ message: "Company not found" });
       }
 
-      const updatedCompany = await storage.updateCompany(
-        id,
+      const updatedCompany = await storage.updateUserCompany(
+        req.user.id,
         companyData,
         req.user.tenantId,
       );
@@ -2077,26 +2065,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       console.error("Update company error:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  // Delete company
-  app.delete("/api/companies/:id", authenticateToken, async (req: any, res) => {
-    try {
-      const { id } = req.params;
-
-      // Check if company exists and belongs to user's tenant
-      const existingCompany = await storage.getCompany(id, req.user.tenantId);
-      if (!existingCompany) {
-        return res.status(404).json({ message: "Company not found" });
-      }
-
-      await storage.deleteCompany(id, req.user.tenantId);
-
-      res.json({ message: "Company deleted successfully" });
-    } catch (error) {
-      console.error("Delete company error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

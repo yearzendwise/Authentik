@@ -36,7 +36,7 @@ import {
 const getNavigation = (userRole?: string) => {
   const baseNavigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Companies", href: "/companies", icon: Building2 },
+    { name: "Company", href: "/company", icon: Building2 },
     { name: "Forms", href: "/forms", icon: ClipboardList },
     { name: "Subscription", href: "/subscribe", icon: CreditCard },
     { name: "Profile", href: "/profile", icon: User },

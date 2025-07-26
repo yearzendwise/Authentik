@@ -617,7 +617,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Company management methods (tenant-aware)
-  async getAllCompanies(tenantId: string): Promise<(Company & { owner: User })[]> {
+  async getUserCompany(userId: string, tenantId: string): Promise<(Company & { owner: User }) | null> {
     const result = await db
       .select({
         id: companies.id,
@@ -642,18 +642,10 @@ export class DatabaseStorage implements IStorage {
       })
       .from(companies)
       .innerJoin(users, eq(companies.ownerId, users.id))
-      .where(eq(companies.tenantId, tenantId))
-      .orderBy(desc(companies.createdAt));
+      .where(and(eq(companies.ownerId, userId), eq(companies.tenantId, tenantId)))
+      .limit(1);
     
-    return result;
-  }
-
-  async getCompany(id: string, tenantId: string): Promise<Company | undefined> {
-    const [company] = await db
-      .select()
-      .from(companies)
-      .where(and(eq(companies.id, id), eq(companies.tenantId, tenantId)));
-    return company;
+    return result[0] || null;
   }
 
   async createCompany(companyData: CreateCompanyData, ownerId: string, tenantId: string): Promise<Company> {
@@ -669,17 +661,13 @@ export class DatabaseStorage implements IStorage {
     return company;
   }
 
-  async updateCompany(id: string, companyData: UpdateCompanyData, tenantId: string): Promise<Company | undefined> {
+  async updateUserCompany(userId: string, companyData: UpdateCompanyData, tenantId: string): Promise<Company | undefined> {
     const [company] = await db
       .update(companies)
       .set({ ...companyData, updatedAt: new Date() })
-      .where(and(eq(companies.id, id), eq(companies.tenantId, tenantId)))
+      .where(and(eq(companies.ownerId, userId), eq(companies.tenantId, tenantId)))
       .returning();
     return company;
-  }
-
-  async deleteCompany(id: string, tenantId: string): Promise<void> {
-    await db.delete(companies).where(and(eq(companies.id, id), eq(companies.tenantId, tenantId)));
   }
 
 

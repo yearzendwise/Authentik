@@ -13,7 +13,7 @@ import Dashboard from "@/pages/dashboard";
 import ProfilePage from "@/pages/profile";
 import SessionsPage from "@/pages/sessions";
 import UsersPage from "@/pages/users";
-import CompaniesPage from "@/pages/companies";
+import CompanyPage from "@/pages/company";
 import FormsPage from "@/pages/forms";
 import Subscribe from "@/pages/subscribe";
 import VerifyEmailPage from "@/pages/verify-email";
@@ -55,7 +55,7 @@ function Router() {
             <Route path="/" component={Dashboard} />{" "}
             {/* Dashboard will handle subscription redirects */}
             <Route path="/dashboard" component={Dashboard} />
-            <Route path="/companies" component={CompaniesPage} />
+            <Route path="/company" component={CompanyPage} />
             <Route path="/forms/:rest*" component={FormsPage} />
             <Route path="/forms" component={FormsPage} />
             <Route path="/profile" component={ProfilePage} />

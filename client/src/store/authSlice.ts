@@ -74,6 +74,7 @@ export const login = createAsyncThunk(
   'auth/login',
   async (credentials: { email: string; password: string; tenantSlug: string; totpCode?: string }, { rejectWithValue }) => {
     try {
+      console.log("Redux Login: Starting login request...");
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -83,16 +84,21 @@ export const login = createAsyncThunk(
 
       if (!response.ok) {
         const error = await response.json();
+        console.log("Redux Login: Failed with error:", error);
         return rejectWithValue(error.message || "Login failed");
       }
 
       const data = await response.json();
+      console.log("Redux Login: Success, setting access token");
       authManager.setAccessToken(data.accessToken);
       
       // Fetch user data after successful login
+      console.log("Redux Login: Fetching user data...");
       const user = await authManager.getCurrentUser();
+      console.log("Redux Login: Got user data:", user);
       return user;
     } catch (error: any) {
+      console.error("Redux Login: Exception:", error);
       return rejectWithValue(error.message || "Login failed");
     }
   }

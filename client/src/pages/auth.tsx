@@ -92,7 +92,16 @@ export default function AuthPage() {
       
       if (result.type === 'auth/login/fulfilled') {
         console.log("✅ Login successful, redirecting to dashboard...");
+        console.log("Current location:", window.location.pathname);
         setLocation("/dashboard");
+        // Force navigation as a fallback
+        setTimeout(() => {
+          console.log("Checking if navigation happened...");
+          if (window.location.pathname !== "/dashboard") {
+            console.log("Navigation didn't work, forcing reload to dashboard");
+            window.location.href = "/dashboard";
+          }
+        }, 100);
       } else if (result.type === 'auth/login/rejected') {
         console.error("❌ Login failed:", result.payload);
       } else {

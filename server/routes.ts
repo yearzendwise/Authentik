@@ -12,6 +12,16 @@ import * as QRCode from "qrcode";
 import { UAParser } from "ua-parser-js";
 import { createHash } from "crypto";
 import { emailService } from "./emailService";
+import { 
+  sanitizeUserInput, 
+  sanitizeEmail, 
+  sanitizePassword,
+  sanitizeName,
+  sanitizeString,
+  checkRateLimit,
+  clearRateLimit,
+  getClientIP
+} from "./utils/sanitization";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key";
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || "your-super-secret-refresh-key";
@@ -118,10 +128,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }, 24 * 60 * 60 * 1000); // Once per day
 
-  // Register endpoint
+  // Register endpoint with input sanitization
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const validatedData = registerSchema.parse(req.body);
+      // Get client IP for rate limiting
+      const clientIP = getClientIP(req);
+      
+      // Basic rate limiting for registration
+      if (!checkRateLimit(clientIP, 3, 10 * 60 * 1000)) { // 3 attempts per 10 minutes
+        return res.status(429).json({ 
+          message: "Too many registration attempts. Please try again later." 
+        });
+      }
+
+      const rawData = registerSchema.parse(req.body);
+      
+      // Sanitize all input data
+      const sanitizedData = sanitizeUserInput({
+        email: rawData.email,
+        password: rawData.password,
+        firstName: rawData.firstName,
+        lastName: rawData.lastName,
+      });
+
+      if (!sanitizedData.email || !sanitizedData.password || !sanitizedData.firstName || !sanitizedData.lastName) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
       
       // Use the default tenant
       const tenant = await storage.getTenantBySlug('default');
@@ -130,22 +162,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if user already exists in the default tenant
-      const existingUser = await storage.getUserByEmail(validatedData.email, tenant.id);
+      const existingUser = await storage.getUserByEmail(sanitizedData.email, tenant.id);
       if (existingUser) {
         return res.status(409).json({ message: "User already exists with this email" });
       }
 
       // Hash password
-      const hashedPassword = await bcrypt.hash(validatedData.password, 12);
+      const hashedPassword = await bcrypt.hash(sanitizedData.password, 12);
 
-      // Create user
+      // Create user with sanitized data
       const user = await storage.createUser({
         tenantId: tenant.id,
-        email: validatedData.email,
+        email: sanitizedData.email,
         password: hashedPassword,
-        firstName: validatedData.firstName,
-        lastName: validatedData.lastName,
+        firstName: sanitizedData.firstName,
+        lastName: sanitizedData.lastName,
       });
+
+      // Clear rate limit on successful registration
+      clearRateLimit(clientIP);
 
       // Generate email verification token
       const verificationToken = randomBytes(32).toString('hex');
@@ -185,10 +220,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Login endpoint - now requires tenant context via subdomain or slug
+  // Login endpoint with input sanitization and rate limiting
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { email, password, twoFactorToken } = loginSchema.parse(req.body);
+      // Get client IP for rate limiting
+      const clientIP = getClientIP(req);
+      
+      // Check rate limit
+      if (!checkRateLimit(clientIP)) {
+        return res.status(429).json({ 
+          message: "Too many login attempts. Please try again later." 
+        });
+      }
+
+      // Parse and sanitize input data
+      const rawData = loginSchema.parse(req.body);
+      const sanitizedEmail = sanitizeEmail(rawData.email);
+      const sanitizedPassword = sanitizePassword(rawData.password);
+      const sanitizedTwoFactorToken = sanitizeString(rawData.twoFactorToken);
+
+      if (!sanitizedEmail || !sanitizedPassword) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
       
       // Always use default tenant for backward compatibility
       const tenant = await storage.getTenantBySlug('default');
@@ -197,13 +250,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Find user by email within tenant
-      const user = await storage.getUserByEmail(email, tenant.id);
+      const user = await storage.getUserByEmail(sanitizedEmail, tenant.id);
       if (!user || !user.isActive) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
       // Verify password
-      const isValidPassword = await bcrypt.compare(password, user.password);
+      const isValidPassword = await bcrypt.compare(sanitizedPassword, user.password);
       if (!isValidPassword) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
@@ -213,7 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check 2FA if enabled
       if (user.twoFactorEnabled) {
-        if (!twoFactorToken) {
+        if (!sanitizedTwoFactorToken) {
           return res.status(200).json({ 
             message: "2FA token required",
             requires2FA: true,
@@ -226,7 +279,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         const isValid2FA = authenticator.verify({
-          token: twoFactorToken,
+          token: sanitizedTwoFactorToken,
           secret: user.twoFactorSecret,
         });
 
@@ -234,6 +287,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(401).json({ message: "Invalid 2FA token" });
         }
       }
+
+      // Clear rate limit on successful login
+      clearRateLimit(clientIP);
 
       // Generate tokens
       const { accessToken, refreshToken } = generateTokens(user.id, user.tenantId);
@@ -572,17 +628,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update profile endpoint
   app.put("/api/auth/profile", authenticateToken, async (req: any, res) => {
     try {
-      const updateData = updateProfileSchema.parse(req.body);
+      const rawData = updateProfileSchema.parse(req.body);
+      
+      // Sanitize input data
+      const sanitizedData = sanitizeUserInput({
+        firstName: rawData.firstName,
+        lastName: rawData.lastName,
+        email: rawData.email,
+      });
       
       // Check if email is already taken by another user
-      if (updateData.email !== req.user.email) {
-        const existingUser = await storage.getUserByEmail(updateData.email, req.user.tenantId);
+      if (sanitizedData.email && sanitizedData.email !== req.user.email) {
+        const existingUser = await storage.getUserByEmail(sanitizedData.email, req.user.tenantId);
         if (existingUser && existingUser.id !== req.user.id) {
           return res.status(409).json({ message: "Email already taken by another user" });
         }
       }
 
-      const updatedUser = await storage.updateUser(req.user.id, updateData, req.user.tenantId);
+      const updatedUser = await storage.updateUser(req.user.id, sanitizedData, req.user.tenantId);
       
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found" });
@@ -609,10 +672,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Change password endpoint
+  // Change password endpoint with input sanitization
   app.put("/api/auth/change-password", authenticateToken, async (req: any, res) => {
     try {
-      const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
+      const rawData = changePasswordSchema.parse(req.body);
+      const currentPassword = sanitizePassword(rawData.currentPassword);
+      const newPassword = sanitizePassword(rawData.newPassword);
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current password and new password are required" });
+      }
       
       // Verify current password
       const isValidPassword = await bcrypt.compare(currentPassword, req.user.password);
@@ -1082,7 +1151,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Cannot deactivate your own account" });
       }
 
-      const updatedUser = await storage.toggleUserStatus(id, isActive);
+      const updatedUser = await storage.toggleUserStatus(id, isActive, req.user.tenantId);
       
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found" });
@@ -1090,7 +1159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // If user is deactivated, delete all their sessions
       if (!isActive) {
-        await storage.deleteUserRefreshTokens(id);
+        await storage.deleteUserRefreshTokens(id, req.user.tenantId);
       }
 
       res.json({ 
@@ -1126,9 +1195,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
+      // Get default tenant
+      const tenant = await storage.getTenantBySlug('default');
+      if (!tenant) {
+        return res.status(500).json({ message: "System configuration error" });
+      }
+
       // Check if user already exists  
       try {
-        const existingUser = await storage.getUserByEmail(email);
+        const existingUser = await storage.getUserByEmail(email, tenant.id);
         if (existingUser) {
           return res.status(400).json({ message: "User already exists" });
         }
@@ -1145,6 +1220,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create user account
       const hashedPassword = await bcrypt.hash(password, 10);
       const newUser = await storage.createUser({
+        tenantId: tenant.id,
         email,
         firstName,
         lastName,
@@ -1155,7 +1231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Generate email verification token
       const verificationToken = require('crypto').randomBytes(32).toString('hex');
-      await storage.setEmailVerificationToken(email, verificationToken, new Date(Date.now() + 24 * 60 * 60 * 1000));
+      await storage.setEmailVerificationToken(newUser.id, tenant.id, verificationToken, new Date(Date.now() + 24 * 60 * 60 * 1000));
 
       // Send verification email
       try {
@@ -1197,6 +1273,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Save subscription to database
       await storage.createSubscription({
+        tenantId: tenant.id,
         userId: newUser.id,
         planId: plan.id,
         stripeSubscriptionId: subscription.id,
@@ -1283,6 +1360,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Save subscription to database
       await storage.createSubscription({
+        tenantId: user.tenantId,
         userId: user.id,
         planId: plan.id,
         stripeSubscriptionId: subscription.id,

@@ -10,6 +10,7 @@ import Dashboard from "@/pages/dashboard";
 import ProfilePage from "@/pages/profile";
 import SessionsPage from "@/pages/sessions";
 import UsersPage from "@/pages/users";
+import Subscribe from "@/pages/subscribe";
 import VerifyEmailPage from "@/pages/verify-email";
 import PendingVerificationPage from "@/pages/pending-verification";
 import NotFound from "@/pages/not-found";
@@ -38,6 +39,7 @@ function Router() {
             <Route path="/profile" component={ProfilePage} />
             <Route path="/sessions" component={SessionsPage} />
             <Route path="/users" component={UsersPage} />
+            <Route path="/subscribe" component={Subscribe} />
             <Route path="/auth" component={Dashboard} /> {/* Redirect logged-in users away from auth */}
             <Route path="/pending-verification" component={Dashboard} /> {/* Redirect verified users away */}
           </Switch>
@@ -57,6 +59,7 @@ function Router() {
         <>
           <Route path="/" component={AuthPage} />
           <Route path="/auth" component={AuthPage} />
+          <Route path="/subscribe" component={Subscribe} />
           <Route path="/verify-email" component={VerifyEmailPage} />
           {/* Redirect any other route to auth for unauthenticated users */}
           <Route path="/dashboard" component={AuthPage} />

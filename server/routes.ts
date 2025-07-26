@@ -4,7 +4,8 @@ import { storage } from "./storage";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import cookieParser from "cookie-parser";
-import { loginSchema, registerSchema, forgotPasswordSchema, updateProfileSchema, changePasswordSchema, enable2FASchema, disable2FASchema, verifyEmailSchema, resendVerificationSchema, createUserSchema, updateUserSchema, userFiltersSchema, type UserRole } from "@shared/schema";
+import { loginSchema, registerSchema, forgotPasswordSchema, updateProfileSchema, changePasswordSchema, enable2FASchema, disable2FASchema, verifyEmailSchema, resendVerificationSchema, createUserSchema, updateUserSchema, userFiltersSchema, billingInfoSchema, type UserRole } from "@shared/schema";
+import Stripe from "stripe";
 import { randomBytes } from "crypto";
 import { authenticator } from "otplib";
 import * as QRCode from "qrcode";
@@ -14,6 +15,12 @@ import { emailService } from "./emailService";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key";
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || "your-super-secret-refresh-key";
+
+// Initialize Stripe
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Utility function to extract device information from request
 function getDeviceInfo(req: any): { deviceId: string; deviceName: string; userAgent?: string; ipAddress?: string } {
@@ -1060,6 +1067,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Toggle user status error:", error);
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Subscription plans API
+  app.get("/api/subscription-plans", async (req, res) => {
+    try {
+      const plans = await storage.getSubscriptionPlans();
+      res.json(plans);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching subscription plans: " + error.message });
+    }
+  });
+
+  // Create subscription and payment intent  
+  app.post("/api/create-subscription", authenticateToken, async (req: any, res) => {
+    try {
+      const billingData = billingInfoSchema.parse(req.body);
+      const user = req.user;
+
+      // Get the selected plan
+      const plan = await storage.getSubscriptionPlan(billingData.planId);
+      if (!plan) {
+        return res.status(404).json({ message: "Subscription plan not found" });
+      }
+
+      // Create or get Stripe customer
+      let customer;
+      if (user.stripeCustomerId) {
+        customer = await stripe.customers.retrieve(user.stripeCustomerId);
+      } else {
+        customer = await stripe.customers.create({
+          email: user.email,
+          name: `${user.firstName} ${user.lastName}`,
+        });
+      }
+
+      // Determine the price ID based on billing cycle
+      const priceId = billingData.billingCycle === 'yearly' 
+        ? plan.stripeYearlyPriceId || plan.stripePriceId 
+        : plan.stripePriceId;
+
+      // Create Stripe subscription
+      const subscription = await stripe.subscriptions.create({
+        customer: customer.id,
+        items: [{ price: priceId }],
+        payment_behavior: 'default_incomplete',
+        payment_settings: { save_default_payment_method: 'on_subscription' },
+        expand: ['latest_invoice.payment_intent'],
+        trial_period_days: plan.trialDays || undefined,
+      });
+
+      // Save subscription to database
+      await storage.createSubscription({
+        userId: user.id,
+        planId: plan.id,
+        stripeSubscriptionId: subscription.id,
+        stripeCustomerId: customer.id,
+        status: subscription.status,
+        currentPeriodStart: new Date((subscription as any).current_period_start * 1000),
+        currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
+        trialStart: (subscription as any).trial_start ? new Date((subscription as any).trial_start * 1000) : null,
+        trialEnd: (subscription as any).trial_end ? new Date((subscription as any).trial_end * 1000) : null,
+        isYearly: billingData.billingCycle === 'yearly',
+      });
+
+      // Update user with Stripe info
+      await storage.updateUserStripeInfo(user.id, customer.id, subscription.id);
+
+      const invoice = subscription.latest_invoice as any;
+      const paymentIntent = invoice?.payment_intent as any;
+
+      res.json({
+        subscriptionId: subscription.id,
+        clientSecret: paymentIntent.client_secret,
+        status: subscription.status,
+      });
+    } catch (error: any) {
+      console.error("Error creating subscription:", error);
+      res.status(500).json({ message: "Error creating subscription: " + error.message });
+    }
+  });
+
+  // Get user's current subscription
+  app.get("/api/my-subscription", authenticateToken, async (req: any, res) => {
+    try {
+      const subscription = await storage.getUserSubscription(req.user.id);
+      if (!subscription) {
+        return res.json({ subscription: null });
+      }
+
+      const plan = await storage.getSubscriptionPlan(subscription.planId);
+      res.json({ 
+        subscription: {
+          ...subscription,
+          plan
+        }
+      });
+    } catch (error: any) {
+      console.error("Error fetching subscription:", error);
+      res.status(500).json({ message: "Error fetching subscription: " + error.message });
     }
   });
 

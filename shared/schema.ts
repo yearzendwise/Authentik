@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, decimal, integer } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -23,6 +24,14 @@ export const users = pgTable("users", {
   lastVerificationEmailSent: timestamp("last_verification_email_sent"),
   lastLoginAt: timestamp("last_login_at"), // Track last login for user management
   menuExpanded: boolean("menu_expanded").default(false), // New field for menu preference
+  // Stripe fields for subscription management
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  subscriptionStatus: text("subscription_status").default('inactive'), // active, inactive, canceled, past_due
+  subscriptionPlanId: varchar("subscription_plan_id"),
+  subscriptionStartDate: timestamp("subscription_start_date"),
+  subscriptionEndDate: timestamp("subscription_end_date"),
+  trialEndsAt: timestamp("trial_ends_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -42,6 +51,72 @@ export const refreshTokens = pgTable("refresh_tokens", {
   lastUsed: timestamp("last_used").defaultNow(),
   isActive: boolean("is_active").default(true),
 });
+
+// Subscription plans table
+export const subscriptionPlans = pgTable("subscription_plans", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(), // Basic, Pro, Enterprise
+  displayName: text("display_name").notNull(), // User-friendly name
+  description: text("description").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(), // Monthly price
+  yearlyPrice: decimal("yearly_price", { precision: 10, scale: 2 }), // Yearly price (optional discount)
+  stripePriceId: text("stripe_price_id").notNull(), // Stripe Price ID for monthly
+  stripeYearlyPriceId: text("stripe_yearly_price_id"), // Stripe Price ID for yearly
+  features: text("features").array().notNull(), // Array of feature descriptions
+  maxUsers: integer("max_users"), // null = unlimited
+  maxProjects: integer("max_projects"), // null = unlimited
+  storageLimit: integer("storage_limit"), // in GB, null = unlimited
+  supportLevel: text("support_level").default('email'), // email, priority, dedicated
+  trialDays: integer("trial_days").default(14),
+  isPopular: boolean("is_popular").default(false),
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// User subscriptions history table
+export const subscriptions = pgTable("subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  planId: varchar("plan_id").notNull().references(() => subscriptionPlans.id),
+  stripeSubscriptionId: text("stripe_subscription_id").notNull().unique(),
+  stripeCustomerId: text("stripe_customer_id").notNull(),
+  status: text("status").notNull(), // active, canceled, incomplete, past_due, trialing, etc.
+  currentPeriodStart: timestamp("current_period_start").notNull(),
+  currentPeriodEnd: timestamp("current_period_end").notNull(),
+  trialStart: timestamp("trial_start"),
+  trialEnd: timestamp("trial_end"),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
+  canceledAt: timestamp("canceled_at"),
+  isYearly: boolean("is_yearly").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Relations
+export const userRelations = relations(users, ({ one, many }) => ({
+  refreshTokens: many(refreshTokens),
+  subscription: one(subscriptions, {
+    fields: [users.id],
+    references: [subscriptions.userId],
+  }),
+}));
+
+export const subscriptionRelations = relations(subscriptions, ({ one }) => ({
+  user: one(users, {
+    fields: [subscriptions.userId],
+    references: [users.id],
+  }),
+  plan: one(subscriptionPlans, {
+    fields: [subscriptions.planId],
+    references: [subscriptionPlans.id],
+  }),
+}));
+
+export const subscriptionPlanRelations = relations(subscriptionPlans, ({ many }) => ({
+  subscriptions: many(subscriptions),
+}));
 
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -65,6 +140,8 @@ export const registerSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   confirmPassword: z.string(),
+  selectedPlan: z.string().optional(), // Plan ID for subscription
+  billingCycle: z.enum(['monthly', 'yearly']).default('monthly'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -178,3 +255,26 @@ export type ResendVerificationData = z.infer<typeof resendVerificationSchema>;
 export type CreateUserData = z.infer<typeof createUserSchema>;
 export type UpdateUserData = z.infer<typeof updateUserSchema>;
 export type UserFilters = z.infer<typeof userFiltersSchema>;
+
+// Subscription types
+export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
+export type InsertSubscriptionPlan = typeof subscriptionPlans.$inferInsert;
+export type Subscription = typeof subscriptions.$inferSelect;
+export type InsertSubscription = typeof subscriptions.$inferInsert;
+
+// Subscription schemas
+export const subscriptionPlanSchema = createInsertSchema(subscriptionPlans);
+export const createSubscriptionSchema = createInsertSchema(subscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Billing schemas
+export const billingInfoSchema = z.object({
+  planId: z.string(),
+  billingCycle: z.enum(['monthly', 'yearly']),
+  paymentMethodId: z.string().optional(),
+});
+
+export type BillingInfo = z.infer<typeof billingInfoSchema>;

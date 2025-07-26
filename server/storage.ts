@@ -1,4 +1,4 @@
-import { users, refreshTokens, type User, type InsertUser, type RefreshToken, type UserFilters, type CreateUserData, type UpdateUserData } from "@shared/schema";
+import { users, refreshTokens, subscriptionPlans, subscriptions, type User, type InsertUser, type RefreshToken, type UserFilters, type CreateUserData, type UpdateUserData, type SubscriptionPlan, type InsertSubscriptionPlan, type Subscription, type InsertSubscription } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gt, desc, ne, or, ilike, count, sql } from "drizzle-orm";
 
@@ -46,6 +46,18 @@ export interface IStorage {
   getUserByEmailVerificationToken(token: string): Promise<User | undefined>;
   verifyUserEmail(userId: string): Promise<void>;
   updateLastVerificationEmailSent(userId: string): Promise<void>;
+  
+  // Subscription plans
+  getSubscriptionPlans(): Promise<SubscriptionPlan[]>;
+  getSubscriptionPlan(id: string): Promise<SubscriptionPlan | undefined>;
+  createSubscriptionPlan(plan: InsertSubscriptionPlan): Promise<SubscriptionPlan>;
+  
+  // User subscriptions
+  createSubscription(subscription: InsertSubscription): Promise<Subscription>;
+  getSubscription(id: string): Promise<Subscription | undefined>;
+  getUserSubscription(userId: string): Promise<Subscription | undefined>;
+  updateSubscription(id: string, updates: Partial<Subscription>): Promise<Subscription | undefined>;
+  updateUserStripeInfo(userId: string, stripeCustomerId: string, stripeSubscriptionId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -230,6 +242,73 @@ export class DatabaseStorage implements IStorage {
       .set({ 
         lastVerificationEmailSent: new Date(),
         updatedAt: new Date()
+      })
+      .where(eq(users.id, userId));
+  }
+
+  // Subscription plans methods
+  async getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+    return await db.select().from(subscriptionPlans).where(eq(subscriptionPlans.isActive, true)).orderBy(subscriptionPlans.sortOrder);
+  }
+
+  async getSubscriptionPlan(id: string): Promise<SubscriptionPlan | undefined> {
+    const [plan] = await db.select().from(subscriptionPlans).where(eq(subscriptionPlans.id, id));
+    return plan;
+  }
+
+  async createSubscriptionPlan(plan: InsertSubscriptionPlan): Promise<SubscriptionPlan> {
+    const [newPlan] = await db
+      .insert(subscriptionPlans)
+      .values({
+        ...plan,
+        updatedAt: new Date(),
+      })
+      .returning();
+    return newPlan;
+  }
+
+  // User subscriptions methods
+  async createSubscription(subscription: InsertSubscription): Promise<Subscription> {
+    const [newSubscription] = await db
+      .insert(subscriptions)
+      .values({
+        ...subscription,
+        updatedAt: new Date(),
+      })
+      .returning();
+    return newSubscription;
+  }
+
+  async getSubscription(id: string): Promise<Subscription | undefined> {
+    const [subscription] = await db.select().from(subscriptions).where(eq(subscriptions.id, id));
+    return subscription;
+  }
+
+  async getUserSubscription(userId: string): Promise<Subscription | undefined> {
+    const [subscription] = await db.select().from(subscriptions).where(eq(subscriptions.userId, userId)).orderBy(desc(subscriptions.createdAt));
+    return subscription;
+  }
+
+  async updateSubscription(id: string, updates: Partial<Subscription>): Promise<Subscription | undefined> {
+    const [subscription] = await db
+      .update(subscriptions)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(subscriptions.id, id))
+      .returning();
+    return subscription;
+  }
+
+  async updateUserStripeInfo(userId: string, stripeCustomerId: string, stripeSubscriptionId: string): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        stripeCustomerId,
+        stripeSubscriptionId,
+        subscriptionStatus: 'active',
+        updatedAt: new Date(),
       })
       .where(eq(users.id, userId));
   }

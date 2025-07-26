@@ -13,13 +13,35 @@ export function useAuth() {
           return null;
         }
         return await authManager.getCurrentUser();
-      } catch (error) {
-        authManager.clearTokens();
+      } catch (error: any) {
+        console.log("Auth query failed:", error.message);
+        
+        // Only clear tokens if it's a definitive authentication failure
+        if (error.message?.includes("Authentication failed")) {
+          console.log("Authentication definitively failed, clearing tokens");
+          authManager.clearTokens();
+          return null;
+        }
+        
+        // For other errors (like network issues), return null but don't clear tokens
+        // This prevents unnecessary logouts during temporary network issues
+        console.log("Temporary auth error, keeping tokens");
         return null;
       }
     },
-    retry: false,
-    staleTime: 30 * 1000, // 30 seconds - shorter cache for email verification status
+    retry: (failureCount, error: any) => {
+      // Don't retry if authentication actually failed
+      if (error?.message?.includes("Authentication failed")) {
+        return false;
+      }
+      // Retry up to 1 time for other errors
+      return failureCount < 1;
+    },
+    retryDelay: 2000, // 2 second delay between retries
+    staleTime: 5 * 60 * 1000, // 5 minutes - much longer cache to reduce frequent checks
+    gcTime: 10 * 60 * 1000, // 10 minutes garbage collection time
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    refetchOnMount: false, // Don't always refetch on component mount
   });
 
   return {
@@ -67,6 +89,12 @@ export function useLogin() {
       }
       
       queryClient.setQueryData(["/api/auth/me"], data.user);
+      
+      // Re-initialize the automatic refresh system after successful login
+      setTimeout(() => {
+        authManager.initialize();
+      }, 100);
+      
       toast({
         title: "Success",
         description: "Login successful! Welcome back.",

@@ -60,19 +60,26 @@ class AuthManager {
       const now = Date.now();
       const timeUntilExpiry = expTime - now;
 
-      // Schedule refresh 30 seconds before expiry (or immediately if less than 60 seconds)
-      const refreshTime = Math.max(timeUntilExpiry - 30000, 5000); // At least 5 seconds delay
+      // Schedule refresh 45 seconds before expiry (with minimum 10 seconds)
+      const refreshTime = Math.max(timeUntilExpiry - 45000, 10000);
 
-      if (refreshTime > 0) {
+      if (refreshTime > 0 && timeUntilExpiry > 60000) { // Only schedule if more than 1 minute left
         this.refreshTimer = setTimeout(async () => {
           try {
-            await this.refreshAccessToken();
+            console.log("Executing automatic token refresh...");
+            const newToken = await this.refreshAccessToken();
+            console.log("Token refreshed successfully");
+            
+            // Re-schedule the next refresh with the new token
+            this.scheduleTokenRefresh(newToken);
           } catch (error) {
             console.error("Automatic token refresh failed:", error);
-            // Redirect to login if refresh fails
-            window.location.href = "/auth";
+            // Clear tokens and let the app handle the logout
+            this.clearTokens();
           }
         }, refreshTime);
+        
+        console.log(`Token refresh scheduled in ${Math.round(refreshTime / 1000)} seconds`);
       }
     } catch (error) {
       console.error("Failed to schedule token refresh:", error);
@@ -85,7 +92,10 @@ class AuthManager {
     
     const token = this.getAccessToken();
     if (token) {
+      console.log("Initializing automatic token refresh system");
       this.scheduleTokenRefresh(token);
+    } else {
+      console.log("No token found during initialization");
     }
     
     this.isInitialized = true;
@@ -160,11 +170,13 @@ class AuthManager {
     // If token expired, try to refresh and retry once
     if (response.status === 401) {
       try {
+        console.log("Token expired, attempting refresh...");
         token = await this.refreshAccessToken();
         response = await makeRequest(token);
+        console.log("Request successful after token refresh");
       } catch (refreshError) {
-        // Refresh failed, redirect to login
-        window.location.href = "/auth";
+        console.error("Token refresh failed:", refreshError);
+        this.clearTokens();
         throw new Error("Authentication failed");
       }
     }

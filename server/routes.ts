@@ -1080,7 +1080,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create subscription and payment intent  
+  // Create subscription for free trial signup (no auth required)
+  app.post("/api/free-trial-signup", async (req: any, res) => {
+    try {
+      const { email, firstName, lastName, password, planId, billingCycle } = req.body;
+      
+      // Validate required fields
+      if (!email || !firstName || !lastName || !password || !planId) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Check if user already exists  
+      const existingUser = await storage.getUser(0); // We'll check by email in a different way
+      const users = await storage.getAllUsers?.();
+      const userExists = users?.some((user: any) => user.email === email);
+      if (userExists) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+
+      // Get the subscription plan
+      const plan = await storage.getSubscriptionPlan(planId);
+      if (!plan) {
+        return res.status(404).json({ message: "Subscription plan not found" });
+      }
+
+      // Create user account
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const newUser = await storage.createUser({
+        email,
+        firstName,
+        lastName,
+        password: hashedPassword,
+        emailVerified: false,
+        role: 'User'
+      });
+
+      // Generate email verification token
+      const verificationToken = require('crypto').randomBytes(32).toString('hex');
+      await storage.setEmailVerificationToken(email, verificationToken, new Date(Date.now() + 24 * 60 * 60 * 1000));
+
+      // Send verification email
+      try {
+        await emailService.sendVerificationEmail(email, `${firstName} ${lastName}`, verificationToken);
+      } catch (emailError) {
+        console.error('Failed to send verification email:', emailError);
+      }
+
+      // Create Stripe customer
+      const customer = await stripe.customers.create({
+        email: newUser.email,
+        name: `${newUser.firstName} ${newUser.lastName}`,
+      });
+
+      // Get the correct price ID based on billing cycle
+      const priceId = billingCycle === 'yearly' 
+        ? plan.stripeYearlyPriceId || plan.stripePriceId 
+        : plan.stripePriceId;
+
+      // Create Stripe subscription with free trial
+      const subscription = await stripe.subscriptions.create({
+        customer: customer.id,
+        items: [{ price: priceId }],
+        trial_period_days: plan.trialDays || 14,
+        payment_behavior: 'default_incomplete',
+        payment_settings: { save_default_payment_method: 'on_subscription' },
+        expand: ['latest_invoice.payment_intent'],
+      });
+
+      // Save subscription to database
+      await storage.createSubscription({
+        userId: newUser.id,
+        planId: plan.id,
+        stripeSubscriptionId: subscription.id,
+        stripeCustomerId: customer.id,
+        status: subscription.status,
+        currentPeriodStart: new Date((subscription as any).current_period_start * 1000),
+        currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
+        trialStart: (subscription as any).trial_start ? new Date((subscription as any).trial_start * 1000) : null,
+        trialEnd: (subscription as any).trial_end ? new Date((subscription as any).trial_end * 1000) : null,
+        isYearly: billingCycle === 'yearly',
+      });
+
+      // Update user with Stripe info
+      // Note: updateUserStripeInfo method would need to be implemented in storage
+
+      res.status(201).json({
+        message: "Account created successfully! Please check your email to verify your account.",
+        user: {
+          id: newUser.id,
+          email: newUser.email,
+          firstName: newUser.firstName,
+          lastName: newUser.lastName
+        },
+        subscription: {
+          id: subscription.id,
+          status: subscription.status,
+          trialEnd: (subscription as any).trial_end ? new Date((subscription as any).trial_end * 1000) : null
+        }
+      });
+
+    } catch (error: any) {
+      console.error('Free trial signup error:', error);
+      res.status(500).json({ message: "Error creating account: " + error.message });
+    }
+  });
+
+  // Create subscription and payment intent (for existing users)
   app.post("/api/create-subscription", authenticateToken, async (req: any, res) => {
     try {
       const billingData = billingInfoSchema.parse(req.body);

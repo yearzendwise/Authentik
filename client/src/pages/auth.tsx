@@ -19,6 +19,18 @@ type AuthView = "login" | "register" | "forgot" | "twoFactor";
 export default function AuthPage() {
   const [, setLocation] = useLocation();
   const [currentView, setCurrentView] = useState<AuthView>("login");
+  
+  // Check URL parameters for free trial
+  const urlParams = new URLSearchParams(window.location.search);
+  const planId = urlParams.get('plan');
+  const billingCycle = urlParams.get('cycle');
+  const isTrial = urlParams.get('trial') === 'true';
+  
+  useEffect(() => {
+    if (isTrial && planId) {
+      setCurrentView("register");
+    }
+  }, [isTrial, planId]);
   const [showPassword, setShowPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
@@ -51,6 +63,39 @@ export default function AuthPage() {
       confirmPassword: "",
     },
   });
+
+  // Handle free trial registration
+  const handleFreeTrialRegister = async (data: RegisterData) => {
+    if (planId && billingCycle) {
+      try {
+        const response = await fetch('/api/free-trial-signup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...data,
+            planId,
+            billingCycle,
+          }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          alert('Account created successfully! Please check your email for verification.');
+          setLocation('/pending-verification');
+        } else {
+          const error = await response.json();
+          alert('Error: ' + error.message);
+        }
+      } catch (error) {
+        alert('Error creating account. Please try again.');
+      }
+    } else {
+      // Regular registration
+      registerMutation.mutate(data);
+    }
+  };
 
   const forgotForm = useForm<ForgotPasswordData>({
     resolver: zodResolver(forgotPasswordSchema),

@@ -121,6 +121,11 @@ export default function Subscribe() {
     createSubscriptionMutation.mutate({ planId, billingCycle });
   };
 
+  const handleStartFreeTrial = (planId: string) => {
+    // For free trial, redirect to auth page with plan selection
+    window.location.href = `/auth?plan=${planId}&cycle=${billingCycle}&trial=true`;
+  };
+
   if (plansLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -225,7 +230,7 @@ export default function Subscribe() {
               <Button 
                 className="w-full mb-6" 
                 variant={plan.isPopular ? "default" : "outline"}
-                onClick={() => handlePlanSelection(plan.id)}
+                onClick={() => handleStartFreeTrial(plan.id)}
                 disabled={createSubscriptionMutation.isPending}
               >
                 {createSubscriptionMutation.isPending && currentPlan === plan.id ? (

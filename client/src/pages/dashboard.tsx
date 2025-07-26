@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth, useLogout } from "@/hooks/useAuth";
 import { authManager } from "@/lib/auth";
-import { Shield, Users, Clock, TrendingUp, LogOut, RefreshCw, Settings } from "lucide-react";
+import { Shield, Users, Clock, TrendingUp, LogOut, RefreshCw, Settings, CreditCard, Calendar } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function Dashboard() {
@@ -14,6 +15,19 @@ export default function Dashboard() {
   const [tokenExpiry, setTokenExpiry] = useState<string>("--");
   const [sessionCount] = useState(3);
   const [apiRequests] = useState(1247);
+
+  // Fetch user's subscription
+  const { data: subscription, isLoading: subscriptionLoading } = useQuery({
+    queryKey: ['/api/my-subscription'],
+    enabled: !!user,
+  });
+
+  // If user doesn't have subscription, redirect to subscription page
+  useEffect(() => {
+    if (!subscriptionLoading && !subscription) {
+      setLocation('/subscribe');
+    }
+  }, [subscription, subscriptionLoading, setLocation]);
 
   useEffect(() => {
     // Token countdown simulation
@@ -92,6 +106,50 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+        {/* Subscription Status */}
+        {subscription && (
+          <Card className="mb-8 border-l-4 border-l-blue-600">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <CreditCard className="mr-2 h-5 w-5" />
+                Subscription Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Plan</p>
+                  <p className="text-lg font-bold text-gray-900">{subscription.plan?.displayName}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Status</p>
+                  <Badge variant={subscription.status === 'active' ? 'default' : 'secondary'}>
+                    {subscription.status}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Billing</p>
+                  <p className="text-sm text-gray-900">{subscription.isYearly ? 'Yearly' : 'Monthly'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Next Payment</p>
+                  <p className="text-sm text-gray-900 flex items-center">
+                    <Calendar className="mr-1 h-3 w-3" />
+                    {subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd).toLocaleDateString() : 'N/A'}
+                  </p>
+                </div>
+              </div>
+              {subscription.trialEnd && new Date(subscription.trialEnd) > new Date() && (
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Free Trial Active:</strong> Your trial ends on {new Date(subscription.trialEnd).toLocaleDateString()}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>

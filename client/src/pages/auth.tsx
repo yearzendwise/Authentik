@@ -20,17 +20,7 @@ export default function AuthPage() {
   const [, setLocation] = useLocation();
   const [currentView, setCurrentView] = useState<AuthView>("login");
   
-  // Check URL parameters for free trial
-  const urlParams = new URLSearchParams(window.location.search);
-  const planId = urlParams.get('plan');
-  const billingCycle = urlParams.get('cycle');
-  const isTrial = urlParams.get('trial') === 'true';
-  
-  useEffect(() => {
-    if (isTrial && planId) {
-      setCurrentView("register");
-    }
-  }, [isTrial, planId]);
+  // Removed free trial URL parameter logic for simplified flow
   const [showPassword, setShowPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
@@ -64,37 +54,9 @@ export default function AuthPage() {
     },
   });
 
-  // Handle free trial registration
-  const handleFreeTrialRegister = async (data: RegisterData) => {
-    if (planId && billingCycle) {
-      try {
-        const response = await fetch('/api/free-trial-signup', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ...data,
-            planId,
-            billingCycle,
-          }),
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          alert('Account created successfully! Please check your email for verification.');
-          setLocation('/pending-verification');
-        } else {
-          const error = await response.json();
-          alert('Error: ' + error.message);
-        }
-      } catch (error) {
-        alert('Error creating account. Please try again.');
-      }
-    } else {
-      // Regular registration
-      registerMutation.mutate(data);
-    }
+  // Simplified registration - always use regular registration
+  const handleRegister = (data: RegisterData) => {
+    registerMutation.mutate(data);
   };
 
   const forgotForm = useForm<ForgotPasswordData>({
@@ -386,7 +348,7 @@ export default function AuthPage() {
                     <p className="text-gray-600">Get started with your free account</p>
                   </div>
 
-                  <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
+                  <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="firstName">First name</Label>

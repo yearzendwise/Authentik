@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, useStripe, useElements, PaymentElement } from "@stripe/react-stripe-js";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Check, Star, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import type { SubscriptionPlan } from "@shared/schema";
 
 // Make sure to call `loadStripe` outside of a component's render to avoid
@@ -91,7 +93,22 @@ export default function Subscribe() {
   const [clientSecret, setClientSecret] = useState("");
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [currentPlan, setCurrentPlan] = useState<string>('');
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  // Check if user already has a subscription
+  const { data: userSubscription, isLoading: subscriptionLoading } = useQuery({
+    queryKey: ['/api/my-subscription'],
+    enabled: !!user,
+  });
+
+  // If user has subscription, redirect to dashboard
+  useEffect(() => {
+    if (userSubscription && !subscriptionLoading) {
+      setLocation('/dashboard');
+    }
+  }, [userSubscription, subscriptionLoading, setLocation]);
 
   // Fetch subscription plans
   const { data: plans, isLoading: plansLoading } = useQuery<SubscriptionPlan[]>({
@@ -122,8 +139,12 @@ export default function Subscribe() {
   };
 
   const handleStartFreeTrial = (planId: string) => {
-    // For free trial, redirect to auth page with plan selection
-    window.location.href = `/auth?plan=${planId}&cycle=${billingCycle}&trial=true`;
+    // Start free trial for current user
+    setCurrentPlan(planId);
+    createSubscriptionMutation.mutate({ 
+      planId, 
+      billingCycle
+    });
   };
 
   if (plansLoading) {

@@ -10,6 +10,7 @@ import Dashboard from "@/pages/dashboard";
 import ProfilePage from "@/pages/profile";
 import SessionsPage from "@/pages/sessions";
 import UsersPage from "@/pages/users";
+import FormsPage from "@/pages/forms";
 import Subscribe from "@/pages/subscribe";
 import VerifyEmailPage from "@/pages/verify-email";
 import PendingVerificationPage from "@/pages/pending-verification";
@@ -38,6 +39,8 @@ function Router() {
           <Switch>
             <Route path="/" component={Dashboard} /> {/* Dashboard will handle subscription redirects */}
             <Route path="/dashboard" component={Dashboard} />
+            <Route path="/forms/:rest*" component={FormsPage} />
+            <Route path="/forms" component={FormsPage} />
             <Route path="/profile" component={ProfilePage} />
             <Route path="/sessions" component={SessionsPage} />
             <Route path="/users" component={UsersPage} />

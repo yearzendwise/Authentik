@@ -1,12 +1,12 @@
 import { Switch, Route } from "wouter";
+import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Provider } from "react-redux";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { queryClient } from "@/lib/queryClient";
-import { store } from "@/store";
 import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/AppLayout";
+import { authManager } from "@/lib/auth";
+import { useEffect, useState } from "react";
 import AuthPage from "@/pages/auth";
 import Dashboard from "@/pages/dashboard";
 import ProfilePage from "@/pages/profile";
@@ -72,12 +72,12 @@ function Router() {
         <>
           <Route path="/" component={AuthPage} />
           <Route path="/auth" component={AuthPage} />
+          <Route path="/subscribe" component={Subscribe} />
           <Route path="/verify-email" component={VerifyEmailPage} />
           {/* Redirect any other route to auth for unauthenticated users */}
           <Route path="/dashboard" component={AuthPage} />
           <Route path="/profile" component={AuthPage} />
           <Route path="/sessions" component={AuthPage} />
-          <Route path="/subscribe" component={AuthPage} />
           <Route path="/pending-verification" component={AuthPage} />
         </>
       )}
@@ -87,15 +87,19 @@ function Router() {
 }
 
 function App() {
+  // Initialize automatic token refresh on app start
+  useEffect(() => {
+    console.log("Initializing authentication system...");
+    authManager.initialize();
+  }, []);
+
   return (
-    <Provider store={store}>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </QueryClientProvider>
-    </Provider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Router />
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 }
 

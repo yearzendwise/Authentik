@@ -1,47 +1,66 @@
-import { useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import { useAppDispatch, useAppSelector } from "@/store";
-import { checkAuthentication, login, logout, clearError } from "@/store/authSlice";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { authManager } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
+import type { AuthUser, AuthResponse } from "@/lib/auth";
 import type { LoginCredentials, RegisterData, UpdateProfileData, ChangePasswordData } from "@shared/schema";
 
 export function useAuth() {
-  const dispatch = useAppDispatch();
-  const { user, isAuthenticated, isLoading, isInitialized, error } = useAppSelector((state) => state.auth);
+  const { data: user, isLoading, error, isError, isFetched } = useQuery<AuthUser | null>({
+    queryKey: ["/api/auth/me"],
+    queryFn: async () => {
+      try {
+        // Check if we have a token first
+        if (!authManager.isAuthenticated()) {
+          console.log("No valid token available for auth check");
+          return null;
+        }
+        
+        console.log("Fetching current user data...");
+        return await authManager.getCurrentUser();
+      } catch (error: any) {
+        console.log("Auth query failed:", error.message);
+        
+        // Handle different types of auth failures
+        if (error.message?.includes("Authentication failed") || 
+            error.message?.includes("Token refresh failed - authentication required")) {
+          console.log("Authentication definitively failed, clearing tokens");
+          authManager.clearTokens();
+          return null;
+        }
+        
+        // For network errors, server errors, or other temporary issues, keep tokens but return null
+        console.log("Temporary auth error, keeping tokens but returning null");
+        return null;
+      }
+    },
+    retry: (failureCount, error: any) => {
+      // Don't retry if authentication actually failed
+      if (error?.message?.includes("Authentication failed") || 
+          error?.message?.includes("Token refresh failed - authentication required")) {
+        return false;
+      }
+      // Only retry once for temporary errors to avoid long loading times
+      return failureCount < 1;
+    },
+    retryDelay: 1000, // Fixed 1 second delay
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+  });
 
-  // Initialize authentication check on mount
-  useEffect(() => {
-    if (!isInitialized) {
-      console.log("Redux: Initializing authentication...");
-      dispatch(checkAuthentication());
-    }
-  }, [dispatch, isInitialized]);
-
-  // Initialize auth manager on app start
-  useEffect(() => {
-    console.log("Initializing authentication system...");
-    authManager.initialize();
-  }, []);
-
-  console.log("🔍 Checking authentication status...");
-  console.log("🔍 Redux auth state:", { user: !!user, isAuthenticated, isLoading, isInitialized });
-  if (user) {
-    console.log("✅ User found in Redux state");
-  } else {
-    console.log("❌ No user in Redux state");
-  }
-
-  const hasUser = !!user;
-  console.log(`🔍 Router state:`, { isAuthenticated, isLoading, hasUser, hasInitialized: isInitialized });
+  // Determine if we've completed the initial authentication check
+  const hasInitialized = isFetched || isError;
+  
+  // Determine authentication state based on token and user data
+  const hasValidToken = authManager.isAuthenticated();
+  const isAuthenticated = hasValidToken && !!user;
 
   return {
     user,
-    isAuthenticated,
     isLoading,
-    isError: !!error,
-    error,
-    hasInitialized: isInitialized,
+    isAuthenticated,
+    hasInitialized,
   };
 }
 

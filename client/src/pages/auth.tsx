@@ -7,15 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useRegister, useForgotPassword } from "@/hooks/useAuth";
-import { useAppDispatch, useAppSelector, store } from "@/store";
-import { login, clearError } from "@/store/authSlice";
+import { useLogin, useRegister, useForgotPassword } from "@/hooks/useAuth";
 import { loginSchema, registerSchema, forgotPasswordSchema } from "@shared/schema";
 import type { LoginCredentials, RegisterData, ForgotPasswordData } from "@shared/schema";
 import { calculatePasswordStrength, getPasswordStrengthText, getPasswordStrengthColor } from "@/lib/authUtils";
 import { Eye, EyeOff, Shield, CheckCircle, Mail, Lock, ArrowLeft, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
-import { toast } from "@/hooks/use-toast";
 
 type AuthView = "login" | "register" | "forgot" | "twoFactor";
 
@@ -34,9 +31,7 @@ export default function AuthPage() {
     tempLoginId: string;
   } | null>(null);
 
-  const dispatch = useAppDispatch();
-  const authState = useAppSelector((state) => state.auth);
-  const { isLoading: isLoginLoading, isAuthenticated } = authState;
+  const loginMutation = useLogin();
   const registerMutation = useRegister();
   const forgotPasswordMutation = useForgotPassword();
 
@@ -85,57 +80,27 @@ export default function AuthPage() {
     }
   }, [watchPassword]);
 
-  // Remove automatic redirect to prevent loops
-  useEffect(() => {
-    console.log("🔍 Auth page - Redux auth state:", authState);
-    console.log("🔍 Auth page - isAuthenticated:", isAuthenticated);
-    // Don't auto-redirect - only redirect after successful login
-  }, [isAuthenticated, authState]);
-
   const onLogin = async (data: LoginCredentials) => {
-    console.log("🚀 onLogin called with data:", data);
     try {
-      const loginData = { ...data, tenantSlug: "default" };
-      console.log("🔐 Dispatching login action...", loginData);
-      const result = await dispatch(login(loginData));
-      console.log("🔐 Login action result:", result);
-      console.log("🔐 Result type:", result.type);
-      console.log("🔐 Result payload:", result.payload);
-      console.log("🔐 Result meta:", result.meta);
-      
-      if (login.fulfilled.match(result)) {
-        console.log("✅ Login successful!");
-        console.log("✅ User data received:", result.payload);
-        console.log("Current auth state after login:", isAuthenticated);
-        console.log("Full Redux auth state:", authState);
-        // Show success toast
-        toast({
-          title: "Login Successful",
-          description: "Welcome back! Redirecting to dashboard...",
+      const result = await loginMutation.mutateAsync(data);
+      if ('requires2FA' in result) {
+        setTwoFactorData({
+          email: data.email,
+          password: data.password,
+          tempLoginId: result.tempLoginId,
         });
-        // Force immediate redirect on successful login
-        setTimeout(() => {
-          console.log("🚀 Forcing redirect to dashboard after successful login");
-          console.log("Current location before redirect:", window.location.pathname);
-          window.location.href = "/dashboard";
-        }, 500); // Increase delay to ensure cookies are set
-      } else if (login.rejected.match(result)) {
-        console.error("❌ Login rejected:", result.payload);
-        toast({
-          title: "Login Failed", 
-          description: result.payload as string || "Invalid credentials",
-          variant: "destructive",
-        });
+        setCurrentView("twoFactor");
       } else {
-        console.log("🤔 Unexpected result:", result);
+        // Check if email verification is required
+        if (result.emailVerificationRequired) {
+          setLocation("/pending-verification");
+        } else {
+          // Always redirect to dashboard after successful login
+          setLocation("/dashboard");
+        }
       }
     } catch (error) {
-      console.error("💥 Login error:", error);
-      toast({
-        title: "Login Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
+      // Error is handled by the mutation's onError
     }
   };
 
@@ -155,27 +120,23 @@ export default function AuthPage() {
     if (!twoFactorData) return;
     
     try {
-      const loginData = {
+      const result = await loginMutation.mutateAsync({
         email: twoFactorData.email,
         password: twoFactorData.password,
-        tenantSlug: "default",
-        totpCode: data.token,
-      };
+        twoFactorToken: data.token,
+      });
       
-      console.log("🔐 Dispatching 2FA login action...", loginData);
-      const result = await dispatch(login(loginData));
-      console.log("🔐 2FA Login action result:", result);
-      
-      if (result.type === 'auth/login/fulfilled') {
-        console.log("✅ 2FA Login successful, redirecting to dashboard...");
-        setLocation("/dashboard");
-      } else if (result.type === 'auth/login/rejected') {
-        console.error("❌ 2FA Login failed:", result.payload);
-      } else {
-        console.log("🤔 Unexpected 2FA result type:", result.type);
+      if (!('requires2FA' in result)) {
+        // Check if email verification is required
+        if (result.emailVerificationRequired) {
+          setLocation("/pending-verification");
+        } else {
+          // Always redirect to dashboard after successful login
+          setLocation("/dashboard");
+        }
       }
     } catch (error) {
-      console.error("💥 2FA Login error:", error);
+      // Error is handled by the mutation's onError
     }
   };
 
@@ -297,15 +258,7 @@ export default function AuthPage() {
                     <p className="text-gray-600">Sign in to your account to continue</p>
                   </div>
 
-                  <form onSubmit={(e) => {
-                    console.log("📝 Form submit event triggered");
-                    e.preventDefault();
-                    console.log("Form validation state:", loginForm.formState.isValid);
-                    console.log("Form errors:", loginForm.formState.errors);
-                    loginForm.handleSubmit(onLogin, (errors) => {
-                      console.error("Form validation failed:", errors);
-                    })(e);
-                  }} className="space-y-4">
+                  <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
                     <div>
                       <Label htmlFor="email">Email address</Label>
                       <div className="relative mt-2">
@@ -374,14 +327,9 @@ export default function AuthPage() {
                     <Button
                       type="submit"
                       className="w-full mt-6"
-                      disabled={isLoginLoading}
-                      onClick={(e) => {
-                        console.log("🔘 Button clicked!");
-                        console.log("Form errors:", loginForm.formState.errors);
-                        console.log("Form values:", loginForm.getValues());
-                      }}
+                      disabled={loginMutation.isPending}
                     >
-                      {isLoginLoading ? (
+                      {loginMutation.isPending ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                           Signing in...
@@ -639,9 +587,9 @@ export default function AuthPage() {
                     <Button
                       type="submit"
                       className="w-full mt-6"
-                      disabled={isLoginLoading}
+                      disabled={loginMutation.isPending}
                     >
-                      {isLoginLoading ? (
+                      {loginMutation.isPending ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                           Verifying...

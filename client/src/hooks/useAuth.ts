@@ -16,7 +16,7 @@ export function useAuth() {
           console.log("No valid access token, attempting refresh...");
           try {
             // Try to refresh the access token using the refresh token cookie
-            await authManager.refreshAccessToken();
+            const newToken = await authManager.refreshAccessToken();
             console.log("Token refresh successful, proceeding with auth check");
           } catch (refreshError: any) {
             console.log("Token refresh failed:", refreshError.message);
@@ -27,8 +27,9 @@ export function useAuth() {
               return null;
             }
             
-            // For other refresh errors, still try to get user data in case we have a valid token
-            console.log("Refresh failed but continuing with auth check");
+            // For other refresh errors, return null but don't clear tokens
+            console.log("Refresh failed with temporary error, returning null but keeping tokens");
+            return null;
           }
         }
         
@@ -62,10 +63,10 @@ export function useAuth() {
           error?.message?.includes("Token refresh failed - authentication required")) {
         return false;
       }
-      // Only retry once for temporary errors to avoid long loading times
-      return failureCount < 1;
+      // Retry twice for temporary errors - once with 500ms delay, then 1s delay
+      return failureCount < 2;
     },
-    retryDelay: 1000, // Fixed 1 second delay
+    retryDelay: (attemptIndex) => (attemptIndex + 1) * 500, // 500ms, then 1000ms
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,

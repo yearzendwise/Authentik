@@ -60,6 +60,7 @@ class AuthManager {
     console.trace("Token clear stack trace:");
     localStorage.removeItem(this.ACCESS_TOKEN_KEY);
     this.clearRefreshTimer();
+    this.isInitialized = false; // Reset initialization flag
   }
 
   private clearRefreshTimer(): void {
@@ -139,19 +140,19 @@ class AuthManager {
         // If token expires in less than 5 minutes, refresh immediately
         if (timeUntilExpiry < 300000) {
           console.log("Token expires soon, refreshing immediately on initialization");
-          this.refreshAccessToken().catch(error => {
+          this.refreshAccessToken().then(newToken => {
+            console.log("Initial token refresh successful");
+            this.scheduleTokenRefresh(newToken);
+          }).catch(error => {
             console.error("Initial token refresh failed:", error);
-            // Only clear tokens if it's a definitive auth failure
+            // Be more conservative about clearing tokens during initialization
             if (error.message?.includes("authentication required")) {
-              console.log("Authentication definitely failed, clearing tokens");
+              console.log("Authentication definitely failed during initialization, clearing tokens");
               this.clearTokens();
             } else {
-              console.log("Temporary refresh failure, will retry in 30 seconds");
-              setTimeout(() => {
-                if (this.getAccessToken()) {
-                  this.initialize();
-                }
-              }, 30000);
+              console.log("Temporary refresh failure during initialization, keeping tokens");
+              // Don't clear tokens for temporary failures, just schedule normal refresh
+              this.scheduleTokenRefresh(token);
             }
           });
         } else {
@@ -185,8 +186,10 @@ class AuthManager {
     }
   }
 
-  private async performRefresh(): Promise<string> {
+  private async performRefresh(retryAttempt = 0): Promise<string> {
     try {
+      console.log(`Attempting token refresh (attempt ${retryAttempt + 1})`);
+      
       const response = await fetch("/api/auth/refresh", {
         method: "POST",
         credentials: "include", // Include httpOnly cookies
@@ -194,7 +197,15 @@ class AuthManager {
 
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          // Authentication definitively failed - clear tokens
+          // On first attempt failure, retry once in case cookies weren't ready
+          if (retryAttempt === 0) {
+            console.log("First refresh attempt failed, retrying in 100ms...");
+            await new Promise(resolve => setTimeout(resolve, 100));
+            return this.performRefresh(1);
+          }
+          
+          // After retry, it's a definitive failure
+          console.log("Token refresh definitively failed after retry");
           this.clearTokens();
           throw new Error("Token refresh failed - authentication required");
         } else {
@@ -204,6 +215,7 @@ class AuthManager {
       }
 
       const data: AuthResponse = await response.json();
+      console.log("Token refresh successful");
       this.setAccessToken(data.accessToken);
       return data.accessToken;
     } catch (error) {

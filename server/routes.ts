@@ -1091,11 +1091,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if user already exists  
-      const existingUser = await storage.getUser(0); // We'll check by email in a different way
-      const users = await storage.getAllUsers?.();
-      const userExists = users?.some((user: any) => user.email === email);
-      if (userExists) {
-        return res.status(400).json({ message: "User already exists" });
+      try {
+        const existingUser = await storage.getUserByUsername(email);
+        if (existingUser) {
+          return res.status(400).json({ message: "User already exists" });
+        }
+      } catch (error) {
+        // User doesn't exist, continue with creation
       }
 
       // Get the subscription plan
@@ -1257,7 +1259,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user's current subscription
   app.get("/api/my-subscription", authenticateToken, async (req: any, res) => {
     try {
-      const subscription = await storage.getUserSubscription(req.user.id);
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
+      const subscription = await storage.getUserSubscription(userId);
       if (!subscription) {
         return res.json({ subscription: null });
       }

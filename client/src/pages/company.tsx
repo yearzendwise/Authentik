@@ -172,35 +172,30 @@ export default function CompanyPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Company Information</h1>
-          <p className="text-muted-foreground">
-            Manage your company details and information
-          </p>
-        </div>
-        <Card>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              <div className="h-4 bg-gray-200 rounded animate-pulse w-1/3" />
-              <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2" />
-              <div className="h-4 bg-gray-200 rounded animate-pulse w-2/3" />
-            </div>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   if (!company && !isEditing) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Company Information</h1>
-          <p className="text-muted-foreground">
-            Set up your company profile to get started
-          </p>
+      <div className="p-6">
+        {/* Page Header */}
+        <div className="mb-8">
+          <div className="flex items-center space-x-4">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <Building2 className="text-white w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Company Information</h1>
+              <p className="text-gray-600 dark:text-gray-400">
+                Set up your company profile to get started
+              </p>
+            </div>
+          </div>
         </div>
+
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
@@ -220,15 +215,21 @@ export default function CompanyPage() {
 
   if (isEditing) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              {company ? "Edit Company Information" : "Add Company Information"}
-            </h1>
-            <p className="text-muted-foreground">
-              {company ? "Update your company details" : "Set up your company profile"}
-            </p>
+      <div className="p-6">
+        {/* Page Header */}
+        <div className="mb-8">
+          <div className="flex items-center space-x-4">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <Building2 className="text-white w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                {company ? "Edit Company Information" : "Add Company Information"}
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400">
+                {company ? "Update your company details" : "Set up your company profile"}
+              </p>
+            </div>
           </div>
         </div>
         
@@ -384,19 +385,32 @@ export default function CompanyPage() {
     );
   }
 
+  // This should never happen due to the guards above, but TypeScript doesn't know that
+  if (!company) {
+    return null;
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Company Information</h1>
-          <p className="text-muted-foreground">
-            View and manage your company details
-          </p>
+    <div className="p-6">
+      {/* Page Header */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <Building2 className="text-white w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Company Information</h1>
+              <p className="text-gray-600 dark:text-gray-400">
+                View and manage your company details
+              </p>
+            </div>
+          </div>
+          <Button onClick={handleEdit}>
+            <Edit className="mr-2 h-4 w-4" />
+            Edit Information
+          </Button>
         </div>
-        <Button onClick={handleEdit}>
-          <Edit className="mr-2 h-4 w-4" />
-          Edit Information
-        </Button>
       </div>
 
       <div className="grid gap-6">
@@ -513,11 +527,11 @@ export default function CompanyPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="font-medium">Created:</span>{" "}
-                {new Date(company.createdAt).toLocaleDateString()}
+                {company.createdAt ? new Date(company.createdAt).toLocaleDateString() : "Unknown"}
               </div>
               <div>
                 <span className="font-medium">Last Updated:</span>{" "}
-                {new Date(company.updatedAt).toLocaleDateString()}
+                {company.updatedAt ? new Date(company.updatedAt).toLocaleDateString() : "Unknown"}
               </div>
             </div>
           </CardContent>

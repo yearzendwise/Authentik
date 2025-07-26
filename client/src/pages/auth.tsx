@@ -84,28 +84,33 @@ export default function AuthPage() {
   }, [watchPassword]);
 
   const onLogin = async (data: LoginCredentials) => {
+    console.log("🚀 onLogin called with data:", data);
     try {
       const loginData = { ...data, tenantSlug: "default" };
       console.log("🔐 Dispatching login action...", loginData);
       const result = await dispatch(login(loginData));
       console.log("🔐 Login action result:", result);
+      console.log("🔐 Result type:", result.type);
+      console.log("🔐 Result payload:", result.payload);
       
-      if (result.type === 'auth/login/fulfilled') {
+      if (login.fulfilled.match(result)) {
         console.log("✅ Login successful, redirecting to dashboard...");
         console.log("Current location:", window.location.pathname);
+        console.log("Calling setLocation with /dashboard");
         setLocation("/dashboard");
         // Force navigation as a fallback
         setTimeout(() => {
           console.log("Checking if navigation happened...");
+          console.log("Current location after timeout:", window.location.pathname);
           if (window.location.pathname !== "/dashboard") {
             console.log("Navigation didn't work, forcing reload to dashboard");
             window.location.href = "/dashboard";
           }
-        }, 100);
-      } else if (result.type === 'auth/login/rejected') {
-        console.error("❌ Login failed:", result.payload);
+        }, 500);
+      } else if (login.rejected.match(result)) {
+        console.error("❌ Login rejected:", result.payload);
       } else {
-        console.log("🤔 Unexpected result type:", result.type);
+        console.log("🤔 Unexpected result:", result);
       }
     } catch (error) {
       console.error("💥 Login error:", error);
@@ -270,7 +275,10 @@ export default function AuthPage() {
                     <p className="text-gray-600">Sign in to your account to continue</p>
                   </div>
 
-                  <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
+                  <form onSubmit={(e) => {
+                    console.log("📝 Form submit event triggered");
+                    loginForm.handleSubmit(onLogin)(e);
+                  }} className="space-y-4">
                     <div>
                       <Label htmlFor="email">Email address</Label>
                       <div className="relative mt-2">

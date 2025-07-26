@@ -86,17 +86,20 @@ export default function AuthPage() {
   const onLogin = async (data: LoginCredentials) => {
     try {
       const loginData = { ...data, tenantSlug: "default" };
+      console.log("🔐 Dispatching login action...", loginData);
       const result = await dispatch(login(loginData));
+      console.log("🔐 Login action result:", result);
       
       if (result.type === 'auth/login/fulfilled') {
-        // Login successful - redirect to dashboard
+        console.log("✅ Login successful, redirecting to dashboard...");
         setLocation("/dashboard");
       } else if (result.type === 'auth/login/rejected') {
-        // Error handling is already done in the Redux slice
-        console.error("Login failed:", result.payload);
+        console.error("❌ Login failed:", result.payload);
+      } else {
+        console.log("🤔 Unexpected result type:", result.type);
       }
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("💥 Login error:", error);
     }
   };
 
@@ -123,16 +126,20 @@ export default function AuthPage() {
         totpCode: data.token,
       };
       
+      console.log("🔐 Dispatching 2FA login action...", loginData);
       const result = await dispatch(login(loginData));
+      console.log("🔐 2FA Login action result:", result);
       
       if (result.type === 'auth/login/fulfilled') {
-        // Login successful - redirect to dashboard
+        console.log("✅ 2FA Login successful, redirecting to dashboard...");
         setLocation("/dashboard");
       } else if (result.type === 'auth/login/rejected') {
-        console.error("2FA Login failed:", result.payload);
+        console.error("❌ 2FA Login failed:", result.payload);
+      } else {
+        console.log("🤔 Unexpected 2FA result type:", result.type);
       }
     } catch (error) {
-      console.error("2FA Login error:", error);
+      console.error("💥 2FA Login error:", error);
     }
   };
 

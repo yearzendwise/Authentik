@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/AppLayout";
 import { authManager } from "@/lib/auth";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import AuthPage from "@/pages/auth";
 import Dashboard from "@/pages/dashboard";
 import ProfilePage from "@/pages/profile";
@@ -20,10 +20,20 @@ import NotFound from "@/pages/not-found";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const [isInitializing, setIsInitializing] = useState(true);
+
+  useEffect(() => {
+    // Give the auth system a moment to initialize and potentially refresh the token
+    const timer = setTimeout(() => {
+      setIsInitializing(false);
+    }, 500); // 500ms should be enough for localStorage check and refresh to start
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   // Show loading state during authentication initialization
   // This prevents flash of login screen when user is actually authenticated
-  if (isLoading || (authManager.isAuthenticated() && !user && isAuthenticated)) {
+  if (isLoading || isInitializing) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -82,11 +92,6 @@ function Router() {
 }
 
 function App() {
-  // Initialize automatic token refresh on app start
-  useEffect(() => {
-    authManager.initialize();
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

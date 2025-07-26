@@ -128,7 +128,24 @@ export default function Subscribe() {
       return response.json();
     },
     onSuccess: (data) => {
-      setClientSecret(data.clientSecret);
+      console.log('Subscription created successfully:', data);
+      
+      // If this is a trial subscription with no immediate payment required
+      if (!data.requiresPayment && data.status === 'trialing') {
+        toast({
+          title: "Free Trial Started!",
+          description: "Your 14-day free trial has begun. Welcome!",
+        });
+        
+        // Redirect to dashboard for trial users
+        setLocation('/dashboard');
+        return;
+      }
+      
+      // If payment is required, set client secret for Stripe checkout
+      if (data.clientSecret) {
+        setClientSecret(data.clientSecret);
+      }
     },
     onError: (error: any) => {
       toast({
@@ -177,7 +194,7 @@ export default function Subscribe() {
     );
   }
 
-  // If we have a client secret, show the payment form
+  // If we have a client secret, show the payment form  
   if (clientSecret && currentPlan) {
     const selectedPlanData = plans.find(p => p.id === currentPlan);
     

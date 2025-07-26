@@ -1265,10 +1265,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const invoice = subscription.latest_invoice as any;
       const paymentIntent = invoice?.payment_intent as any;
 
+      // For trial subscriptions, there might not be a payment intent initially
       res.json({
         subscriptionId: subscription.id,
-        clientSecret: paymentIntent.client_secret,
+        clientSecret: paymentIntent?.client_secret || null,
         status: subscription.status,
+        requiresPayment: !!paymentIntent?.client_secret,
+        trialEnd: safeTimestampToDate((subscription as any).trial_end),
       });
     } catch (error: any) {
       console.error("Error creating subscription:", error);

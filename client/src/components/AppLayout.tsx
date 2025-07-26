@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { 
-  LayoutDashboard, 
-  User, 
-  Settings, 
-  LogOut, 
+import {
+  LayoutDashboard,
+  User,
+  Settings,
+  LogOut,
   Shield,
   Activity,
   Users,
   CreditCard,
-  ClipboardList
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useAuth, useLogout, useUpdateMenuPreference } from "@/hooks/useAuth";
+import {
+  useReduxAuth,
+  useReduxLogout,
+  useReduxUpdateMenuPreference,
+} from "@/hooks/useReduxAuth";
 
 const getNavigation = (userRole?: string) => {
   const baseNavigation = [
@@ -38,7 +42,7 @@ const getNavigation = (userRole?: string) => {
   ];
 
   // Add Users management for Admin and Manager roles
-  if (userRole === 'Administrator' || userRole === 'Manager') {
+  if (userRole === "Administrator" || userRole === "Manager") {
     baseNavigation.push({ name: "Users", href: "/users", icon: Users });
   }
 
@@ -51,13 +55,13 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const [location] = useLocation();
-  const { user } = useAuth();
-  const logout = useLogout();
-  const updateMenuPreference = useUpdateMenuPreference();
+  const { user } = useReduxAuth();
+  const { logout } = useReduxLogout();
+  const updateMenuPreference = useReduxUpdateMenuPreference();
   const navigation = getNavigation(user?.role);
   // Load initial menu state from localStorage or user preference
   const getInitialMenuState = () => {
-    const localPref = localStorage.getItem('menuExpanded');
+    const localPref = localStorage.getItem("menuExpanded");
     if (localPref !== null) {
       return !JSON.parse(localPref); // inverted because isCollapsed is opposite of expanded
     }
@@ -68,7 +72,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   // Sync menu state when user data changes or localStorage changes
   useEffect(() => {
-    const localPref = localStorage.getItem('menuExpanded');
+    const localPref = localStorage.getItem("menuExpanded");
     if (localPref !== null) {
       setIsCollapsed(!JSON.parse(localPref));
     } else if (user?.menuExpanded !== undefined) {
@@ -79,7 +83,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   // Listen for localStorage changes from other tabs and immediate changes
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'menuExpanded' && e.newValue) {
+      if (e.key === "menuExpanded" && e.newValue) {
         setIsCollapsed(!JSON.parse(e.newValue));
       }
     };
@@ -89,36 +93,43 @@ export function AppLayout({ children }: AppLayoutProps) {
       setIsCollapsed(!customEvent.detail.menuExpanded);
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('menuPreferenceChanged', handleMenuPreferenceChange);
-    
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener(
+      "menuPreferenceChanged",
+      handleMenuPreferenceChange,
+    );
+
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('menuPreferenceChanged', handleMenuPreferenceChange);
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener(
+        "menuPreferenceChanged",
+        handleMenuPreferenceChange,
+      );
     };
   }, []);
 
   const handleLogout = () => {
-    logout.mutate();
+    logout();
   };
-
-
 
   if (!user) {
     return <>{children}</>;
   }
 
-  const userInitials = user.firstName && user.lastName 
-    ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
-    : user.email[0].toUpperCase();
+  const userInitials =
+    user.firstName && user.lastName
+      ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
+      : user.email[0].toUpperCase();
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       {/* Sidebar */}
-      <div className={cn(
-        "flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-200",
-        isCollapsed ? "w-16" : "w-64"
-      )}>
+      <div
+        className={cn(
+          "flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-200",
+          isCollapsed ? "w-16" : "w-64",
+        )}
+      >
         {/* Header */}
         <div className="flex items-center justify-center p-4 border-b border-gray-200 dark:border-gray-700">
           {!isCollapsed && (
@@ -131,9 +142,11 @@ export function AppLayout({ children }: AppLayoutProps) {
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2">
           {navigation.map((item) => {
-            const isActive = location === item.href || (item.href === "/dashboard" && location === "/");
+            const isActive =
+              location === item.href ||
+              (item.href === "/dashboard" && location === "/");
             const Icon = item.icon;
-            
+
             const navButton = (
               <Button
                 key={item.name}
@@ -141,7 +154,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 size="sm"
                 className={cn(
                   "w-full justify-start h-10",
-                  isCollapsed && "px-2 justify-center"
+                  isCollapsed && "px-2 justify-center",
                 )}
                 asChild
               >
@@ -155,12 +168,8 @@ export function AppLayout({ children }: AppLayoutProps) {
             if (isCollapsed) {
               return (
                 <Tooltip key={item.name}>
-                  <TooltipTrigger asChild>
-                    {navButton}
-                  </TooltipTrigger>
-                  <TooltipContent side="right">
-                    {item.name}
-                  </TooltipContent>
+                  <TooltipTrigger asChild>{navButton}</TooltipTrigger>
+                  <TooltipContent side="right">{item.name}</TooltipContent>
                 </Tooltip>
               );
             }
@@ -177,7 +186,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 variant="ghost"
                 className={cn(
                   "w-full justify-start h-12",
-                  isCollapsed && "px-2 justify-center"
+                  isCollapsed && "px-2 justify-center",
                 )}
               >
                 <Avatar className="h-8 w-8">
@@ -211,7 +220,10 @@ export function AppLayout({ children }: AppLayoutProps) {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 dark:text-red-400">
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="cursor-pointer text-red-600 dark:text-red-400"
+              >
                 <LogOut className="mr-2 h-5 w-5" />
                 Sign out
               </DropdownMenuItem>
@@ -222,9 +234,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <main className="flex-1 overflow-y-auto">
-          {children}
-        </main>
+        <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>
   );

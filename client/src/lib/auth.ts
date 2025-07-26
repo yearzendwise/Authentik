@@ -56,7 +56,9 @@ class AuthManager {
   }
 
   clearTokens(): void {
-    console.log("🔴 CLEARING TOKENS - This should only happen on logout or definitive auth failure");
+    console.log(
+      "🔴 CLEARING TOKENS - This should only happen on logout or definitive auth failure",
+    );
     console.trace("Token clear stack trace:");
     localStorage.removeItem(this.ACCESS_TOKEN_KEY);
     this.clearRefreshTimer();
@@ -75,7 +77,7 @@ class AuthManager {
 
     try {
       // Parse token to get expiry time
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      const payload = JSON.parse(atob(token.split(".")[1]));
       const expTime = payload.exp * 1000; // Convert to milliseconds
       const now = Date.now();
       const timeUntilExpiry = expTime - now;
@@ -83,24 +85,30 @@ class AuthManager {
       // Schedule refresh 2 minutes before expiry (with minimum 30 seconds)
       const refreshTime = Math.max(timeUntilExpiry - 120000, 30000);
 
-      if (refreshTime > 0 && timeUntilExpiry > 150000) { // Only schedule if more than 2.5 minutes left
+      if (refreshTime > 0 && timeUntilExpiry > 150000) {
+        // Only schedule if more than 2.5 minutes left
         this.refreshTimer = setTimeout(async () => {
           try {
             console.log("Executing automatic token refresh...");
             const newToken = await this.refreshAccessToken();
             console.log("Token refreshed successfully");
-            
+
             // Re-schedule the next refresh with the new token
             this.scheduleTokenRefresh(newToken);
           } catch (error) {
             console.error("Automatic token refresh failed:", error);
-            
+
             // Only clear tokens if it's a definitive authentication failure
-            if (error instanceof Error && error.message.includes("authentication required")) {
+            if (
+              error instanceof Error &&
+              error.message.includes("authentication required")
+            ) {
               console.log("Authentication failed, clearing tokens");
               this.clearTokens();
             } else {
-              console.log("Temporary refresh failure, will retry on next request");
+              console.log(
+                "Temporary refresh failure, will retry on next request",
+              );
               // For temporary errors, try to reschedule refresh with shorter delay
               setTimeout(() => {
                 const currentToken = this.getAccessToken();
@@ -111,8 +119,10 @@ class AuthManager {
             }
           }
         }, refreshTime);
-        
-        console.log(`Token refresh scheduled in ${Math.round(refreshTime / 1000)} seconds`);
+
+        console.log(
+          `Token refresh scheduled in ${Math.round(refreshTime / 1000)} seconds`,
+        );
       }
     } catch (error) {
       console.error("Failed to schedule token refresh:", error);
@@ -122,24 +132,28 @@ class AuthManager {
   // Initialize automatic refresh on app start
   initialize(): void {
     if (this.isInitialized) return;
-    
+
     const token = this.getAccessToken();
     if (token) {
       console.log("Initializing automatic token refresh system with token");
-      
+
       // Check if token is about to expire and refresh immediately if needed
       try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
+        const payload = JSON.parse(atob(token.split(".")[1]));
         const expTime = payload.exp * 1000;
         const now = Date.now();
         const timeUntilExpiry = expTime - now;
-        
-        console.log(`Token found, expires in ${Math.round(timeUntilExpiry / 1000)} seconds`);
-        
+
+        console.log(
+          `Token found, expires in ${Math.round(timeUntilExpiry / 1000)} seconds`,
+        );
+
         // If token expires in less than 2 minutes, refresh immediately
         if (timeUntilExpiry < 120000) {
-          console.log("Token expires soon, refreshing immediately on initialization");
-          this.refreshAccessToken().catch(error => {
+          console.log(
+            "Token expires soon, refreshing immediately on initialization",
+          );
+          this.refreshAccessToken().catch((error) => {
             console.error("Initial token refresh failed:", error);
             // Only clear tokens if it's a definitive auth failure
             if (error.message?.includes("authentication required")) {
@@ -156,12 +170,14 @@ class AuthManager {
       } catch (error) {
         console.error("Error parsing token during initialization:", error);
         // Don't clear tokens on parse errors - they might be recoverable
-        console.log("Token parse failed, will keep token and try authentication later");
+        console.log(
+          "Token parse failed, will keep token and try authentication later",
+        );
       }
     } else {
       console.log("No token found during initialization");
     }
-    
+
     this.isInitialized = true;
   }
 
@@ -172,7 +188,7 @@ class AuthManager {
     }
 
     this.refreshPromise = this.performRefresh();
-    
+
     try {
       const newToken = await this.refreshPromise;
       return newToken;
@@ -183,12 +199,19 @@ class AuthManager {
 
   private async performRefresh(): Promise<string> {
     try {
+      console.log("🔄 Starting token refresh request...");
       const response = await fetch("/api/auth/refresh", {
         method: "POST",
         credentials: "include", // Include httpOnly cookies
       });
 
+      console.log("🔄 Refresh response status:", response.status);
+      console.log("🔄 Refresh response headers:", response.headers);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.log("🔄 Refresh error response:", errorText);
+
         if (response.status === 401 || response.status === 403) {
           // Authentication definitively failed - clear tokens
           console.log("Refresh failed with auth error, clearing tokens");
@@ -196,18 +219,25 @@ class AuthManager {
           throw new Error("Token refresh failed - authentication required");
         } else {
           // Server error or network issue - don't clear tokens yet
-          console.log(`Refresh failed with status ${response.status}, keeping tokens for retry`);
+          console.log(
+            `Refresh failed with status ${response.status}, keeping tokens for retry`,
+          );
           throw new Error("Token refresh failed - temporary error");
         }
       }
 
       const data: AuthResponse = await response.json();
-      console.log("Token refresh successful, updating stored token");
+      console.log("🔄 Token refresh successful, received new token");
+      console.log("🔄 User data from refresh:", data.user);
       this.setAccessToken(data.accessToken);
       return data.accessToken;
     } catch (error) {
+      console.error("🔄 Token refresh error:", error);
       // Only clear tokens on authentication failures, not network issues
-      if (error instanceof Error && error.message.includes("authentication required")) {
+      if (
+        error instanceof Error &&
+        error.message.includes("authentication required")
+      ) {
         console.log("Clearing tokens due to authentication failure");
         this.clearTokens();
       } else {
@@ -220,7 +250,7 @@ class AuthManager {
   async makeAuthenticatedRequest(
     method: string,
     url: string,
-    data?: unknown
+    data?: unknown,
   ): Promise<Response> {
     let token = this.getAccessToken();
 
@@ -232,6 +262,9 @@ class AuthManager {
       if (data) {
         headers["Content-Type"] = "application/json";
       }
+
+      console.log(`📡 Making ${method} request to ${url}`);
+      console.log("📡 Request headers:", headers);
 
       return fetch(url, {
         method,
@@ -246,6 +279,7 @@ class AuthManager {
     }
 
     let response = await makeRequest(token);
+    console.log(`📡 Response status for ${url}:`, response.status);
 
     // If token expired, try to refresh and retry once
     if (response.status === 401) {
@@ -264,7 +298,11 @@ class AuthManager {
     return response;
   }
 
-  async login(email: string, password: string, twoFactorToken?: string): Promise<AuthResponse | { requires2FA: boolean; tempLoginId: string }> {
+  async login(
+    email: string,
+    password: string,
+    twoFactorToken?: string,
+  ): Promise<AuthResponse | { requires2FA: boolean; tempLoginId: string }> {
     const response = await apiRequest("POST", "/api/auth/login", {
       email,
       password,
@@ -272,7 +310,7 @@ class AuthManager {
     });
 
     const data = await response.json();
-    
+
     if (data.requires2FA) {
       return data;
     }
@@ -288,7 +326,11 @@ class AuthManager {
     lastName: string;
     confirmPassword: string;
   }): Promise<{ message: string; user: AuthUser }> {
-    const response = await apiRequest("POST", "/api/auth/register", registerData);
+    const response = await apiRequest(
+      "POST",
+      "/api/auth/register",
+      registerData,
+    );
     return response.json();
   }
 
@@ -320,19 +362,23 @@ class AuthManager {
       console.log("getCurrentUser: No access token available");
       throw new Error("No access token available");
     }
-    
-    console.log("getCurrentUser: Found token, checking expiry and making request");
-    
+
+    console.log(
+      "getCurrentUser: Found token, checking expiry and making request",
+    );
+
     // Check if token is about to expire (within 30 seconds)
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      const payload = JSON.parse(atob(token.split(".")[1]));
       const expTime = payload.exp * 1000;
       const now = Date.now();
       const timeUntilExpiry = expTime - now;
-      
+
       // If token expires in less than 60 seconds, refresh it first
       if (timeUntilExpiry < 60000) {
-        console.log("getCurrentUser: Token about to expire, refreshing first...");
+        console.log(
+          "getCurrentUser: Token about to expire, refreshing first...",
+        );
         try {
           await this.refreshAccessToken();
         } catch (error) {
@@ -341,15 +387,22 @@ class AuthManager {
         }
       }
     } catch (error) {
-      console.error("getCurrentUser: Error checking token expiry, proceeding anyway:", error);
+      console.error(
+        "getCurrentUser: Error checking token expiry, proceeding anyway:",
+        error,
+      );
     }
-    
+
     const response = await this.makeAuthenticatedRequest("GET", "/api/auth/me");
-    
+
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("getCurrentUser: Request failed with status", response.status, errorText);
-      
+      console.error(
+        "getCurrentUser: Request failed with status",
+        response.status,
+        errorText,
+      );
+
       // Only throw authentication error for 401/403, not for server errors
       if (response.status === 401 || response.status === 403) {
         throw new Error("Authentication failed");
@@ -364,7 +417,9 @@ class AuthManager {
   }
 
   async forgotPassword(email: string): Promise<{ message: string }> {
-    const response = await apiRequest("POST", "/api/auth/forgot-password", { email });
+    const response = await apiRequest("POST", "/api/auth/forgot-password", {
+      email,
+    });
     return response.json();
   }
 
@@ -373,8 +428,12 @@ class AuthManager {
     lastName: string;
     email: string;
   }): Promise<{ message: string; user: AuthUser }> {
-    const response = await this.makeAuthenticatedRequest("PUT", "/api/auth/profile", data);
-    
+    const response = await this.makeAuthenticatedRequest(
+      "PUT",
+      "/api/auth/profile",
+      data,
+    );
+
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || "Failed to update profile");
@@ -388,8 +447,12 @@ class AuthManager {
     newPassword: string;
     confirmPassword: string;
   }): Promise<{ message: string }> {
-    const response = await this.makeAuthenticatedRequest("PUT", "/api/auth/change-password", data);
-    
+    const response = await this.makeAuthenticatedRequest(
+      "PUT",
+      "/api/auth/change-password",
+      data,
+    );
+
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || "Failed to change password");
@@ -399,8 +462,11 @@ class AuthManager {
   }
 
   async deleteAccount(): Promise<{ message: string }> {
-    const response = await this.makeAuthenticatedRequest("DELETE", "/api/auth/account");
-    
+    const response = await this.makeAuthenticatedRequest(
+      "DELETE",
+      "/api/auth/account",
+    );
+
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || "Failed to delete account");
@@ -410,9 +476,16 @@ class AuthManager {
     return response.json();
   }
 
-  async setup2FA(): Promise<{ secret: string; qrCode: string; backupCodes: string[] }> {
-    const response = await this.makeAuthenticatedRequest("POST", "/api/auth/2fa/setup");
-    
+  async setup2FA(): Promise<{
+    secret: string;
+    qrCode: string;
+    backupCodes: string[];
+  }> {
+    const response = await this.makeAuthenticatedRequest(
+      "POST",
+      "/api/auth/2fa/setup",
+    );
+
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || "Failed to setup 2FA");
@@ -422,8 +495,12 @@ class AuthManager {
   }
 
   async enable2FA(token: string): Promise<{ message: string }> {
-    const response = await this.makeAuthenticatedRequest("POST", "/api/auth/2fa/enable", { token });
-    
+    const response = await this.makeAuthenticatedRequest(
+      "POST",
+      "/api/auth/2fa/enable",
+      { token },
+    );
+
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || "Failed to enable 2FA");
@@ -433,8 +510,12 @@ class AuthManager {
   }
 
   async disable2FA(token: string): Promise<{ message: string }> {
-    const response = await this.makeAuthenticatedRequest("POST", "/api/auth/2fa/disable", { token });
-    
+    const response = await this.makeAuthenticatedRequest(
+      "POST",
+      "/api/auth/2fa/disable",
+      { token },
+    );
+
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || "Failed to disable 2FA");
@@ -450,27 +531,34 @@ class AuthManager {
       console.log("❌ No access token found in localStorage");
       return false;
     }
-    
+
     console.log("✅ Token found in localStorage, validating...");
     try {
       // Check if token is expired
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      const payload = JSON.parse(atob(token.split(".")[1]));
       const expTime = payload.exp * 1000;
       const now = Date.now();
       const timeUntilExpiry = expTime - now;
-      
+
       // Token is valid if it hasn't expired yet
       const isValid = expTime > now;
       if (!isValid) {
-        console.log("⏰ Token has expired, marking as invalid but keeping for refresh attempt");
+        console.log(
+          "⏰ Token has expired, marking as invalid but keeping for refresh attempt",
+        );
         // Don't clear tokens immediately - let the refresh mechanism handle it
         return false;
       }
-      
-      console.log(`✅ Token is valid, expires in ${Math.round(timeUntilExpiry / 1000)} seconds`);
+
+      console.log(
+        `✅ Token is valid, expires in ${Math.round(timeUntilExpiry / 1000)} seconds`,
+      );
       return true;
     } catch (error) {
-      console.error("⚠️ Error validating token, but keeping it for potential recovery:", error);
+      console.error(
+        "⚠️ Error validating token, but keeping it for potential recovery:",
+        error,
+      );
       // Don't clear tokens on parse errors - they might be recoverable
       return false;
     }

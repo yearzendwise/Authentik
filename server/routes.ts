@@ -302,13 +302,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.createRefreshToken(user.id, user.tenantId, refreshToken, refreshTokenExpiry, deviceInfo);
 
       // Set refresh token as httpOnly cookie
-      res.cookie("refreshToken", refreshToken, {
+      const cookieOptions = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+        secure: false, // Always false in development
+        sameSite: "lax" as const,
         path: "/",
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      });
+      };
+      
+      console.log("🍪 Setting refresh token cookie with options:", cookieOptions);
+      res.cookie("refreshToken", refreshToken, cookieOptions);
 
       res.json({
         message: "Login successful",
@@ -487,11 +490,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Refresh token endpoint
   app.post("/api/auth/refresh", async (req, res) => {
     try {
+      console.log("🍪 Refresh request cookies:", req.cookies);
+      console.log("🍪 Raw cookie header:", req.headers.cookie);
+      
       const refreshToken = req.cookies.refreshToken;
 
       if (!refreshToken) {
+        console.log("❌ No refresh token found in cookies");
         return res.status(401).json({ message: "Refresh token required" });
       }
+      
+      console.log("✅ Found refresh token in cookies:", refreshToken.substring(0, 20) + "...");
 
       // Verify refresh token
       const decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET) as any;
@@ -528,13 +537,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Set new refresh token as httpOnly cookie
-      res.cookie("refreshToken", newRefreshToken, {
+      const cookieOptions = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+        secure: false, // Always false in development
+        sameSite: "lax" as const,
         path: "/",
         maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
+      };
+      
+      console.log("🍪 Setting new refresh token cookie with options:", cookieOptions);
+      res.cookie("refreshToken", newRefreshToken, cookieOptions);
 
       res.json({
         message: "Token refreshed successfully",

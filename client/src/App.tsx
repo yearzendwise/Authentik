@@ -72,12 +72,12 @@ function Router() {
         <>
           <Route path="/" component={AuthPage} />
           <Route path="/auth" component={AuthPage} />
-          <Route path="/subscribe" component={Subscribe} />
           <Route path="/verify-email" component={VerifyEmailPage} />
           {/* Redirect any other route to auth for unauthenticated users */}
           <Route path="/dashboard" component={AuthPage} />
           <Route path="/profile" component={AuthPage} />
           <Route path="/sessions" component={AuthPage} />
+          <Route path="/subscribe" component={AuthPage} />
           <Route path="/pending-verification" component={AuthPage} />
         </>
       )}

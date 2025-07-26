@@ -19,32 +19,22 @@ import PendingVerificationPage from "@/pages/pending-verification";
 import NotFound from "@/pages/not-found";
 
 function Router() {
-  const { isAuthenticated, isLoading, user } = useAuth();
-  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const { isAuthenticated, isLoading, user, hasInitialized } = useAuth();
 
-  // Add a delay to prevent premature authentication decisions on page refresh
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setInitialLoadComplete(true);
-    }, 1000); // Wait 1 second for authentication to stabilize
+  console.log("🔍 Router state:", { isAuthenticated, isLoading, hasUser: !!user, hasInitialized });
 
-    return () => clearTimeout(timer);
-  }, []);
-
-  console.log("🔍 Router state:", { isAuthenticated, isLoading, hasUser: !!user, initialLoadComplete });
-
-  // Show loading state during authentication initialization
-  // Wait for both React Query loading AND our initial load delay
-  if (!initialLoadComplete || isLoading || (authManager.isAuthenticated() && !user)) {
-    console.log("📱 Showing loading screen - waiting for auth to stabilize");
+  // Show loading state only during initial authentication check
+  // Don't show loading if we've determined the user is not authenticated
+  if (isLoading && !hasInitialized) {
+    console.log("📱 Showing loading screen - initial auth check");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
-    );
+    );  
   }
 
-  console.log("🚀 Authentication stabilized, determining route");
+  console.log("🚀 Authentication check complete, determining route");
 
   // Only determine email verification status if we have a user object
   const isEmailVerified = user ? user.emailVerified : undefined;

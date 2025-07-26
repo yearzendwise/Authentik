@@ -5,62 +5,62 @@ import type { AuthUser, AuthResponse } from "@/lib/auth";
 import type { LoginCredentials, RegisterData, UpdateProfileData, ChangePasswordData } from "@shared/schema";
 
 export function useAuth() {
-  const { data: user, isLoading, error, isError } = useQuery<AuthUser | null>({
+  const { data: user, isLoading, error, isError, isFetched } = useQuery<AuthUser | null>({
     queryKey: ["/api/auth/me"],
     queryFn: async () => {
-      // Add a small delay to allow localStorage to be ready
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
       try {
+        // Check if we have a token first
         if (!authManager.isAuthenticated()) {
           console.log("No valid token available for auth check");
           return null;
         }
+        
         console.log("Fetching current user data...");
         return await authManager.getCurrentUser();
       } catch (error: any) {
         console.log("Auth query failed:", error.message);
         
-        // Only clear tokens for specific authentication failures (401/403)
-        if (error.message?.includes("Authentication failed")) {
+        // Handle different types of auth failures
+        if (error.message?.includes("Authentication failed") || 
+            error.message?.includes("Token refresh failed - authentication required")) {
           console.log("Authentication definitively failed, clearing tokens");
           authManager.clearTokens();
           return null;
         }
         
-        // For network errors, server errors, or other temporary issues, keep tokens
-        console.log("Temporary auth error, keeping tokens for retry");
-        throw error; // Re-throw to trigger retry mechanism
+        // For network errors, server errors, or other temporary issues, keep tokens but return null
+        console.log("Temporary auth error, keeping tokens but returning null");
+        return null;
       }
     },
     retry: (failureCount, error: any) => {
       // Don't retry if authentication actually failed
-      if (error?.message?.includes("Authentication failed")) {
+      if (error?.message?.includes("Authentication failed") || 
+          error?.message?.includes("Token refresh failed - authentication required")) {
         return false;
       }
-      // Retry up to 3 times for other errors (network issues, etc.)
-      return failureCount < 3;
+      // Only retry once for temporary errors to avoid long loading times
+      return failureCount < 1;
     },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Exponential backoff
-    staleTime: 2 * 60 * 1000, // 2 minutes - reasonable cache time
-    gcTime: 5 * 60 * 1000, // 5 minutes garbage collection time
-    refetchOnWindowFocus: false, // Don't refetch when window regains focus
-    refetchOnMount: true, // Refetch on mount for fresh auth check
+    retryDelay: 1000, // Fixed 1 second delay
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
   });
 
-  // Improved authentication state logic
-  const hasValidToken = authManager.isAuthenticated();
+  // Determine if we've completed the initial authentication check
+  const hasInitialized = isFetched || isError;
   
-  // Consider authenticated if:
-  // 1. We have a valid token AND
-  // 2. Either we're loading, have user data, or haven't had a definitive auth failure
-  const isAuthenticated = hasValidToken && (isLoading || !!user || (!isError || 
-    !error?.message?.includes("Authentication failed")));
+  // Determine authentication state based on token and user data
+  const hasValidToken = authManager.isAuthenticated();
+  const isAuthenticated = hasValidToken && !!user;
 
   return {
     user,
     isLoading,
     isAuthenticated,
+    hasInitialized,
   };
 }
 

@@ -12,7 +12,7 @@ import { Check, Star, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import type { SubscriptionPlan } from "@shared/schema";
+import type { SubscriptionPlan, UserSubscriptionResponse } from "@shared/schema";
 
 // Make sure to call `loadStripe` outside of a component's render to avoid
 // recreating the `Stripe` object on every render.
@@ -98,7 +98,7 @@ export default function Subscribe() {
   const { user } = useAuth();
 
   // Check if user already has a subscription
-  const { data: userSubscription, isLoading: subscriptionLoading } = useQuery({
+  const { data: userSubscription, isLoading: subscriptionLoading } = useQuery<UserSubscriptionResponse>({
     queryKey: ['/api/my-subscription'],
     enabled: !!user,
   });

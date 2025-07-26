@@ -262,6 +262,11 @@ export type InsertSubscriptionPlan = typeof subscriptionPlans.$inferInsert;
 export type Subscription = typeof subscriptions.$inferSelect;
 export type InsertSubscription = typeof subscriptions.$inferInsert;
 
+// API Response types
+export interface UserSubscriptionResponse {
+  subscription: (Subscription & { plan: SubscriptionPlan }) | null;
+}
+
 // Subscription schemas
 export const subscriptionPlanSchema = createInsertSchema(subscriptionPlans);
 export const createSubscriptionSchema = createInsertSchema(subscriptions).omit({

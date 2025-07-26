@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth, useLogout } from "@/hooks/useAuth";
+import type { UserSubscriptionResponse } from "@shared/schema";
 import { authManager } from "@/lib/auth";
 import { Shield, Users, Clock, TrendingUp, LogOut, RefreshCw, Settings, CreditCard, Calendar } from "lucide-react";
 import { useLocation } from "wouter";
@@ -17,7 +18,7 @@ export default function Dashboard() {
   const [apiRequests] = useState(1247);
 
   // Fetch user's subscription
-  const { data: subscription, isLoading: subscriptionLoading } = useQuery({
+  const { data: subscription, isLoading: subscriptionLoading } = useQuery<UserSubscriptionResponse>({
     queryKey: ['/api/my-subscription'],
     enabled: !!user,
   });

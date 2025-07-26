@@ -146,7 +146,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 asChild
               >
                 <Link href={item.href}>
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-5 w-5" />
                   {!isCollapsed && <span className="ml-3">{item.name}</span>}
                 </Link>
               </Button>
@@ -200,19 +200,19 @@ export function AppLayout({ children }: AppLayoutProps) {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuItem asChild>
                 <Link href="/profile" className="cursor-pointer">
-                  <User className="mr-2 h-4 w-4" />
+                  <User className="mr-2 h-5 w-5" />
                   Profile
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/sessions" className="cursor-pointer">
-                  <Activity className="mr-2 h-4 w-4" />
+                  <Activity className="mr-2 h-5 w-5" />
                   Sessions
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 dark:text-red-400">
-                <LogOut className="mr-2 h-4 w-4" />
+                <LogOut className="mr-2 h-5 w-5" />
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>

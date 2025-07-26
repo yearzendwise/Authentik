@@ -105,7 +105,7 @@ class AuthManager {
     
     const token = this.getAccessToken();
     if (token) {
-      console.log("Initializing automatic token refresh system");
+      console.log("Initializing automatic token refresh system with token");
       
       // Check if token is about to expire and refresh immediately if needed
       try {
@@ -114,19 +114,28 @@ class AuthManager {
         const now = Date.now();
         const timeUntilExpiry = expTime - now;
         
-        // If token expires in less than 2 minutes, refresh immediately
-        if (timeUntilExpiry < 120000) {
+        console.log(`Token found, expires in ${Math.round(timeUntilExpiry / 1000)} seconds`);
+        
+        // If token expires in less than 5 minutes, refresh immediately
+        if (timeUntilExpiry < 300000) {
           console.log("Token expires soon, refreshing immediately on initialization");
           this.refreshAccessToken().catch(error => {
             console.error("Initial token refresh failed:", error);
-            this.clearTokens();
+            // Don't clear tokens immediately - give it another chance
+            console.log("Will retry token refresh in 30 seconds");
+            setTimeout(() => {
+              if (this.getAccessToken()) {
+                this.initialize();
+              }
+            }, 30000);
           });
         } else {
           this.scheduleTokenRefresh(token);
         }
       } catch (error) {
         console.error("Error parsing token during initialization:", error);
-        this.clearTokens();
+        // Don't clear tokens immediately on parse errors - might be recoverable
+        console.log("Token parse failed, will keep token and try authentication");
       }
     } else {
       console.log("No token found during initialization");

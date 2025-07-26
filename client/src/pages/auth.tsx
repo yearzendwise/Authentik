@@ -95,12 +95,8 @@ export default function AuthPage() {
         if (result.emailVerificationRequired) {
           setLocation("/pending-verification");
         } else {
-          // Check if user has subscription and redirect accordingly
-          if (result.hasSubscription) {
-            setLocation("/dashboard");
-          } else {
-            setLocation("/subscribe");
-          }
+          // Always redirect to dashboard after successful login
+          setLocation("/dashboard");
         }
       }
     } catch (error) {
@@ -135,12 +131,8 @@ export default function AuthPage() {
         if (result.emailVerificationRequired) {
           setLocation("/pending-verification");
         } else {
-          // Check if user has subscription and redirect accordingly
-          if (result.hasSubscription) {
-            setLocation("/dashboard");
-          } else {
-            setLocation("/subscribe");
-          }
+          // Always redirect to dashboard after successful login
+          setLocation("/dashboard");
         }
       }
     } catch (error) {

@@ -10,46 +10,51 @@ export function useAuth() {
     queryFn: async () => {
       try {
         if (!authManager.isAuthenticated()) {
+          console.log("No valid token available for auth check");
           return null;
         }
+        console.log("Fetching current user data...");
         return await authManager.getCurrentUser();
       } catch (error: any) {
         console.log("Auth query failed:", error.message);
         
-        // Only clear tokens if it's a definitive authentication failure
-        if (error.message?.includes("Authentication failed")) {
+        // Only clear tokens for specific authentication failures (401/403)
+        if (error.message?.includes("Authentication failed") || 
+            error.message?.includes("No access token available")) {
           console.log("Authentication definitively failed, clearing tokens");
           authManager.clearTokens();
           return null;
         }
         
-        // For other errors (like network issues), return null but don't clear tokens
-        // This prevents unnecessary logouts during temporary network issues
-        console.log("Temporary auth error, keeping tokens");
-        return null;
+        // For network errors, server errors, or other temporary issues, keep tokens
+        console.log("Temporary auth error, keeping tokens for retry");
+        throw error; // Re-throw to trigger retry mechanism
       }
     },
     retry: (failureCount, error: any) => {
       // Don't retry if authentication actually failed
-      if (error?.message?.includes("Authentication failed")) {
+      if (error?.message?.includes("Authentication failed") ||
+          error?.message?.includes("No access token available")) {
         return false;
       }
-      // Retry up to 2 times for other errors (network issues, etc.)
-      return failureCount < 2;
+      // Retry up to 3 times for other errors (network issues, etc.)
+      return failureCount < 3;
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Exponential backoff
-    staleTime: 5 * 60 * 1000, // 5 minutes - much longer cache to reduce frequent checks
-    gcTime: 10 * 60 * 1000, // 10 minutes garbage collection time
+    staleTime: 2 * 60 * 1000, // 2 minutes - reasonable cache time
+    gcTime: 5 * 60 * 1000, // 5 minutes garbage collection time
     refetchOnWindowFocus: false, // Don't refetch when window regains focus
-    refetchOnMount: true, // Always refetch on component mount for fresh data
+    refetchOnMount: false, // Don't automatically refetch on mount to reduce requests
   });
 
-  // Enhanced authentication state logic
+  // Improved authentication state logic
   const hasValidToken = authManager.isAuthenticated();
   
-  // If we have a valid token, consider user authenticated during loading
-  // Only mark as unauthenticated if we have definitive failure or no token
-  const isAuthenticated = hasValidToken && (isLoading || !!user || !isError);
+  // Consider authenticated if:
+  // 1. We have a valid token AND
+  // 2. Either we're loading, have user data, or haven't had a definitive auth failure
+  const isAuthenticated = hasValidToken && (isLoading || !!user || (!isError || 
+    !error?.message?.includes("Authentication failed")));
 
   return {
     user,

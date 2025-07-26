@@ -154,6 +154,9 @@ The architecture supports both development and production environments with hot 
 ✓ **Token Refresh Fix**: Fixed automatic token refresh system to prevent unexpected logouts - tokens now refresh proactively 30-45 seconds before expiry
 ✓ **Authentication State Stability**: Improved authentication state management to prevent temporary loading states from causing logouts
 ✓ **Subscription Redirect Fix**: Fixed dashboard subscription redirect interfering with authentication by adding delay to allow auth state to stabilize
+✓ **Subscription Redirect Removed**: Removed mandatory subscription redirect after login - users now go directly to dashboard regardless of subscription status
+✓ **Authentication Persistence Enhanced**: Fixed users being logged out on page refresh by improving error handling in authentication checks and making token clearing more conservative
+✓ **Token Initialization Improved**: Enhanced authentication manager initialization to be more resilient with better retry logic and extended token refresh timing
 
 ## Previous Changes (January 25, 2025)
 

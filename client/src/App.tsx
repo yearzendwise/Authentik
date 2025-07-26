@@ -84,6 +84,7 @@ function Router() {
 function App() {
   // Initialize automatic token refresh on app start
   useEffect(() => {
+    console.log("Initializing authentication system...");
     authManager.initialize();
   }, []);
 

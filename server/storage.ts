@@ -22,6 +22,7 @@ import {
   type InsertTenant,
   type CreateTenantData,
   type UpdateTenantData,
+  type RegisterOwnerData,
   type Form,
   type InsertForm,
   type CreateFormData,
@@ -53,6 +54,15 @@ export interface IStorage {
   getTenantBySlug(slug: string): Promise<Tenant | undefined>;
   createTenant(tenant: CreateTenantData): Promise<Tenant>;
   updateTenant(id: string, updates: UpdateTenantData): Promise<Tenant | undefined>;
+  
+  // Special Owner registration operation that creates both tenant and Owner user
+  createOwnerAndTenant(ownerData: RegisterOwnerData): Promise<{ owner: User; tenant: Tenant }>;
+  
+  // Method to find the Owner of a tenant (for login logic)
+  getTenantOwner(tenantId: string): Promise<User | undefined>;
+  
+  // Method to find a user by email across all tenants (for login)
+  findUserByEmailAcrossTenants(email: string): Promise<(User & { tenant: { id: string; name: string; slug: string } }) | undefined>;
   
   // User operations (now tenant-aware)
   getUser(id: string, tenantId: string): Promise<User | undefined>;
@@ -139,6 +149,90 @@ export class DatabaseStorage implements IStorage {
       .where(eq(tenants.id, id))
       .returning();
     return tenant;
+  }
+
+  // Special Owner registration operation that creates both tenant and Owner user
+  async createOwnerAndTenant(ownerData: RegisterOwnerData): Promise<{ owner: User; tenant: Tenant }> {
+    // Start a transaction to ensure both tenant and owner are created or none
+    const result = await db.transaction(async (tx) => {
+      // Create the tenant first
+      const [tenant] = await tx.insert(tenants).values({
+        name: ownerData.organizationName,
+        slug: ownerData.organizationSlug,
+        isActive: true,
+        maxUsers: 10, // Default max users for new organizations
+      }).returning();
+
+      // Create the owner user
+      const [owner] = await tx.insert(users).values({
+        tenantId: tenant.id,
+        email: ownerData.email,
+        password: ownerData.password, // This should be hashed before calling this method
+        firstName: ownerData.firstName,
+        lastName: ownerData.lastName,
+        role: 'Owner',
+        isActive: true,
+        emailVerified: false, // Owner still needs to verify email
+        updatedAt: new Date(),
+      }).returning();
+
+      return { owner, tenant };
+    });
+
+    return result;
+  }
+
+  // Method to find the Owner of a tenant (for login logic)
+  async getTenantOwner(tenantId: string): Promise<User | undefined> {
+    const [owner] = await db.select().from(users)
+      .where(and(eq(users.tenantId, tenantId), eq(users.role, 'Owner')))
+      .limit(1);
+    return owner;
+  }
+
+  // Method to find a user by email across all tenants (for login)
+  async findUserByEmailAcrossTenants(email: string): Promise<(User & { tenant: { id: string; name: string; slug: string } }) | undefined> {
+    const result = await db
+      .select({
+        // User fields
+        id: users.id,
+        tenantId: users.tenantId,
+        email: users.email,
+        password: users.password,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        role: users.role,
+        isActive: users.isActive,
+        twoFactorEnabled: users.twoFactorEnabled,
+        twoFactorSecret: users.twoFactorSecret,
+        emailVerified: users.emailVerified,
+        emailVerificationToken: users.emailVerificationToken,
+        emailVerificationExpires: users.emailVerificationExpires,
+        lastVerificationEmailSent: users.lastVerificationEmailSent,
+        lastLoginAt: users.lastLoginAt,
+        menuExpanded: users.menuExpanded,
+        stripeCustomerId: users.stripeCustomerId,
+        stripeSubscriptionId: users.stripeSubscriptionId,
+        subscriptionStatus: users.subscriptionStatus,
+        subscriptionPlanId: users.subscriptionPlanId,
+        subscriptionStartDate: users.subscriptionStartDate,
+        subscriptionEndDate: users.subscriptionEndDate,
+        trialEndsAt: users.trialEndsAt,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+        // Tenant fields
+        tenant: {
+          id: tenants.id,
+          name: tenants.name,
+          slug: tenants.slug,
+        },
+      })
+      .from(users)
+      .innerJoin(tenants, eq(users.tenantId, tenants.id))
+      .where(and(eq(users.email, email), eq(users.isActive, true), eq(tenants.isActive, true)))
+      .limit(1);
+
+    return result[0] as (User & { tenant: { id: string; name: string; slug: string } }) | undefined;
   }
 
   // User operations (tenant-aware)
@@ -617,7 +711,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Company management methods (tenant-aware)
-  async getUserCompany(userId: string, tenantId: string): Promise<(Company & { owner: User }) | null> {
+  async getUserCompany(userId: string, tenantId: string): Promise<(Company & { owner: { id: string; firstName: string | null; lastName: string | null; email: string } }) | null> {
     const result = await db
       .select({
         id: companies.id,

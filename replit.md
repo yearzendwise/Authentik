@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a modern full-stack SaaS authentication system built with React, Express, and PostgreSQL. The application provides a comprehensive authentication system with JWT token management, user registration, login, profile management, email verification with Resend, and security features. It uses a clean monorepo structure with shared types and schemas between frontend and backend.
+This is a modern full-stack SaaS authentication system built with React, Express, and PostgreSQL. The application provides a comprehensive authentication system with JWT token management, user registration, login, profile management, email verification with Resend, and security features. It features a multi-tenant architecture with Owner-based organization management where each organization has its own tenant space with an Owner user who can manage team members. It uses a clean monorepo structure with shared types and schemas between frontend and backend.
 
 ## User Preferences
 
@@ -42,17 +42,23 @@ The application follows a monorepo architecture with clear separation between cl
 - **Development Tools**: Console URL logging and development endpoints for testing email verification
 
 ### Database Schema
-- **Users Table**: Stores user credentials, profile information, 2FA settings, and email verification status
+- **Tenants Table**: Multi-tenant organization support with unique slugs and owner relationships
+- **Users Table**: Stores user credentials, profile information, 2FA settings, email verification status, and role-based permissions (Owner, Administrator, Manager, Employee)
 - **Refresh Tokens Table**: Enhanced with device tracking fields (device ID, name, user agent, IP address, location, last used)
 - **Verification Tokens Table**: Manages email verification tokens with expiration
 - **Schema Validation**: Zod schemas shared between frontend and backend
 
 ## Data Flow
 
-1. **Authentication Flow**:
-   - User submits registration form → system sends verification email via Resend
-   - User clicks verification link → email is verified → welcome email sent
+1. **Owner Registration Flow**:
+   - User submits Owner registration form with organization details → new tenant and Owner user created
+   - System sends verification email via Resend to Owner
+   - Owner clicks verification link → email is verified → welcome email sent
+   - Organization is fully set up with Owner having full administrative privileges
+
+2. **User Login Flow**:
    - User submits login form with verified email
+   - System searches across all tenants to find user and their organization
    - Frontend validates data using Zod schemas
    - API endpoint processes request and generates JWT tokens
    - If 2FA is enabled, user must provide TOTP code for verification
@@ -132,6 +138,16 @@ The application is designed for deployment on platforms like Replit:
 The architecture supports both development and production environments with hot reloading in development and optimized builds for production deployment.
 
 ## Recent Changes (July 26, 2025)
+
+✓ **Owner-Based Multi-Tenant Architecture (Latest Update)**: 
+  • Added Owner user role as the highest privilege level in the system
+  • Implemented multi-tenant registration where Owners create their own organization
+  • Modified login system to search across all tenants for user authentication  
+  • Updated role-based authorization to include Owner privileges
+  • Prevented Owner role creation through regular user management endpoints
+  • All users created by Owners are automatically scoped to the Owner's tenant
+  • Cross-tenant isolation ensures users only access their organization's data
+  • User Role Hierarchy: Owner > Administrator > Manager > Employee
 
 ✓ **DragFormMaster Integration Completed**: Successfully integrated existing DragFormMaster component from /components/DragFormMaster folder
 ✓ **Forms Navigation Added**: Added Forms section to sidebar navigation with FileText icon

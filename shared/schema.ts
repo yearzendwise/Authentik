@@ -5,7 +5,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // User roles enum
-export const userRoles = ['Employee', 'Manager', 'Administrator'] as const;
+export const userRoles = ['Owner', 'Administrator', 'Manager', 'Employee'] as const;
 export type UserRole = typeof userRoles[number];
 
 // Tenants table for multi-tenancy
@@ -285,6 +285,27 @@ export const registerSchema = z.object({
   path: ["confirmPassword"],
 });
 
+// Owner registration schema - includes organization details
+export const registerOwnerSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
+  confirmPassword: z.string(),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  organizationName: z.string().min(1, "Organization name is required"),
+  organizationSlug: z.string()
+    .min(1, "Organization identifier is required")
+    .regex(/^[a-z0-9-]+$/, "Only lowercase letters, numbers, and hyphens allowed")
+    .max(50, "Organization identifier must be 50 characters or less"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
 export const forgotPasswordSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
@@ -336,12 +357,13 @@ export const createDeviceSessionSchema = z.object({
   location: z.string().optional(),
 });
 
-// User management schemas
+// User management schemas - excludes Owner role from regular user creation
+const nonOwnerRoles = ['Administrator', 'Manager', 'Employee'] as const;
 export const createUserSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
-  role: z.enum(userRoles).default('Employee'),
+  role: z.enum(nonOwnerRoles).default('Employee'),
   password: z.string()
     .min(8, "Password must be at least 8 characters")
     .regex(/[a-z]/, "Password must contain at least one lowercase letter")
@@ -377,6 +399,7 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type LoginCredentials = z.infer<typeof loginSchema>;
 export type RegisterData = z.infer<typeof registerSchema>;
+export type RegisterOwnerData = z.infer<typeof registerOwnerSchema>;
 export type ForgotPasswordData = z.infer<typeof forgotPasswordSchema>;
 export type UpdateProfileData = z.infer<typeof updateProfileSchema>;
 export type ChangePasswordData = z.infer<typeof changePasswordSchema>;

@@ -7,6 +7,7 @@ import cookieParser from "cookie-parser";
 import {
   loginSchema,
   registerSchema,
+  registerOwnerSchema,
   forgotPasswordSchema,
   updateProfileSchema,
   changePasswordSchema,
@@ -130,11 +131,11 @@ const requireRole = (allowedRoles: UserRole[]) => {
   };
 };
 
-// Middleware for admin-only operations
-const requireAdmin = requireRole(["Administrator"]);
+// Middleware for admin-only operations (Owner and Administrator)
+const requireAdmin = requireRole(["Owner", "Administrator"]);
 
 // Middleware for manager+ operations
-const requireManagerOrAdmin = requireRole(["Manager", "Administrator"]);
+const requireManagerOrAdmin = requireRole(["Owner", "Administrator", "Manager"]);
 
 const generateTokens = (userId: string, tenantId: string) => {
   const accessToken = jwt.sign({ userId, tenantId }, JWT_SECRET, {
@@ -163,7 +164,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     24 * 60 * 60 * 1000,
   ); // Once per day
 
-  // Register endpoint with input sanitization
+  // DEPRECATED: Regular registration endpoint - use /api/auth/register-owner instead
+  // This endpoint is kept for backward compatibility but should not be used for new registrations
   app.post("/api/auth/register", async (req, res) => {
     try {
       // Get client IP for rate limiting
@@ -276,6 +278,137 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Owner registration endpoint - creates new tenant and Owner user
+  app.post("/api/auth/register-owner", async (req, res) => {
+    try {
+      // Get client IP for rate limiting
+      const clientIP = getClientIP(req);
+
+      // Check rate limit
+      if (!checkRateLimit(clientIP)) {
+        return res.status(429).json({
+          message: "Too many registration attempts. Please try again later.",
+        });
+      }
+
+      const rawData = registerOwnerSchema.parse(req.body);
+
+      // Sanitize all input data
+      const sanitizedData = sanitizeUserInput({
+        email: rawData.email,
+        password: rawData.password,
+        firstName: rawData.firstName,
+        lastName: rawData.lastName,
+      });
+
+      const sanitizedOrgName = sanitizeString(rawData.organizationName);
+      const sanitizedOrgSlug = sanitizeString(rawData.organizationSlug);
+
+      if (
+        !sanitizedData.email ||
+        !sanitizedData.password ||
+        !sanitizedData.firstName ||
+        !sanitizedData.lastName ||
+        !sanitizedOrgName ||
+        !sanitizedOrgSlug
+      ) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      // Check if organization slug is already taken
+      const existingTenant = await storage.getTenantBySlug(sanitizedOrgSlug);
+      if (existingTenant) {
+        return res.status(409).json({ 
+          message: "Organization identifier is already taken. Please choose a different one." 
+        });
+      }
+
+      // Check if user with this email already exists in any tenant
+      // For now, we'll check against the default tenant to prevent duplicate emails
+      const defaultTenant = await storage.getTenantBySlug("default");
+      if (defaultTenant) {
+        const existingUser = await storage.getUserByEmail(
+          sanitizedData.email,
+          defaultTenant.id,
+        );
+        if (existingUser) {
+          return res.status(409).json({ 
+            message: "User already exists with this email" 
+          });
+        }
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(sanitizedData.password, 12);
+
+      // Create tenant and owner user
+      const { owner, tenant } = await storage.createOwnerAndTenant({
+        email: sanitizedData.email,
+        password: hashedPassword,
+        firstName: sanitizedData.firstName,
+        lastName: sanitizedData.lastName,
+        organizationName: sanitizedOrgName,
+        organizationSlug: sanitizedOrgSlug,
+        confirmPassword: "", // Not needed for storage
+      });
+
+      // Clear rate limit on successful registration
+      clearRateLimit(clientIP);
+
+      // Generate email verification token
+      const verificationToken = randomBytes(32).toString("hex");
+      const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      // Set verification token in database
+      await storage.setEmailVerificationToken(
+        owner.id,
+        tenant.id,
+        verificationToken,
+        verificationExpires,
+      );
+
+      // Send verification email
+      try {
+        await emailService.sendVerificationEmail(
+          owner.email,
+          verificationToken,
+          owner.firstName || undefined,
+        );
+      } catch (emailError) {
+        console.error("Failed to send verification email:", emailError);
+        // Continue with registration, console URL is already logged
+      }
+
+      res.status(201).json({
+        message:
+          "Organization and owner account created successfully. Please check the server console for the verification URL since email delivery is restricted.",
+        user: {
+          id: owner.id,
+          email: owner.email,
+          firstName: owner.firstName,
+          lastName: owner.lastName,
+          role: owner.role,
+          emailVerified: false,
+        },
+        organization: {
+          id: tenant.id,
+          name: tenant.name,
+          slug: tenant.slug,
+        },
+        developmentNote: "Check server console for verification URL",
+      });
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({
+          message: "Validation error",
+          errors: error.errors,
+        });
+      }
+      console.error("Owner registration error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Login endpoint with input sanitization and rate limiting
   app.post("/api/auth/login", async (req, res) => {
     try {
@@ -301,17 +434,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ message: "Email and password are required" });
       }
 
-      // Always use default tenant for backward compatibility
-      const tenant = await storage.getTenantBySlug("default");
-      if (!tenant) {
-        return res.status(500).json({ message: "System configuration error" });
-      }
-
-      // Find user by email within tenant
-      const user = await storage.getUserByEmail(sanitizedEmail, tenant.id);
-      if (!user || !user.isActive) {
+      // Find user by email across all tenants
+      const userResult = await storage.findUserByEmailAcrossTenants(sanitizedEmail);
+      if (!userResult) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
+
+      const user = userResult;
+      const tenant = userResult.tenant;
 
       // Verify password
       const isValidPassword = await bcrypt.compare(

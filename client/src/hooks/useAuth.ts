@@ -9,9 +9,32 @@ export function useAuth() {
     queryKey: ["/api/auth/me"],
     queryFn: async () => {
       try {
-        // Check if we have a token first
+        console.log("Starting authentication check...");
+        
+        // If we don't have a valid access token, try to refresh first
         if (!authManager.isAuthenticated()) {
-          console.log("No valid token available for auth check");
+          console.log("No valid access token, attempting refresh...");
+          try {
+            // Try to refresh the access token using the refresh token cookie
+            await authManager.refreshAccessToken();
+            console.log("Token refresh successful, proceeding with auth check");
+          } catch (refreshError: any) {
+            console.log("Token refresh failed:", refreshError.message);
+            
+            // If refresh failed due to invalid refresh token, user needs to log in
+            if (refreshError.message?.includes("authentication required")) {
+              console.log("Refresh token invalid, user needs to log in");
+              return null;
+            }
+            
+            // For other refresh errors, still try to get user data in case we have a valid token
+            console.log("Refresh failed but continuing with auth check");
+          }
+        }
+        
+        // Now check if we have a valid token after potential refresh
+        if (!authManager.isAuthenticated()) {
+          console.log("Still no valid token after refresh attempt");
           return null;
         }
         
@@ -52,9 +75,8 @@ export function useAuth() {
   // Determine if we've completed the initial authentication check
   const hasInitialized = isFetched || isError;
   
-  // Determine authentication state based on token and user data
-  const hasValidToken = authManager.isAuthenticated();
-  const isAuthenticated = hasValidToken && !!user;
+  // Determine authentication state - if we have user data, we're authenticated
+  const isAuthenticated = !!user;
 
   return {
     user,

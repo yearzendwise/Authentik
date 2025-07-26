@@ -803,21 +803,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Logout endpoint
-  app.post("/api/auth/logout", authenticateToken, async (req: any, res) => {
+  // Logout endpoint - works with or without access token
+  app.post("/api/auth/logout", async (req: any, res) => {
     try {
       const refreshToken = req.cookies.refreshToken;
 
+      // Try to get access token for proper logout, but don't require it
+      const authHeader = req.headers["authorization"];
+      const accessToken = authHeader && authHeader.split(" ")[1];
+
+      // If we have access token, verify it to get user context
+      if (accessToken) {
+        try {
+          const decoded = jwt.verify(accessToken, JWT_SECRET) as any;
+          const user = await storage.getUser(decoded.userId, decoded.tenantId);
+          
+          if (user && user.isActive) {
+            console.log(`🔐 [Server] Logout request from user: ${user.email}`);
+          }
+        } catch (tokenError) {
+          // Token is invalid, but still proceed with logout
+          console.log("🔐 [Server] Invalid access token during logout, proceeding anyway");
+        }
+      }
+
+      // Always try to delete refresh token if it exists
       if (refreshToken) {
-        await storage.deleteRefreshToken(refreshToken);
+        try {
+          await storage.deleteRefreshToken(refreshToken);
+          console.log("🔐 [Server] Refresh token deleted successfully");
+        } catch (dbError) {
+          console.log("🔐 [Server] Error deleting refresh token:", dbError);
+          // Continue even if deletion fails
+        }
       }
 
       // Clear refresh token cookie
-      res.clearCookie("refreshToken");
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+      });
 
+      console.log("🔐 [Server] Logout successful");
       res.json({ message: "Logout successful" });
     } catch (error) {
       console.error("Logout error:", error);
+      // Even on error, try to clear the cookie
+      res.clearCookie("refreshToken");
       res.status(500).json({ message: "Internal server error" });
     }
   });

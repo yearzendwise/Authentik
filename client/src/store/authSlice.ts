@@ -111,14 +111,29 @@ export const loginUser = createAsyncThunk(
 
 export const logoutUser = createAsyncThunk(
   "auth/logout",
-  async (_, { rejectWithValue }) => {
+  async (_, { getState, rejectWithValue }) => {
     try {
       console.log("🔐 [Redux] Logging out...");
 
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
+      const state = getState() as { auth: AuthState };
+      const token = state.auth.accessToken;
+
+      // Attempt to call logout endpoint if we have a token
+      if (token) {
+        await fetch("/api/auth/logout", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+          credentials: "include",
+        });
+      } else {
+        // If no token, just clear the refresh token cookie
+        await fetch("/api/auth/logout", {
+          method: "POST",
+          credentials: "include",
+        });
+      }
 
       console.log("🔐 [Redux] Logout successful");
       return null;

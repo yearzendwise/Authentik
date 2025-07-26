@@ -120,6 +120,23 @@ export const verificationTokens = pgTable("verification_tokens", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Companies table for multi-tenant company information
+export const companies = pgTable("companies", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  ownerId: varchar("owner_id").notNull().references(() => users.id, { onDelete: 'cascade' }), // Links to account owner
+  name: text("name").notNull(),
+  address: text("address"),
+  companyType: text("company_type"), // e.g., Corporation, LLC, Partnership, etc.
+  companyEmail: text("company_email"),
+  phone: text("phone"),
+  website: text("website"),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Forms table for DragFormMaster integration with multi-tenancy
 export const forms = pgTable("forms", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -163,9 +180,21 @@ export const userRelations = relations(users, ({ one, many }) => ({
   refreshTokens: many(refreshTokens),
   forms: many(forms),
   verificationTokens: many(verificationTokens),
+  ownedCompanies: many(companies),
   subscription: one(subscriptions, {
     fields: [users.id],
     references: [subscriptions.userId],
+  }),
+}));
+
+export const companyRelations = relations(companies, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [companies.tenantId],
+    references: [tenants.id],
+  }),
+  owner: one(users, {
+    fields: [companies.ownerId],
+    references: [users.id],
   }),
 }));
 
@@ -392,6 +421,40 @@ export const billingInfoSchema = z.object({
 });
 
 export type BillingInfo = z.infer<typeof billingInfoSchema>;
+
+// Company schemas
+export const insertCompanySchema = createInsertSchema(companies).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateCompanySchema = z.object({
+  name: z.string().min(1, "Company name is required"),
+  address: z.string().optional(),
+  companyType: z.string().optional(),
+  companyEmail: z.string().email("Please enter a valid email address").optional().or(z.literal("")),
+  phone: z.string().optional(),
+  website: z.string().url("Please enter a valid website URL").optional().or(z.literal("")),
+  description: z.string().optional(),
+  isActive: z.boolean().default(true),
+});
+
+export const createCompanySchema = z.object({
+  name: z.string().min(1, "Company name is required"),
+  address: z.string().optional(),
+  companyType: z.string().optional(),
+  companyEmail: z.string().email("Please enter a valid email address").optional().or(z.literal("")),
+  phone: z.string().optional(),
+  website: z.string().url("Please enter a valid website URL").optional().or(z.literal("")),
+  description: z.string().optional(),
+});
+
+// Company types
+export type Company = typeof companies.$inferSelect;
+export type InsertCompany = z.infer<typeof insertCompanySchema>;
+export type CreateCompanyData = z.infer<typeof createCompanySchema>;
+export type UpdateCompanyData = z.infer<typeof updateCompanySchema>;
 
 // Multi-tenancy schemas and types
 export const tenantSchema = createInsertSchema(tenants).omit({

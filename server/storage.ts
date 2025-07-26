@@ -7,6 +7,7 @@ import {
   forms,
   formResponses,
   verificationTokens,
+  companies,
   type User, 
   type InsertUser, 
   type RefreshToken, 
@@ -29,7 +30,11 @@ import {
   type InsertFormResponse,
   type SubmitFormResponseData,
   type UserWithTenant,
-  type FormWithDetails
+  type FormWithDetails,
+  type Company,
+  type InsertCompany,
+  type CreateCompanyData,
+  type UpdateCompanyData
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gt, desc, ne, or, ilike, count, sql } from "drizzle-orm";
@@ -517,7 +522,7 @@ export class DatabaseStorage implements IStorage {
           ilike(users.firstName, searchTerm),
           ilike(users.lastName, searchTerm),
           ilike(users.email, searchTerm)
-        )
+        )!
       );
     }
 
@@ -611,7 +616,71 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  // Company management methods (tenant-aware)
+  async getAllCompanies(tenantId: string): Promise<(Company & { owner: User })[]> {
+    const result = await db
+      .select({
+        id: companies.id,
+        tenantId: companies.tenantId,
+        ownerId: companies.ownerId,
+        name: companies.name,
+        address: companies.address,
+        companyType: companies.companyType,
+        companyEmail: companies.companyEmail,
+        phone: companies.phone,
+        website: companies.website,
+        description: companies.description,
+        isActive: companies.isActive,
+        createdAt: companies.createdAt,
+        updatedAt: companies.updatedAt,
+        owner: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+        },
+      })
+      .from(companies)
+      .innerJoin(users, eq(companies.ownerId, users.id))
+      .where(eq(companies.tenantId, tenantId))
+      .orderBy(desc(companies.createdAt));
+    
+    return result;
+  }
 
+  async getCompany(id: string, tenantId: string): Promise<Company | undefined> {
+    const [company] = await db
+      .select()
+      .from(companies)
+      .where(and(eq(companies.id, id), eq(companies.tenantId, tenantId)));
+    return company;
+  }
+
+  async createCompany(companyData: CreateCompanyData, ownerId: string, tenantId: string): Promise<Company> {
+    const [company] = await db
+      .insert(companies)
+      .values({
+        ...companyData,
+        ownerId,
+        tenantId,
+        updatedAt: new Date(),
+      })
+      .returning();
+    return company;
+  }
+
+  async updateCompany(id: string, companyData: UpdateCompanyData, tenantId: string): Promise<Company | undefined> {
+    const [company] = await db
+      .update(companies)
+      .set({ ...companyData, updatedAt: new Date() })
+      .where(and(eq(companies.id, id), eq(companies.tenantId, tenantId)))
+      .returning();
+    return company;
+  }
+
+  async deleteCompany(id: string, tenantId: string): Promise<void> {
+    await db.delete(companies).where(and(eq(companies.id, id), eq(companies.tenantId, tenantId)));
+  }
 
 
 }

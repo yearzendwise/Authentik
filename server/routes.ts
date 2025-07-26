@@ -18,6 +18,8 @@ import {
   updateUserSchema,
   userFiltersSchema,
   billingInfoSchema,
+  createCompanySchema,
+  updateCompanySchema,
   type UserRole,
 } from "@shared/schema";
 import Stripe from "stripe";
@@ -1987,6 +1989,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     },
   );
+
+  // Companies API Routes (tenant-aware)
+
+  // Get all companies
+  app.get("/api/companies", authenticateToken, async (req: any, res) => {
+    try {
+      const companies = await storage.getAllCompanies(req.user.tenantId);
+      res.json(companies);
+    } catch (error) {
+      console.error("Get companies error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get specific company
+  app.get("/api/companies/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const company = await storage.getCompany(id, req.user.tenantId);
+
+      if (!company) {
+        return res.status(404).json({ message: "Company not found" });
+      }
+
+      res.json({ company });
+    } catch (error) {
+      console.error("Get company error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Create new company
+  app.post("/api/companies", authenticateToken, async (req: any, res) => {
+    try {
+      const companyData = createCompanySchema.parse(req.body);
+
+      const company = await storage.createCompany(
+        companyData,
+        req.user.id, // Set current user as owner
+        req.user.tenantId,
+      );
+
+      res.status(201).json({
+        message: "Company created successfully",
+        company,
+      });
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({
+          message: "Validation error",
+          errors: error.errors,
+        });
+      }
+      console.error("Create company error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Update company
+  app.patch("/api/companies/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const companyData = updateCompanySchema.parse(req.body);
+
+      // Check if company exists and belongs to user's tenant
+      const existingCompany = await storage.getCompany(id, req.user.tenantId);
+      if (!existingCompany) {
+        return res.status(404).json({ message: "Company not found" });
+      }
+
+      const updatedCompany = await storage.updateCompany(
+        id,
+        companyData,
+        req.user.tenantId,
+      );
+
+      res.json({
+        message: "Company updated successfully",
+        company: updatedCompany,
+      });
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({
+          message: "Validation error",
+          errors: error.errors,
+        });
+      }
+      console.error("Update company error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Delete company
+  app.delete("/api/companies/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+
+      // Check if company exists and belongs to user's tenant
+      const existingCompany = await storage.getCompany(id, req.user.tenantId);
+      if (!existingCompany) {
+        return res.status(404).json({ message: "Company not found" });
+      }
+
+      await storage.deleteCompany(id, req.user.tenantId);
+
+      res.json({ message: "Company deleted successfully" });
+    } catch (error) {
+      console.error("Delete company error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

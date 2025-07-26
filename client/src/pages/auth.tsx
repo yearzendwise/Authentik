@@ -95,7 +95,12 @@ export default function AuthPage() {
         if (result.emailVerificationRequired) {
           setLocation("/pending-verification");
         } else {
-          setLocation("/");
+          // Check if user has subscription and redirect accordingly
+          if (result.hasSubscription) {
+            setLocation("/dashboard");
+          } else {
+            setLocation("/subscribe");
+          }
         }
       }
     } catch (error) {
@@ -130,7 +135,12 @@ export default function AuthPage() {
         if (result.emailVerificationRequired) {
           setLocation("/pending-verification");
         } else {
-          setLocation("/");
+          // Check if user has subscription and redirect accordingly
+          if (result.hasSubscription) {
+            setLocation("/dashboard");
+          } else {
+            setLocation("/subscribe");
+          }
         }
       }
     } catch (error) {

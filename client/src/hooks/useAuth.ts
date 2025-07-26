@@ -35,7 +35,30 @@ export function useLogin() {
 
   return useMutation({
     mutationFn: async (credentials: LoginCredentials & { twoFactorToken?: string }) => {
-      return authManager.login(credentials.email, credentials.password, credentials.twoFactorToken);
+      const loginResult = await authManager.login(credentials.email, credentials.password, credentials.twoFactorToken);
+      
+      // If 2FA is required, return early
+      if ('requires2FA' in loginResult) {
+        return loginResult;
+      }
+      
+      // After successful login, check for subscription
+      try {
+        const subscriptionResponse = await authManager.makeAuthenticatedRequest("GET", "/api/my-subscription");
+        const subscriptionData = await subscriptionResponse.json();
+        
+        return {
+          ...loginResult,
+          hasSubscription: !!subscriptionData.subscription
+        };
+      } catch (error) {
+        // If subscription check fails, continue with normal login flow
+        console.warn("Failed to check subscription status:", error);
+        return {
+          ...loginResult,
+          hasSubscription: false
+        };
+      }
     },
     onSuccess: (data) => {
       if ('requires2FA' in data) {

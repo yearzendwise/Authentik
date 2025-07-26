@@ -36,14 +36,14 @@ function Router() {
       {isAuthenticated && isEmailVerified === true ? (
         <AppLayout>
           <Switch>
-            <Route path="/" component={Subscribe} /> {/* First redirect to subscription selection */}
+            <Route path="/" component={Dashboard} /> {/* Dashboard will handle subscription redirects */}
             <Route path="/dashboard" component={Dashboard} />
             <Route path="/profile" component={ProfilePage} />
             <Route path="/sessions" component={SessionsPage} />
             <Route path="/users" component={UsersPage} />
             <Route path="/subscribe" component={Subscribe} />
-            <Route path="/auth" component={Subscribe} /> {/* Redirect logged-in users to subscription */}
-            <Route path="/pending-verification" component={Subscribe} /> {/* Redirect verified users to subscription */}
+            <Route path="/auth" component={Dashboard} /> {/* Redirect logged-in users to dashboard */}
+            <Route path="/pending-verification" component={Dashboard} /> {/* Redirect verified users to dashboard */}
           </Switch>
         </AppLayout>
       ) : isAuthenticated && isEmailVerified === false ? (

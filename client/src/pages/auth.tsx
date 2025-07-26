@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useRegister, useForgotPassword } from "@/hooks/useAuth";
-import { useAppDispatch, useAppSelector } from "@/store";
+import { useAppDispatch, useAppSelector, store } from "@/store";
 import { login, clearError } from "@/store/authSlice";
 import { loginSchema, registerSchema, forgotPasswordSchema } from "@shared/schema";
 import type { LoginCredentials, RegisterData, ForgotPasswordData } from "@shared/schema";
@@ -35,7 +35,8 @@ export default function AuthPage() {
   } | null>(null);
 
   const dispatch = useAppDispatch();
-  const { isLoading: isLoginLoading, isAuthenticated } = useAppSelector((state) => state.auth);
+  const authState = useAppSelector((state) => state.auth);
+  const { isLoading: isLoginLoading, isAuthenticated } = authState;
   const registerMutation = useRegister();
   const forgotPasswordMutation = useForgotPassword();
 
@@ -86,7 +87,8 @@ export default function AuthPage() {
 
   // Redirect to dashboard when authenticated
   useEffect(() => {
-    console.log("🔍 Auth page - isAuthenticated changed:", isAuthenticated);
+    console.log("🔍 Auth page - Redux auth state:", authState);
+    console.log("🔍 Auth page - isAuthenticated:", isAuthenticated);
     if (isAuthenticated) {
       console.log("✅ User is authenticated, redirecting to dashboard from useEffect");
       setLocation("/dashboard");
@@ -98,7 +100,7 @@ export default function AuthPage() {
         }
       }, 100);
     }
-  }, [isAuthenticated, setLocation]);
+  }, [isAuthenticated, authState, setLocation]);
 
   const onLogin = async (data: LoginCredentials) => {
     console.log("🚀 onLogin called with data:", data);
@@ -115,12 +117,24 @@ export default function AuthPage() {
         console.log("✅ Login successful!");
         console.log("✅ User data received:", result.payload);
         console.log("Current auth state after login:", isAuthenticated);
+        console.log("Full Redux auth state:", authState);
         // Show success toast
         toast({
           title: "Login Successful",
           description: "Welcome back! Redirecting to dashboard...",
         });
-        // The redirect will happen via useEffect when isAuthenticated changes
+        // Wait a moment for state to update, then force redirect if needed
+        setTimeout(() => {
+          const currentAuthState = store.getState().auth;
+          console.log("🔍 Checking auth state after delay:", currentAuthState);
+          if (currentAuthState.isAuthenticated) {
+            console.log("✅ State updated, redirecting now");
+            setLocation("/dashboard");
+          } else {
+            console.log("❌ State not updated yet, forcing redirect");
+            window.location.href = "/dashboard";
+          }
+        }, 500);
       } else if (login.rejected.match(result)) {
         console.error("❌ Login rejected:", result.payload);
         toast({

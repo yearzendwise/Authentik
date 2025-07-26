@@ -207,6 +207,8 @@ class AuthManager {
           // After retry, it's a definitive failure
           console.log("Token refresh definitively failed after retry");
           this.clearTokens();
+          // Clear localStorage token too to prevent conflicting state
+          localStorage.removeItem(this.TOKEN_KEY);
           throw new Error("Token refresh failed - authentication required");
         } else {
           // Server error or network issue - don't clear tokens yet

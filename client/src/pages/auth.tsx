@@ -85,15 +85,11 @@ export default function AuthPage() {
     }
   }, [watchPassword]);
 
-  // Redirect to dashboard when authenticated
+  // Remove automatic redirect to prevent loops
   useEffect(() => {
     console.log("🔍 Auth page - Redux auth state:", authState);
     console.log("🔍 Auth page - isAuthenticated:", isAuthenticated);
-    if (isAuthenticated) {
-      console.log("✅ User is authenticated, redirecting to dashboard from useEffect");
-      // Force immediate navigation
-      window.location.href = "/dashboard";
-    }
+    // Don't auto-redirect - only redirect after successful login
   }, [isAuthenticated, authState]);
 
   const onLogin = async (data: LoginCredentials) => {
@@ -120,8 +116,9 @@ export default function AuthPage() {
         // Force immediate redirect on successful login
         setTimeout(() => {
           console.log("🚀 Forcing redirect to dashboard after successful login");
+          console.log("Current location before redirect:", window.location.pathname);
           window.location.href = "/dashboard";
-        }, 100);
+        }, 500); // Increase delay to ensure cookies are set
       } else if (login.rejected.match(result)) {
         console.error("❌ Login rejected:", result.payload);
         toast({

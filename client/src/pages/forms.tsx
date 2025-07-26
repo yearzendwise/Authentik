@@ -1,9 +1,8 @@
 import { Switch, Route } from "wouter";
 import { Link } from "wouter";
-import { Plus, FileText, Edit, Trash2, Save, Eye, BarChart3, Calendar, ArrowLeft } from "lucide-react";
+import { Plus, FileText, Edit, Trash2, Save, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { FormBuilder } from "../../../components/DragFormMaster/lib/dist";
 import "../../../components/DragFormMaster/lib/dist/index.css";
 
@@ -31,10 +30,7 @@ function FormsAddPage() {
             </div>
             <div className="flex items-center space-x-2">
               <Link href="/forms">
-                <Button variant="outline" className="flex items-center gap-2">
-                  <ArrowLeft className="w-4 h-4" />
-                  Back to Forms
-                </Button>
+                <Button variant="outline">Back to Forms</Button>
               </Link>
             </div>
           </div>
@@ -74,16 +70,11 @@ function FormsListPage() {
     <div className="p-6">
       <div className="mb-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <FileText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Forms</h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Manage your forms and create new ones
-              </p>
-            </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Forms</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">
+              Manage your forms and create new ones
+            </p>
           </div>
           <Link href="/forms/add">
             <Button className="flex items-center gap-2">
@@ -96,37 +87,26 @@ function FormsListPage() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {mockForms.map((form) => (
-          <Card key={form.id} className="hover:shadow-lg transition-shadow duration-200">
+          <Card key={form.id} className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="flex items-start justify-between">
-                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                  <FileText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="text-gray-500 hover:text-green-600">
+                <FileText className="w-8 h-8 text-blue-600" />
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm">
                     <Edit className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
+                  <Button variant="ghost" size="sm">
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
-              <CardTitle className="text-lg mt-3">{form.title}</CardTitle>
+              <CardTitle className="text-lg">{form.title}</CardTitle>
               <CardDescription>{form.description}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                  <Calendar className="w-4 h-4" />
-                  <span>{form.created}</span>
-                </div>
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  <BarChart3 className="w-3 h-3" />
-                  {form.responses} responses
-                </Badge>
+              <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+                <span>Created: {form.created}</span>
+                <span>{form.responses} responses</span>
               </div>
             </CardContent>
           </Card>

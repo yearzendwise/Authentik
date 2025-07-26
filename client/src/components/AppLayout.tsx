@@ -9,10 +9,7 @@ import {
   Monitor,
   Users,
   CreditCard,
-  FileText,
-  Menu,
-  PanelLeftClose,
-  PanelLeftOpen
+  FileText
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -121,29 +118,12 @@ export function AppLayout({ children }: AppLayoutProps) {
         isCollapsed ? "w-16" : "w-64"
       )}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-center p-4 border-b border-gray-200 dark:border-gray-700">
           {!isCollapsed && (
             <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
               SaaS Auth
             </h1>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              const newCollapsed = !isCollapsed;
-              setIsCollapsed(newCollapsed);
-              localStorage.setItem('menuExpanded', JSON.stringify(!newCollapsed));
-              updateMenuPreference.mutate({ menuExpanded: !newCollapsed });
-            }}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
-          >
-            {isCollapsed ? (
-              <PanelLeftOpen className="h-4 w-4" />
-            ) : (
-              <PanelLeftClose className="h-4 w-4" />
-            )}
-          </Button>
         </div>
 
         {/* Navigation */}

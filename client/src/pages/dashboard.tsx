@@ -6,25 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth, useLogout } from "@/hooks/useAuth";
 import type { UserSubscriptionResponse } from "@shared/schema";
 import { authManager } from "@/lib/auth";
-import { 
-  Shield, 
-  Users, 
-  Clock, 
-  TrendingUp, 
-  LogOut, 
-  RefreshCw, 
-  Settings, 
-  CreditCard, 
-  Calendar,
-  Zap,
-  Activity,
-  CheckCircle,
-  AlertCircle,
-  Key,
-  Smartphone,
-  Globe,
-  User
-} from "lucide-react";
+import { Shield, Users, Clock, TrendingUp, LogOut, RefreshCw, Settings, CreditCard, Calendar } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function Dashboard() {
@@ -104,12 +86,7 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-3">
-          <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full animate-pulse">
-            <Shield className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-spin" />
-          </div>
-          <p className="text-gray-600 dark:text-gray-400">Loading dashboard...</p>
-        </div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }
@@ -187,44 +164,38 @@ export default function Dashboard() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="hover:shadow-lg transition-shadow duration-200">
+          <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Active Sessions</p>
-                  <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{sessionCount}</p>
+                  <p className="text-sm font-medium text-blue-600">Active Sessions</p>
+                  <p className="text-2xl font-bold text-blue-900">{sessionCount}</p>
                 </div>
-                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-                  <Smartphone className="text-blue-600 dark:text-blue-400 w-6 h-6" />
-                </div>
+                <Users className="text-blue-500 w-8 h-8" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow duration-200">
+          <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-green-600 dark:text-green-400">Token Expires In</p>
-                  <p className="text-2xl font-bold text-green-900 dark:text-green-100">{tokenExpiry}</p>
+                  <p className="text-sm font-medium text-green-600">Token Expires In</p>
+                  <p className="text-2xl font-bold text-green-900">{tokenExpiry}</p>
                 </div>
-                <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
-                  <Clock className="text-green-600 dark:text-green-400 w-6 h-6" />
-                </div>
+                <Clock className="text-green-500 w-8 h-8" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow duration-200">
+          <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-purple-600 dark:text-purple-400">API Requests</p>
-                  <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{apiRequests.toLocaleString()}</p>
+                  <p className="text-sm font-medium text-purple-600">API Requests</p>
+                  <p className="text-2xl font-bold text-purple-900">{apiRequests.toLocaleString()}</p>
                 </div>
-                <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-full">
-                  <Activity className="text-purple-600 dark:text-purple-400 w-6 h-6" />
-                </div>
+                <TrendingUp className="text-purple-500 w-8 h-8" />
               </div>
             </CardContent>
           </Card>
@@ -233,44 +204,36 @@ export default function Dashboard() {
         {/* Token Management Section */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center">
-              <Key className="mr-2 h-5 w-5" />
-              Token Management
-            </CardTitle>
+            <CardTitle>Token Management</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
-                  <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
-                </div>
+                <div className="w-3 h-3 bg-green-400 rounded-full"></div>
                 <div>
-                  <p className="font-medium text-gray-900 dark:text-white">Access Token</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Expires in {tokenExpiry}</p>
+                  <p className="font-medium text-gray-900">Access Token</p>
+                  <p className="text-sm text-gray-600">Expires in {tokenExpiry}</p>
                 </div>
               </div>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={handleRefreshToken}
-                className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                className="bg-blue-50 text-blue-700 hover:bg-blue-100"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Refresh
               </Button>
             </div>
-            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
-                  <Shield className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                </div>
+                <div className="w-3 h-3 bg-green-400 rounded-full"></div>
                 <div>
-                  <p className="font-medium text-gray-900 dark:text-white">Refresh Token</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Expires in 7 days</p>
+                  <p className="font-medium text-gray-900">Refresh Token</p>
+                  <p className="text-sm text-gray-600">Expires in 7 days</p>
                 </div>
               </div>
-              <Badge variant="secondary" className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                <CheckCircle className="w-3 h-3 mr-1" />
+              <Badge variant="secondary" className="bg-gray-100 text-gray-700">
                 Secure
               </Badge>
             </div>
@@ -280,51 +243,25 @@ export default function Dashboard() {
         {/* User Info Section */}
         <Card className="mt-6">
           <CardHeader>
-            <CardTitle className="flex items-center">
-              <User className="mr-2 h-5 w-5" />
-              Account Information
-            </CardTitle>
+            <CardTitle>Account Information</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-                  <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Email</label>
-                  <p className="text-gray-900 dark:text-white">{user.email}</p>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-500">Email</label>
+                <p className="text-gray-900">{user.email}</p>
               </div>
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-full">
-                  <User className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Full Name</label>
-                  <p className="text-gray-900 dark:text-white">{user.firstName} {user.lastName}</p>
-                </div>
+              <div>
+                <label className="text-sm font-medium text-gray-500">Full Name</label>
+                <p className="text-gray-900">{user.firstName} {user.lastName}</p>
               </div>
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full">
-                  <Key className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">User ID</label>
-                  <p className="text-gray-900 dark:text-white font-mono text-sm">{user.id}</p>
-                </div>
+              <div>
+                <label className="text-sm font-medium text-gray-500">User ID</label>
+                <p className="text-gray-900 font-mono text-sm">{user.id}</p>
               </div>
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
-                  <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Account Status</label>
-                  <Badge className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200">
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    Active
-                  </Badge>
-                </div>
+              <div>
+                <label className="text-sm font-medium text-gray-500">Account Status</label>
+                <Badge className="bg-green-100 text-green-800">Active</Badge>
               </div>
             </div>
           </CardContent>

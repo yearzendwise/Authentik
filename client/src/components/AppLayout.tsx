@@ -56,7 +56,7 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user } = useReduxAuth();
   const { logout } = useReduxLogout();
   const updateMenuPreference = useReduxUpdateMenuPreference();
@@ -110,8 +110,9 @@ export function AppLayout({ children }: AppLayoutProps) {
     };
   }, []);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
+    setLocation("/auth");
   };
 
   if (!user) {

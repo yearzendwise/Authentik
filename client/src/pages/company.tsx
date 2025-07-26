@@ -44,6 +44,9 @@ export default function CompanyPage() {
   const { user } = useReduxAuth();
   const [isEditing, setIsEditing] = useState(false);
 
+  // Check if user can edit company information (Owner or Administrator)
+  const canEdit = user?.role === "Owner" || user?.role === "Administrator";
+
   // Fetch user's company
   const { data: company, isLoading } = useQuery({
     queryKey: ["/api/company"],
@@ -121,8 +124,8 @@ export default function CompanyPage() {
       form.reset({
         name: company.name,
         address: company.address || "",
-        companyType: company.companyType || "",
-        companyEmail: company.companyEmail || "",
+        companyType: company.industry || "",
+        companyEmail: company.email || "",
         phone: company.phone || "",
         website: company.website || "",
         description: company.description || "",
@@ -140,13 +143,14 @@ export default function CompanyPage() {
   };
 
   const handleEdit = () => {
+    if (!canEdit) return;
     setIsEditing(true);
     if (company) {
       form.reset({
         name: company.name,
         address: company.address || "",
-        companyType: company.companyType || "",
-        companyEmail: company.companyEmail || "",
+        companyType: company.industry || "",
+        companyEmail: company.email || "",
         phone: company.phone || "",
         website: company.website || "",
         description: company.description || "",
@@ -201,12 +205,14 @@ export default function CompanyPage() {
             <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No company information found</h3>
             <p className="text-muted-foreground text-center mb-6">
-              Get started by adding your company details.
+              {canEdit ? "Get started by adding your company details." : "Company information will be displayed here once it's added by an Owner or Administrator."}
             </p>
-            <Button onClick={() => setIsEditing(true)}>
-              <Building2 className="mr-2 h-4 w-4" />
-              Add Company Information
-            </Button>
+            {canEdit && (
+              <Button onClick={() => setIsEditing(true)}>
+                <Building2 className="mr-2 h-4 w-4" />
+                Add Company Information
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -406,10 +412,12 @@ export default function CompanyPage() {
               </p>
             </div>
           </div>
-          <Button onClick={handleEdit}>
-            <Edit className="mr-2 h-4 w-4" />
-            Edit Information
-          </Button>
+          {canEdit && (
+            <Button onClick={handleEdit}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit Information
+            </Button>
+          )}
         </div>
       </div>
 
@@ -424,10 +432,10 @@ export default function CompanyPage() {
                 </div>
                 <div>
                   <CardTitle>{company.name}</CardTitle>
-                  {company.companyType && (
+                  {company.industry && (
                     <CardDescription>
                       <Badge variant="outline" className="mt-1">
-                        {company.companyType}
+                        {company.industry}
                       </Badge>
                     </CardDescription>
                   )}
@@ -450,11 +458,11 @@ export default function CompanyPage() {
               <div className="space-y-4">
                 <h3 className="font-semibold text-sm">Contact Information</h3>
                 
-                {company.companyEmail && (
+                {company.email && (
                   <div className="flex items-center space-x-3 text-sm">
                     <Mail className="h-4 w-4 text-muted-foreground" />
-                    <a href={`mailto:${company.companyEmail}`} className="hover:underline">
-                      {company.companyEmail}
+                    <a href={`mailto:${company.email}`} className="hover:underline">
+                      {company.email}
                     </a>
                   </div>
                 )}

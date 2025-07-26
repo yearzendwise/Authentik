@@ -2157,10 +2157,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Company API Routes (single company per user)
 
-  // Get user's company
+  // Get tenant's company information
   app.get("/api/company", authenticateToken, async (req: any, res) => {
     try {
-      const company = await storage.getUserCompany(req.user.id, req.user.tenantId);
+      // Get the tenant information which contains company details
+      const tenant = await storage.getTenant(req.user.tenantId);
+      if (!tenant) {
+        return res.status(404).json({ message: "Tenant not found" });
+      }
+
+      // Get the tenant owner for company owner information
+      const owner = await storage.getTenantOwner(req.user.tenantId);
+      
+      const company = {
+        id: tenant.id,
+        name: tenant.name,
+        description: tenant.description,
+        website: tenant.website,
+        phone: tenant.phone,
+        email: tenant.email,
+        address: tenant.address,
+        industry: tenant.industry,
+        companySize: tenant.companySize,
+        logo: tenant.logo,
+        isActive: tenant.isActive,
+        createdAt: tenant.createdAt,
+        updatedAt: tenant.updatedAt,
+        owner: owner ? {
+          id: owner.id,
+          firstName: owner.firstName,
+          lastName: owner.lastName,
+          email: owner.email,
+        } : null,
+      };
+
       res.json({ company });
     } catch (error) {
       console.error("Get company error:", error);
@@ -2168,25 +2198,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create user's company
-  app.post("/api/company", authenticateToken, async (req: any, res) => {
+  // Update tenant's company information
+  app.post("/api/company", authenticateToken, requireRole(["Owner", "Administrator"]), async (req: any, res) => {
     try {
       const companyData = createCompanySchema.parse(req.body);
 
-      // Check if user already has a company
-      const existingCompany = await storage.getUserCompany(req.user.id, req.user.tenantId);
-      if (existingCompany) {
-        return res.status(400).json({ message: "Company already exists for this user" });
+      // Update the tenant with company information
+      const updatedTenant = await storage.updateTenant(req.user.tenantId, {
+        name: companyData.name,
+        description: companyData.description,
+        website: companyData.website,
+        phone: companyData.phone,
+        email: companyData.companyEmail,
+        address: companyData.address,
+        industry: companyData.industry,
+        companySize: companyData.companySize,
+      });
+
+      if (!updatedTenant) {
+        return res.status(404).json({ message: "Tenant not found" });
       }
 
-      const company = await storage.createCompany(
-        companyData,
-        req.user.id, // Set current user as owner
-        req.user.tenantId,
-      );
+      // Get the tenant owner for response
+      const owner = await storage.getTenantOwner(req.user.tenantId);
+      
+      const company = {
+        id: updatedTenant.id,
+        name: updatedTenant.name,
+        description: updatedTenant.description,
+        website: updatedTenant.website,
+        phone: updatedTenant.phone,
+        email: updatedTenant.email,
+        address: updatedTenant.address,
+        industry: updatedTenant.industry,
+        companySize: updatedTenant.companySize,
+        logo: updatedTenant.logo,
+        isActive: updatedTenant.isActive,
+        createdAt: updatedTenant.createdAt,
+        updatedAt: updatedTenant.updatedAt,
+        owner: owner ? {
+          id: owner.id,
+          firstName: owner.firstName,
+          lastName: owner.lastName,
+          email: owner.email,
+        } : null,
+      };
 
       res.status(201).json({
-        message: "Company created successfully",
+        message: "Company information updated successfully",
         company,
       });
     } catch (error: any) {
@@ -2196,31 +2255,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
           errors: error.errors,
         });
       }
-      console.error("Create company error:", error);
+      console.error("Update company error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
 
-  // Update user's company
-  app.patch("/api/company", authenticateToken, async (req: any, res) => {
+  // Update tenant's company information
+  app.patch("/api/company", authenticateToken, requireRole(["Owner", "Administrator"]), async (req: any, res) => {
     try {
       const companyData = updateCompanySchema.parse(req.body);
 
-      // Check if user has a company
-      const existingCompany = await storage.getUserCompany(req.user.id, req.user.tenantId);
-      if (!existingCompany) {
-        return res.status(404).json({ message: "Company not found" });
+      // Update the tenant with company information
+      const updatedTenant = await storage.updateTenant(req.user.tenantId, {
+        name: companyData.name,
+        description: companyData.description,
+        website: companyData.website,
+        phone: companyData.phone,
+        email: companyData.companyEmail,
+        address: companyData.address,
+        industry: companyData.industry,
+        companySize: companyData.companySize,
+      });
+
+      if (!updatedTenant) {
+        return res.status(404).json({ message: "Tenant not found" });
       }
 
-      const updatedCompany = await storage.updateUserCompany(
-        req.user.id,
-        companyData,
-        req.user.tenantId,
-      );
+      // Get the tenant owner for response
+      const owner = await storage.getTenantOwner(req.user.tenantId);
+      
+      const company = {
+        id: updatedTenant.id,
+        name: updatedTenant.name,
+        description: updatedTenant.description,
+        website: updatedTenant.website,
+        phone: updatedTenant.phone,
+        email: updatedTenant.email,
+        address: updatedTenant.address,
+        industry: updatedTenant.industry,
+        companySize: updatedTenant.companySize,
+        logo: updatedTenant.logo,
+        isActive: updatedTenant.isActive,
+        createdAt: updatedTenant.createdAt,
+        updatedAt: updatedTenant.updatedAt,
+        owner: owner ? {
+          id: owner.id,
+          firstName: owner.firstName,
+          lastName: owner.lastName,
+          email: owner.email,
+        } : null,
+      };
 
       res.json({
-        message: "Company updated successfully",
-        company: updatedCompany,
+        message: "Company information updated successfully",
+        company,
       });
     } catch (error: any) {
       if (error.name === "ZodError") {

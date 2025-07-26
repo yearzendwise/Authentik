@@ -29,10 +29,6 @@ function FormsAddPage() {
               </p>
             </div>
             <div className="flex items-center space-x-2">
-              <Button className="flex items-center gap-2">
-                <Save className="w-4 h-4" />
-                Save Form
-              </Button>
               <Link href="/forms">
                 <Button variant="outline">Back to Forms</Button>
               </Link>

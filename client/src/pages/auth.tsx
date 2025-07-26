@@ -275,7 +275,6 @@ export default function AuthPage() {
                           type="email"
                           placeholder="Enter your email"
                           className="pl-11"
-                          autoComplete="email"
                           {...loginForm.register("email")}
                         />
                         <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -295,7 +294,6 @@ export default function AuthPage() {
                           type={showPassword ? "text" : "password"}
                           placeholder="Enter your password"
                           className="pl-11 pr-11"
-                          autoComplete="current-password"
                           {...loginForm.register("password")}
                         />
                         <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -368,7 +366,6 @@ export default function AuthPage() {
                           id="firstName"
                           placeholder="John"
                           className="mt-2"
-                          autoComplete="given-name"
                           {...registerForm.register("firstName")}
                         />
                         {registerForm.formState.errors.firstName && (
@@ -383,7 +380,6 @@ export default function AuthPage() {
                           id="lastName"
                           placeholder="Doe"
                           className="mt-2"
-                          autoComplete="family-name"
                           {...registerForm.register("lastName")}
                         />
                         {registerForm.formState.errors.lastName && (
@@ -402,7 +398,6 @@ export default function AuthPage() {
                           type="email"
                           placeholder="john@company.com"
                           className="pl-11"
-                          autoComplete="email"
                           {...registerForm.register("email")}
                         />
                         <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -422,7 +417,6 @@ export default function AuthPage() {
                           type={showRegisterPassword ? "text" : "password"}
                           placeholder="Create a strong password"
                           className="pl-11 pr-11"
-                          autoComplete="new-password"
                           {...registerForm.register("password")}
                         />
                         <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -450,7 +444,6 @@ export default function AuthPage() {
                           type="password"
                           placeholder="Confirm your password"
                           className="pl-11"
-                          autoComplete="new-password"
                           {...registerForm.register("confirmPassword")}
                         />
                         <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />

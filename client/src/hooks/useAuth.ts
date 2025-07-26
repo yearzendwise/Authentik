@@ -9,14 +9,15 @@ export function useAuth() {
     queryKey: ["/api/auth/me"],
     queryFn: async () => {
       try {
-        // Always try to get the current user - let the auth manager handle token refresh
+        if (!authManager.isAuthenticated()) {
+          return null;
+        }
         return await authManager.getCurrentUser();
       } catch (error: any) {
         console.log("Auth query failed:", error.message);
         
         // Only clear tokens if it's a definitive authentication failure
-        if (error.message?.includes("Authentication failed") || 
-            error.message?.includes("authentication required")) {
+        if (error.message?.includes("Authentication failed")) {
           console.log("Authentication definitively failed, clearing tokens");
           authManager.clearTokens();
           return null;
@@ -30,8 +31,7 @@ export function useAuth() {
     },
     retry: (failureCount, error: any) => {
       // Don't retry if authentication actually failed
-      if (error?.message?.includes("Authentication failed") ||
-          error?.message?.includes("authentication required")) {
+      if (error?.message?.includes("Authentication failed")) {
         return false;
       }
       // Retry up to 2 times for other errors (network issues, etc.)
@@ -45,14 +45,11 @@ export function useAuth() {
   });
 
   // Enhanced authentication state logic
-  const hasToken = !!authManager.getAccessToken();
+  const hasValidToken = authManager.isAuthenticated();
   
-  // During loading, if we have no token but no error yet, we might be refreshing
-  // Consider authenticated if:
-  // 1. We're loading and no error
-  // 2. We have a user
-  // 3. We have a token (even if expired - refresh will handle it)
-  const isAuthenticated = isLoading ? !isError : (!!user || (hasToken && !isError));
+  // If we have a valid token, consider user authenticated during loading
+  // Only mark as unauthenticated if we have definitive failure or no token
+  const isAuthenticated = hasValidToken && (isLoading || !!user || !isError);
 
   return {
     user,

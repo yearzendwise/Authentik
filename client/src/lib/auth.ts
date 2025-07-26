@@ -107,33 +107,26 @@ class AuthManager {
     if (token) {
       console.log("Initializing automatic token refresh system");
       
-      // Check if token is expired or about to expire and refresh if needed
+      // Check if token is about to expire and refresh immediately if needed
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         const expTime = payload.exp * 1000;
         const now = Date.now();
         const timeUntilExpiry = expTime - now;
         
-        // If token is expired or expires in less than 2 minutes, refresh immediately
+        // If token expires in less than 2 minutes, refresh immediately
         if (timeUntilExpiry < 120000) {
-          console.log("Token expired or expires soon, refreshing immediately on initialization");
-          this.refreshAccessToken()
-            .then(() => {
-              console.log("Initial token refresh successful");
-            })
-            .catch(error => {
-              console.error("Initial token refresh failed:", error);
-              // Only clear tokens if it's a definitive authentication failure
-              if (error instanceof Error && error.message.includes("authentication required")) {
-                this.clearTokens();
-              }
-            });
+          console.log("Token expires soon, refreshing immediately on initialization");
+          this.refreshAccessToken().catch(error => {
+            console.error("Initial token refresh failed:", error);
+            this.clearTokens();
+          });
         } else {
           this.scheduleTokenRefresh(token);
         }
       } catch (error) {
         console.error("Error parsing token during initialization:", error);
-        // Don't clear tokens on parsing error - let refresh mechanism handle it
+        this.clearTokens();
       }
     } else {
       console.log("No token found during initialization");
@@ -408,10 +401,14 @@ class AuthManager {
       const now = Date.now();
       
       // Token is valid if it hasn't expired yet
-      // Don't clear tokens here - let the refresh mechanism handle expired tokens
       const isValid = expTime > now;
+      if (!isValid) {
+        console.log("Token has expired, clearing tokens");
+        this.clearTokens();
+        return false;
+      }
       
-      return isValid;
+      return true;
     } catch (error) {
       console.error("Error validating token:", error);
       return false;

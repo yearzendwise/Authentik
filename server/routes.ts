@@ -1305,6 +1305,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upgrade/change subscription plan
+  app.post("/api/upgrade-subscription", authenticateToken, async (req: any, res) => {
+    try {
+      const { planId, billingCycle } = billingInfoSchema.parse(req.body);
+      const user = req.user;
+
+      // Get current subscription
+      const currentSubscription = await storage.getUserSubscription(user.id);
+      if (!currentSubscription) {
+        return res.status(404).json({ message: "No active subscription found" });
+      }
+
+      // Get the new plan
+      const newPlan = await storage.getSubscriptionPlan(planId);
+      if (!newPlan) {
+        return res.status(404).json({ message: "Subscription plan not found" });
+      }
+
+      // Get current plan for comparison
+      const currentPlan = await storage.getSubscriptionPlan(currentSubscription.planId);
+      
+      // Determine the new price ID based on billing cycle
+      const newPriceId = billingCycle === 'yearly' 
+        ? newPlan.stripeYearlyPriceId || newPlan.stripePriceId 
+        : newPlan.stripePriceId;
+
+      try {
+        // Update the Stripe subscription
+        const updatedStripeSubscription = await stripe.subscriptions.update(
+          currentSubscription.stripeSubscriptionId,
+          {
+            items: [{
+              id: (await stripe.subscriptions.retrieve(currentSubscription.stripeSubscriptionId)).items.data[0].id,
+              price: newPriceId,
+            }],
+            proration_behavior: 'always_invoice', // Create prorated invoice immediately
+          }
+        );
+
+        // Helper function to safely convert Stripe timestamps to dates
+        const safeTimestampToDate = (timestamp: any): Date | null => {
+          if (!timestamp || typeof timestamp !== 'number') return null;
+          const date = new Date(timestamp * 1000);
+          return isNaN(date.getTime()) ? null : date;
+        };
+
+        // Update subscription in database
+        await storage.updateSubscription(currentSubscription.id, {
+          planId: newPlan.id,
+          status: updatedStripeSubscription.status,
+          currentPeriodStart: safeTimestampToDate((updatedStripeSubscription as any).current_period_start) || new Date(),
+          currentPeriodEnd: safeTimestampToDate((updatedStripeSubscription as any).current_period_end) || new Date(),
+          isYearly: billingCycle === 'yearly',
+        });
+
+        res.json({
+          message: "Subscription updated successfully",
+          subscription: {
+            id: currentSubscription.id,
+            status: updatedStripeSubscription.status,
+            planId: newPlan.id,
+            planName: newPlan.displayName,
+          }
+        });
+
+      } catch (stripeError: any) {
+        console.error("Stripe subscription update error:", stripeError);
+        res.status(400).json({ 
+          message: "Failed to update subscription: " + (stripeError.message || "Unknown error") 
+        });
+      }
+
+    } catch (error: any) {
+      console.error("Error upgrading subscription:", error);
+      res.status(500).json({ message: "Error upgrading subscription: " + error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

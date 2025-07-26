@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Check, Star, Loader2 } from "lucide-react";
+import { Check, Star, Loader2, CreditCard, Calendar, Users, Settings, TrendingUp } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -89,6 +89,244 @@ const CheckoutForm = ({ planId, billingCycle }: CheckoutFormProps) => {
   );
 };
 
+interface SubscriptionManagementProps {
+  subscription: UserSubscriptionResponse['subscription'];
+  plans: SubscriptionPlan[];
+  onUpgrade: (planId: string, billingCycle: 'monthly' | 'yearly') => void;
+  isUpgrading: boolean;
+}
+
+const SubscriptionManagement = ({ subscription, plans, onUpgrade, isUpgrading }: SubscriptionManagementProps) => {
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  
+  if (!subscription) return null;
+
+  const currentPlan = subscription.plan;
+  const isTrialing = subscription.status === 'trialing';
+  const trialEndsAt = subscription.trialEnd ? new Date(subscription.trialEnd) : null;
+  const currentPeriodEnd = new Date(subscription.currentPeriodEnd);
+  const daysLeft = trialEndsAt ? Math.ceil((trialEndsAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Current Subscription Overview */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">Subscription Management</h1>
+          <p className="text-muted-foreground">Manage your subscription and billing settings</p>
+        </div>
+
+        {/* Current Plan Card */}
+        <Card className="mb-8 border-primary shadow-lg">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl">{currentPlan.displayName}</CardTitle>
+                <CardDescription>{currentPlan.description}</CardDescription>
+              </div>
+              <div className="text-right">
+                <div className="text-3xl font-bold">
+                  ${subscription.isYearly ? currentPlan.yearlyPrice : currentPlan.price}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  per {subscription.isYearly ? 'year' : 'month'}
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <CreditCard className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <div className="font-semibold">Status</div>
+                  <div className="text-sm text-muted-foreground capitalize">
+                    <Badge variant={isTrialing ? "secondary" : subscription.status === 'active' ? "default" : "destructive"}>
+                      {isTrialing ? `Trial (${daysLeft} days left)` : subscription.status}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Calendar className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <div className="font-semibold">
+                    {isTrialing ? 'Trial Ends' : 'Next Billing'}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {formatDate(isTrialing && trialEndsAt ? trialEndsAt : currentPeriodEnd)}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Users className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <div className="font-semibold">Plan Features</div>
+                  <div className="text-sm text-muted-foreground">
+                    {currentPlan.maxUsers ? `${currentPlan.maxUsers} users` : 'Unlimited users'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              {currentPlan.features.slice(0, 4).map((feature, index) => (
+                <div key={index} className="flex items-center text-sm">
+                  <Check className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
+                  {feature}
+                </div>
+              ))}
+            </div>
+
+            {isTrialing && (
+              <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+                <div className="flex items-start space-x-3">
+                  <Settings className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-orange-800 dark:text-orange-200">Free Trial Active</h4>
+                    <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
+                      Your free trial ends on {formatDate(trialEndsAt!)}. 
+                      Your subscription will automatically start after the trial period.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Upgrade Options */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold mb-4 flex items-center">
+            <TrendingUp className="h-6 w-6 mr-2" />
+            Upgrade Your Plan
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            Unlock more features and capabilities with a higher-tier plan
+          </p>
+
+          <Tabs value={billingCycle} onValueChange={(value) => setBillingCycle(value as 'monthly' | 'yearly')}>
+            <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-8">
+              <TabsTrigger value="monthly">Monthly</TabsTrigger>
+              <TabsTrigger value="yearly">
+                Yearly
+                <Badge variant="secondary" className="ml-2">Save 20%</Badge>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {plans.map((plan) => {
+              const isCurrent = plan.id === currentPlan.id;
+              const isUpgrade = parseFloat(plan.price) > parseFloat(currentPlan.price);
+              
+              return (
+                <Card key={plan.id} className={`relative ${plan.isPopular ? 'border-primary shadow-lg' : ''} ${isCurrent ? 'bg-primary/5 border-primary' : ''}`}>
+                  {plan.isPopular && (
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                      <Badge className="bg-primary text-primary-foreground px-3 py-1">
+                        <Star className="w-3 h-3 mr-1" />
+                        Most Popular
+                      </Badge>
+                    </div>
+                  )}
+                  
+                  {isCurrent && (
+                    <div className="absolute -top-3 right-4">
+                      <Badge variant="outline" className="bg-background">
+                        Current Plan
+                      </Badge>
+                    </div>
+                  )}
+                  
+                  <CardHeader className="text-center pb-4">
+                    <CardTitle className="text-xl">{plan.displayName}</CardTitle>
+                    <CardDescription className="text-sm">{plan.description}</CardDescription>
+                    
+                    <div className="py-4">
+                      <div className="text-3xl font-bold">
+                        ${billingCycle === 'yearly' ? plan.yearlyPrice : plan.price}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        per {billingCycle === 'yearly' ? 'year' : 'month'}
+                      </div>
+                      {billingCycle === 'yearly' && plan.yearlyPrice && (
+                        <div className="text-xs text-green-600 mt-1">
+                          Save ${((parseFloat(plan.price) * 12) - parseFloat(plan.yearlyPrice)).toFixed(2)}/year
+                        </div>
+                      )}
+                    </div>
+                  </CardHeader>
+
+                  <CardContent className="pt-0">
+                    <Button 
+                      className="w-full mb-4" 
+                      variant={isCurrent ? "outline" : isUpgrade ? "default" : "ghost"}
+                      onClick={() => !isCurrent && onUpgrade(plan.id, billingCycle)}
+                      disabled={isCurrent || isUpgrading}
+                    >
+                      {isCurrent ? (
+                        "Current Plan"
+                      ) : isUpgrading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : isUpgrade ? (
+                        "Upgrade to This Plan"
+                      ) : (
+                        "Downgrade to This Plan"
+                      )}
+                    </Button>
+
+                    <ul className="space-y-2">
+                      {plan.features.map((feature, index) => (
+                        <li key={index} className="flex items-center text-sm">
+                          <Check className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+
+                    <div className="mt-4 pt-4 border-t text-xs text-muted-foreground">
+                      <div className="space-y-1">
+                        {plan.maxUsers && <div>Up to {plan.maxUsers} users</div>}
+                        {plan.maxProjects && <div>Up to {plan.maxProjects} projects</div>}
+                        {plan.storageLimit && <div>{plan.storageLimit}GB storage</div>}
+                        <div className="capitalize">{plan.supportLevel} support</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="text-center text-sm text-muted-foreground">
+          <p>Need help choosing? <a href="mailto:support@example.com" className="text-primary hover:underline">Contact our support team</a></p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function Subscribe() {
   const [clientSecret, setClientSecret] = useState("");
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
@@ -103,19 +341,14 @@ export default function Subscribe() {
     enabled: !!user,
   });
 
-  // If user has subscription, redirect to dashboard
-  useEffect(() => {
-    if (userSubscription?.subscription && !subscriptionLoading) {
-      setLocation('/dashboard');
-    }
-  }, [userSubscription, subscriptionLoading, setLocation]);
+  // Don't redirect subscribed users anymore - show subscription management instead
 
   // Fetch subscription plans
   const { data: plans, isLoading: plansLoading } = useQuery<SubscriptionPlan[]>({
     queryKey: ['/api/subscription-plans'],
   });
 
-  // Create subscription mutation
+  // Create subscription mutation (for new users)
   const createSubscriptionMutation = useMutation({
     mutationFn: async (data: { planId: string; billingCycle: 'monthly' | 'yearly' }) => {
       const response = await apiRequest("POST", "/api/create-subscription", data);
@@ -148,6 +381,30 @@ export default function Subscribe() {
     },
   });
 
+  // Upgrade subscription mutation (for existing users)
+  const upgradeSubscriptionMutation = useMutation({
+    mutationFn: async (data: { planId: string; billingCycle: 'monthly' | 'yearly' }) => {
+      const response = await apiRequest("POST", "/api/upgrade-subscription", data);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Plan Updated!",
+        description: "Your subscription has been successfully updated.",
+      });
+      
+      // Refresh subscription data
+      window.location.reload();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update subscription",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handlePlanSelection = (planId: string) => {
     setCurrentPlan(planId);
     createSubscriptionMutation.mutate({ planId, billingCycle });
@@ -160,6 +417,10 @@ export default function Subscribe() {
       planId, 
       billingCycle
     });
+  };
+
+  const handleUpgrade = (planId: string, billingCycle: 'monthly' | 'yearly') => {
+    upgradeSubscriptionMutation.mutate({ planId, billingCycle });
   };
 
   if (plansLoading || subscriptionLoading) {
@@ -210,7 +471,19 @@ export default function Subscribe() {
     );
   }
 
-  // Show plan selection
+  // If user has an existing subscription, show subscription management
+  if (userSubscription?.subscription) {
+    return (
+      <SubscriptionManagement 
+        subscription={userSubscription.subscription}
+        plans={plans}
+        onUpgrade={handleUpgrade}
+        isUpgrading={upgradeSubscriptionMutation.isPending}
+      />
+    );
+  }
+
+  // Show plan selection for new users
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="text-center mb-12">

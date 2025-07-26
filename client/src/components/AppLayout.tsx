@@ -1,15 +1,18 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { 
-  Home, 
+  LayoutDashboard, 
   User, 
   Settings, 
   LogOut, 
   Shield,
-  Monitor,
+  Activity,
   Users,
   CreditCard,
-  FileText
+  ClipboardList,
+  Menu,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -30,11 +33,11 @@ import { useAuth, useLogout, useUpdateMenuPreference } from "@/hooks/useAuth";
 
 const getNavigation = (userRole?: string) => {
   const baseNavigation = [
-    { name: "Dashboard", href: "/dashboard", icon: Home },
-    { name: "Forms", href: "/forms", icon: FileText },
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Forms", href: "/forms", icon: ClipboardList },
     { name: "Subscription", href: "/subscribe", icon: CreditCard },
     { name: "Profile", href: "/profile", icon: User },
-    { name: "Sessions", href: "/sessions", icon: Monitor },
+    { name: "Sessions", href: "/sessions", icon: Activity },
   ];
 
   // Add Users management for Admin and Manager roles
@@ -102,6 +105,20 @@ export function AppLayout({ children }: AppLayoutProps) {
     logout.mutate();
   };
 
+  const toggleMenu = () => {
+    const newExpandedState = isCollapsed;
+    setIsCollapsed(!isCollapsed);
+    localStorage.setItem('menuExpanded', JSON.stringify(newExpandedState));
+    
+    // Update user preference in database
+    updateMenuPreference.mutate({ menuExpanded: newExpandedState });
+    
+    // Dispatch event for other tabs
+    window.dispatchEvent(new CustomEvent('menuPreferenceChanged', {
+      detail: { menuExpanded: newExpandedState }
+    }));
+  };
+
   if (!user) {
     return <>{children}</>;
   }
@@ -118,12 +135,24 @@ export function AppLayout({ children }: AppLayoutProps) {
         isCollapsed ? "w-16" : "w-64"
       )}>
         {/* Header */}
-        <div className="flex items-center justify-center p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           {!isCollapsed && (
             <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
               SaaS Auth
             </h1>
           )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleMenu}
+            className="h-8 w-8 p-0"
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </Button>
         </div>
 
         {/* Navigation */}
@@ -204,7 +233,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/sessions" className="cursor-pointer">
-                  <Monitor className="mr-2 h-4 w-4" />
+                  <Activity className="mr-2 h-4 w-4" />
                   Sessions
                 </Link>
               </DropdownMenuItem>

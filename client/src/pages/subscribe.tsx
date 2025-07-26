@@ -103,15 +103,9 @@ export default function Subscribe() {
     enabled: !!user,
   });
 
-  // Debug logging
-  console.log('Subscribe page - User:', user);
-  console.log('Subscribe page - Subscription data:', userSubscription);
-  console.log('Subscribe page - Subscription loading:', subscriptionLoading);
-
   // If user has subscription, redirect to dashboard
   useEffect(() => {
     if (userSubscription?.subscription && !subscriptionLoading) {
-      console.log('Redirecting to dashboard - subscription found:', userSubscription);
       setLocation('/dashboard');
     }
   }, [userSubscription, subscriptionLoading, setLocation]);
@@ -128,8 +122,6 @@ export default function Subscribe() {
       return response.json();
     },
     onSuccess: (data) => {
-      console.log('Subscription created successfully:', data);
-      
       // If this is a trial subscription with no immediate payment required
       if (!data.requiresPayment && data.status === 'trialing') {
         toast({

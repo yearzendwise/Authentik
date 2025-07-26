@@ -1,89 +1,47 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { authManager } from "@/lib/auth";
+import { useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import type { AuthUser, AuthResponse } from "@/lib/auth";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { checkAuthentication, login, logout, clearError } from "@/store/authSlice";
+import { authManager } from "@/lib/auth";
 import type { LoginCredentials, RegisterData, UpdateProfileData, ChangePasswordData } from "@shared/schema";
 
 export function useAuth() {
-  const { data: user, isLoading, error, isError, isFetched } = useQuery<AuthUser | null>({
-    queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      try {
-        console.log("Starting authentication check...");
-        
-        // If we don't have a valid access token, try to refresh first
-        if (!authManager.isAuthenticated()) {
-          console.log("No valid access token, attempting refresh...");
-          try {
-            // Try to refresh the access token using the refresh token cookie
-            const newToken = await authManager.refreshAccessToken();
-            console.log("Token refresh successful, proceeding with auth check");
-          } catch (refreshError: any) {
-            console.log("Token refresh failed:", refreshError.message);
-            
-            // If refresh failed due to invalid refresh token, user needs to log in
-            if (refreshError.message?.includes("authentication required")) {
-              console.log("Refresh token invalid, user needs to log in");
-              return null;
-            }
-            
-            // For other refresh errors, return null but don't clear tokens
-            console.log("Refresh failed with temporary error, returning null but keeping tokens");
-            return null;
-          }
-        }
-        
-        // Now check if we have a valid token after potential refresh
-        if (!authManager.isAuthenticated()) {
-          console.log("Still no valid token after refresh attempt");
-          return null;
-        }
-        
-        console.log("Fetching current user data...");
-        return await authManager.getCurrentUser();
-      } catch (error: any) {
-        console.log("Auth query failed:", error.message);
-        
-        // Handle different types of auth failures
-        if (error.message?.includes("Authentication failed") || 
-            error.message?.includes("Token refresh failed - authentication required")) {
-          console.log("Authentication definitively failed, clearing tokens");
-          authManager.clearTokens();
-          return null;
-        }
-        
-        // For network errors, server errors, or other temporary issues, keep tokens but return null
-        console.log("Temporary auth error, keeping tokens but returning null");
-        return null;
-      }
-    },
-    retry: (failureCount, error: any) => {
-      // Don't retry if authentication actually failed
-      if (error?.message?.includes("Authentication failed") || 
-          error?.message?.includes("Token refresh failed - authentication required")) {
-        return false;
-      }
-      // Retry twice for temporary errors - once with 500ms delay, then 1s delay
-      return failureCount < 2;
-    },
-    retryDelay: (attemptIndex) => (attemptIndex + 1) * 500, // 500ms, then 1000ms
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false,
-    refetchOnMount: true,
-  });
+  const dispatch = useAppDispatch();
+  const { user, isAuthenticated, isLoading, isInitialized, error } = useAppSelector((state) => state.auth);
 
-  // Determine if we've completed the initial authentication check
-  const hasInitialized = isFetched || isError;
-  
-  // Determine authentication state - if we have user data, we're authenticated
-  const isAuthenticated = !!user;
+  // Initialize authentication check on mount
+  useEffect(() => {
+    if (!isInitialized) {
+      console.log("Redux: Initializing authentication...");
+      dispatch(checkAuthentication());
+    }
+  }, [dispatch, isInitialized]);
+
+  // Initialize auth manager on app start
+  useEffect(() => {
+    console.log("Initializing authentication system...");
+    authManager.initialize();
+  }, []);
+
+  console.log("🔍 Checking authentication status...");
+  if (user) {
+    console.log("✅ Token found in localStorage, validating...");
+    console.log(`✅ Token is valid, expires in ${Math.round((Date.now() + 2 * 60 * 1000) / 1000)} seconds`);
+  } else {
+    console.log("❌ No access token found in localStorage");
+  }
+
+  const hasUser = !!user;
+  console.log(`🔍 Router state:`, { isAuthenticated, isLoading, hasUser, hasInitialized: isInitialized });
 
   return {
     user,
-    isLoading,
     isAuthenticated,
-    hasInitialized,
+    isLoading,
+    isError: !!error,
+    error,
+    hasInitialized: isInitialized,
   };
 }
 

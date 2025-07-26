@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean, decimal, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, decimal, integer, uuid } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -8,8 +8,22 @@ import { z } from "zod";
 export const userRoles = ['Employee', 'Manager', 'Administrator'] as const;
 export type UserRole = typeof userRoles[number];
 
+// Tenants table for multi-tenancy
+export const tenants = pgTable("tenants", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(), // URL-friendly identifier
+  domain: text("domain"), // Custom domain (optional)
+  isActive: boolean("is_active").default(true),
+  settings: text("settings").default('{}'), // JSON settings
+  maxUsers: integer("max_users").default(10), // User limit per tenant
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
   firstName: text("first_name"),
@@ -38,6 +52,7 @@ export const users = pgTable("users", {
 
 export const refreshTokens = pgTable("refresh_tokens", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   token: text("token").notNull().unique(),
   expiresAt: timestamp("expires_at").notNull(),
@@ -78,6 +93,7 @@ export const subscriptionPlans = pgTable("subscription_plans", {
 // User subscriptions history table
 export const subscriptions = pgTable("subscriptions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   planId: varchar("plan_id").notNull().references(() => subscriptionPlans.id),
   stripeSubscriptionId: text("stripe_subscription_id").notNull().unique(),
@@ -94,12 +110,107 @@ export const subscriptions = pgTable("subscriptions", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Email verification tokens table (missing from current schema)
+export const verificationTokens = pgTable("verification_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Forms table for DragFormMaster integration with multi-tenancy
+export const forms = pgTable("forms", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  title: text("title").notNull(),
+  description: text("description"),
+  formData: text("form_data").notNull(), // JSON string of form structure
+  theme: text("theme").default('modern'),
+  isActive: boolean("is_active").default(true),
+  responseCount: integer("response_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Form responses table for storing form submissions
+export const formResponses = pgTable("form_responses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  formId: varchar("form_id").notNull().references(() => forms.id, { onDelete: 'cascade' }),
+  responseData: text("response_data").notNull(), // JSON string of form responses
+  submittedAt: timestamp("submitted_at").defaultNow(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+});
+
 // Relations
-export const userRelations = relations(users, ({ one, many }) => ({
+export const tenantRelations = relations(tenants, ({ many }) => ({
+  users: many(users),
+  forms: many(forms),
   refreshTokens: many(refreshTokens),
+  verificationTokens: many(verificationTokens),
+  formResponses: many(formResponses),
+}));
+
+export const userRelations = relations(users, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [users.tenantId],
+    references: [tenants.id],
+  }),
+  refreshTokens: many(refreshTokens),
+  forms: many(forms),
+  verificationTokens: many(verificationTokens),
   subscription: one(subscriptions, {
     fields: [users.id],
     references: [subscriptions.userId],
+  }),
+}));
+
+export const formRelations = relations(forms, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [forms.tenantId],
+    references: [tenants.id],
+  }),
+  user: one(users, {
+    fields: [forms.userId],
+    references: [users.id],
+  }),
+  responses: many(formResponses),
+}));
+
+export const formResponseRelations = relations(formResponses, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [formResponses.tenantId],
+    references: [tenants.id],
+  }),
+  form: one(forms, {
+    fields: [formResponses.formId],
+    references: [forms.id],
+  }),
+}));
+
+export const refreshTokenRelations = relations(refreshTokens, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [refreshTokens.tenantId],
+    references: [tenants.id],
+  }),
+  user: one(users, {
+    fields: [refreshTokens.userId],
+    references: [users.id],
+  }),
+}));
+
+export const verificationTokenRelations = relations(verificationTokens, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [verificationTokens.tenantId],
+    references: [tenants.id],
+  }),
+  user: one(users, {
+    fields: [verificationTokens.userId],
+    references: [users.id],
   }),
 }));
 
@@ -128,6 +239,7 @@ export const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   twoFactorToken: z.string().optional(),
+  tenantSlug: z.string().optional(),
 });
 
 export const registerSchema = z.object({
@@ -142,6 +254,8 @@ export const registerSchema = z.object({
   confirmPassword: z.string(),
   selectedPlan: z.string().optional(), // Plan ID for subscription
   billingCycle: z.enum(['monthly', 'yearly']).default('monthly'),
+  tenantName: z.string().min(1, "Organization name is required"),
+  tenantSlug: z.string().min(1, "Organization identifier is required").regex(/^[a-z0-9-]+$/, "Only lowercase letters, numbers, and hyphens allowed"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -283,3 +397,73 @@ export const billingInfoSchema = z.object({
 });
 
 export type BillingInfo = z.infer<typeof billingInfoSchema>;
+
+// Multi-tenancy schemas and types
+export const tenantSchema = createInsertSchema(tenants).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const createTenantSchema = z.object({
+  name: z.string().min(1, "Organization name is required"),
+  slug: z.string().min(1, "Organization identifier is required").regex(/^[a-z0-9-]+$/, "Only lowercase letters, numbers, and hyphens allowed"),
+  domain: z.string().optional(),
+  maxUsers: z.number().default(10),
+});
+
+export const updateTenantSchema = z.object({
+  name: z.string().min(1, "Organization name is required"),
+  domain: z.string().optional(),
+  isActive: z.boolean(),
+  maxUsers: z.number().min(1),
+});
+
+// Form schemas
+export const createFormSchema = z.object({
+  title: z.string().min(1, "Form title is required"),
+  description: z.string().optional(),
+  formData: z.string().min(1, "Form structure is required"),
+  theme: z.string().default('modern'),
+});
+
+export const updateFormSchema = z.object({
+  title: z.string().min(1, "Form title is required"),
+  description: z.string().optional(),
+  formData: z.string().min(1, "Form structure is required"),
+  theme: z.string(),
+  isActive: z.boolean(),
+});
+
+export const submitFormResponseSchema = z.object({
+  formId: z.string(),
+  responseData: z.string(),
+  ipAddress: z.string().optional(),
+  userAgent: z.string().optional(),
+});
+
+// Multi-tenancy types
+export type Tenant = typeof tenants.$inferSelect;
+export type InsertTenant = z.infer<typeof tenantSchema>;
+export type CreateTenantData = z.infer<typeof createTenantSchema>;
+export type UpdateTenantData = z.infer<typeof updateTenantSchema>;
+
+// Form types
+export type Form = typeof forms.$inferSelect;
+export type InsertForm = typeof forms.$inferInsert;
+export type CreateFormData = z.infer<typeof createFormSchema>;
+export type UpdateFormData = z.infer<typeof updateFormSchema>;
+export type FormResponse = typeof formResponses.$inferSelect;
+export type InsertFormResponse = typeof formResponses.$inferInsert;
+export type SubmitFormResponseData = z.infer<typeof submitFormResponseSchema>;
+
+// Extended types for tenant-aware operations
+export interface UserWithTenant extends User {
+  tenant: Tenant;
+}
+
+export interface FormWithDetails extends Form {
+  user: User;
+  tenant: Tenant;
+  responseCount: number;
+}

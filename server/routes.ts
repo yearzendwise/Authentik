@@ -58,13 +58,18 @@ const authenticateToken = async (req: any, res: any, next: any) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
-    const user = await storage.getUser(decoded.userId);
+    const user = await storage.getUser(decoded.userId, decoded.tenantId);
     
     if (!user || !user.isActive) {
       return res.status(401).json({ message: "User not found or inactive" });
     }
     
-    req.user = user;
+    req.user = { 
+      id: user.id, 
+      email: user.email, 
+      role: user.role, 
+      tenantId: user.tenantId 
+    };
     next();
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
@@ -95,9 +100,9 @@ const requireAdmin = requireRole(['Administrator']);
 // Middleware for manager+ operations
 const requireManagerOrAdmin = requireRole(['Manager', 'Administrator']);
 
-const generateTokens = (userId: string) => {
-  const accessToken = jwt.sign({ userId }, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRES });
-  const refreshToken = jwt.sign({ userId, tokenId: randomBytes(16).toString('hex') }, REFRESH_TOKEN_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRES });
+const generateTokens = (userId: string, tenantId: string) => {
+  const accessToken = jwt.sign({ userId, tenantId }, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRES });
+  const refreshToken = jwt.sign({ userId, tenantId, tokenId: randomBytes(16).toString('hex') }, REFRESH_TOKEN_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRES });
   return { accessToken, refreshToken };
 };
 
@@ -118,10 +123,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = registerSchema.parse(req.body);
       
-      // Check if user already exists
-      const existingUser = await storage.getUserByEmail(validatedData.email);
+      // First create or get tenant
+      let tenant = await storage.getTenantBySlug(validatedData.tenantSlug);
+      if (!tenant) {
+        tenant = await storage.createTenant({
+          name: validatedData.tenantName,
+          slug: validatedData.tenantSlug,
+        });
+      }
+      
+      // Check if user already exists in this tenant
+      const existingUser = await storage.getUserByEmail(validatedData.email, tenant.id);
       if (existingUser) {
-        return res.status(409).json({ message: "User already exists with this email" });
+        return res.status(409).json({ message: "User already exists with this email in this organization" });
       }
 
       // Hash password
@@ -129,6 +143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create user
       const user = await storage.createUser({
+        tenantId: tenant.id,
         email: validatedData.email,
         password: hashedPassword,
         firstName: validatedData.firstName,
@@ -140,7 +155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
       // Set verification token in database
-      await storage.setEmailVerificationToken(user.id, verificationToken, verificationExpires);
+      await storage.setEmailVerificationToken(user.id, tenant.id, verificationToken, verificationExpires);
 
       // Send verification email
       try {
@@ -173,13 +188,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Login endpoint
+  // Login endpoint - now requires tenant context via subdomain or slug
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { email, password, twoFactorToken } = loginSchema.parse(req.body);
-
-      // Find user
-      const user = await storage.getUserByEmail(email);
+      const { email, password, twoFactorToken, tenantSlug } = loginSchema.parse(req.body);
+      
+      // Get tenant context
+      let tenant;
+      if (tenantSlug) {
+        tenant = await storage.getTenantBySlug(tenantSlug);
+      } else {
+        // Use default tenant for backward compatibility
+        tenant = await storage.getTenantBySlug('default');
+      }
+      
+      if (!tenant) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+      
+      // Find user by email within tenant
+      const user = await storage.getUserByEmail(email, tenant.id);
       if (!user || !user.isActive) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
@@ -218,14 +246,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Generate tokens
-      const { accessToken, refreshToken } = generateTokens(user.id);
+      const { accessToken, refreshToken } = generateTokens(user.id, user.tenantId);
 
       // Get device information
       const deviceInfo = getDeviceInfo(req);
 
       // Store refresh token in database with device info
       const refreshTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-      await storage.createRefreshToken(user.id, refreshToken, refreshTokenExpiry, deviceInfo);
+      await storage.createRefreshToken(user.id, user.tenantId, refreshToken, refreshTokenExpiry, deviceInfo);
 
       // Set refresh token as httpOnly cookie
       res.cookie("refreshToken", refreshToken, {
@@ -275,7 +303,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Verify the user's email
-      await storage.verifyUserEmail(user.id);
+      await storage.verifyUserEmail(user.id, user.tenantId);
 
       // Send welcome email
       try {
@@ -310,8 +338,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email is required" });
       }
 
+      // For backward compatibility, use default tenant
+      const tenant = await storage.getTenantBySlug('default');
+      if (!tenant) {
+        return res.status(500).json({ message: "System configuration error" });
+      }
+
       // Find user by email
-      const user = await storage.getUserByEmail(email);
+      const user = await storage.getUserByEmail(email, tenant.id);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -339,7 +373,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
       // Update verification token in database
-      await storage.setEmailVerificationToken(user.id, verificationToken, verificationExpires);
+      await storage.setEmailVerificationToken(user.id, user.tenantId, verificationToken, verificationExpires);
 
       // Send verification email
       try {
@@ -374,8 +408,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email is required" });
       }
 
+      // For backward compatibility, use default tenant
+      const tenant = await storage.getTenantBySlug('default');
+      if (!tenant) {
+        return res.status(500).json({ message: "System configuration error" });
+      }
+
       // Find user by email
-      const user = await storage.getUserByEmail(email);
+      const user = await storage.getUserByEmail(email, tenant.id);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -385,7 +425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Verify the user's email directly
-      await storage.verifyUserEmail(user.id);
+      await storage.verifyUserEmail(user.id, user.tenantId);
 
       res.json({
         message: "Email verified successfully! (Development mode)",
@@ -415,8 +455,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid refresh token" });
       }
 
-      // Get user
-      const user = await storage.getUser(decoded.userId);
+      // Get user with tenant context
+      const user = await storage.getUser(decoded.userId, decoded.tenantId);
       if (!user || !user.isActive) {
         return res.status(401).json({ message: "User not found or inactive" });
       }
@@ -424,8 +464,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update session last used time
       await storage.updateSessionLastUsed(refreshToken);
 
-      // Generate new tokens
-      const { accessToken, refreshToken: newRefreshToken } = generateTokens(user.id);
+      // Generate new tokens with tenant context
+      const { accessToken, refreshToken: newRefreshToken } = generateTokens(user.id, user.tenantId);
 
       // Get device info to preserve it in the new token
       const deviceInfo = getDeviceInfo(req);
@@ -433,7 +473,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Remove old refresh token and store new one with preserved device info
       await storage.deleteRefreshToken(refreshToken);
       const refreshTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-      await storage.createRefreshToken(user.id, newRefreshToken, refreshTokenExpiry, {
+      await storage.createRefreshToken(user.id, user.tenantId, newRefreshToken, refreshTokenExpiry, {
         deviceId: storedToken.deviceId || deviceInfo.deviceId,
         deviceName: storedToken.deviceName || deviceInfo.deviceName,
         userAgent: deviceInfo.userAgent,
@@ -515,7 +555,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Menu preference must be a boolean value" });
       }
 
-      await storage.updateUser(req.user.id, { menuExpanded });
+      await storage.updateUser(req.user.id, { menuExpanded }, req.user.tenantId);
       
       res.json({ 
         message: "Menu preference updated successfully",
@@ -530,7 +570,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Logout from all devices
   app.post("/api/auth/logout-all", authenticateToken, async (req: any, res) => {
     try {
-      await storage.deleteUserRefreshTokens(req.user.id);
+      await storage.deleteUserRefreshTokens(req.user.id, req.user.tenantId);
       res.clearCookie("refreshToken");
       res.json({ message: "Logged out from all devices" });
     } catch (error) {
@@ -546,13 +586,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if email is already taken by another user
       if (updateData.email !== req.user.email) {
-        const existingUser = await storage.getUserByEmail(updateData.email);
+        const existingUser = await storage.getUserByEmail(updateData.email, req.user.tenantId);
         if (existingUser && existingUser.id !== req.user.id) {
           return res.status(409).json({ message: "Email already taken by another user" });
         }
       }
 
-      const updatedUser = await storage.updateUser(req.user.id, updateData);
+      const updatedUser = await storage.updateUser(req.user.id, updateData, req.user.tenantId);
       
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found" });
@@ -594,14 +634,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const hashedPassword = await bcrypt.hash(newPassword, 12);
 
       // Update password
-      const updatedUser = await storage.updateUser(req.user.id, { password: hashedPassword });
+      const updatedUser = await storage.updateUser(req.user.id, { password: hashedPassword }, req.user.tenantId);
       
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found" });
       }
 
       // Revoke all refresh tokens to force re-authentication on all devices
-      await storage.deleteUserRefreshTokens(req.user.id);
+      await storage.deleteUserRefreshTokens(req.user.id, req.user.tenantId);
 
       res.json({ message: "Password changed successfully. Please log in again." });
     } catch (error: any) {
@@ -633,7 +673,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const qrCodeDataUrl = await QRCode.toDataURL(otpauthUrl);
 
       // Store the secret temporarily (not enabled until verified)
-      await storage.updateUser(req.user.id, { twoFactorSecret: secret });
+      await storage.updateUser(req.user.id, { twoFactorSecret: secret }, req.user.tenantId);
 
       res.json({
         secret,
@@ -670,7 +710,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Enable 2FA
-      await storage.updateUser(req.user.id, { twoFactorEnabled: true });
+      await storage.updateUser(req.user.id, { twoFactorEnabled: true }, req.user.tenantId);
 
       res.json({ message: "2FA enabled successfully" });
     } catch (error: any) {
@@ -712,7 +752,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateUser(req.user.id, { 
         twoFactorEnabled: false,
         twoFactorSecret: null
-      });
+      }, req.user.tenantId);
 
       res.json({ message: "2FA disabled successfully" });
     } catch (error: any) {
@@ -731,14 +771,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/auth/account", authenticateToken, async (req: any, res) => {
     try {
       // Deactivate user instead of deleting
-      const updatedUser = await storage.updateUser(req.user.id, { isActive: false });
+      const updatedUser = await storage.updateUser(req.user.id, { isActive: false }, req.user.tenantId);
       
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found" });
       }
 
       // Revoke all refresh tokens
-      await storage.deleteUserRefreshTokens(req.user.id);
+      await storage.deleteUserRefreshTokens(req.user.id, req.user.tenantId);
       
       // Clear refresh token cookie
       res.clearCookie("refreshToken");
@@ -755,8 +795,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email } = forgotPasswordSchema.parse(req.body);
       
+      // For backward compatibility, use default tenant
+      const tenant = await storage.getTenantBySlug('default');
+      if (!tenant) {
+        return res.status(500).json({ message: "System configuration error" });
+      }
+      
       // Check if user exists
-      const user = await storage.getUserByEmail(email);
+      const user = await storage.getUserByEmail(email, tenant.id);
       if (!user) {
         // Don't reveal if user exists or not for security
         return res.json({ message: "If the email exists, a reset link has been sent" });
@@ -782,7 +828,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user's active sessions
   app.get("/api/auth/sessions", authenticateToken, async (req: any, res) => {
     try {
-      const sessions = await storage.getUserSessions(req.user.id);
+      const sessions = await storage.getUserSessions(req.user.id, req.user.tenantId);
       
       // Get current session token to mark it as current
       const currentRefreshToken = req.cookies.refreshToken;
@@ -811,7 +857,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { sessionId } = req.params;
       const userId = req.user.id;
       
-      await storage.deleteSession(sessionId, userId);
+      await storage.deleteSession(sessionId, userId, req.user.tenantId);
       
       res.json({ message: "Session deleted successfully" });
     } catch (error) {
@@ -829,7 +875,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!currentRefreshToken) {
         // If no refresh token cookie, check if user has any sessions and delete all
         console.log("No refresh token cookie found, deleting all user sessions");
-        await storage.deleteAllUserSessions(userId);
+        await storage.deleteAllUserSessions(userId, req.user.tenantId);
         return res.json({ message: "All sessions logged out successfully" });
       }
       
@@ -837,13 +883,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const refreshTokenData = await storage.getRefreshToken(currentRefreshToken);
       if (!refreshTokenData) {
         console.log("Refresh token not found in database, deleting all user sessions");
-        await storage.deleteAllUserSessions(userId);
+        await storage.deleteAllUserSessions(userId, req.user.tenantId);
         return res.json({ message: "All sessions logged out successfully" });
       }
       
       // Delete all sessions except the current one using database query directly
       console.log("Deleting other sessions for user:", userId);
-      await storage.deleteOtherUserSessions(userId, currentRefreshToken);
+      await storage.deleteOtherUserSessions(userId, currentRefreshToken, req.user.tenantId);
       
       res.json({ message: "All other sessions logged out successfully" });
     } catch (error) {
@@ -858,7 +904,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/users", authenticateToken, requireManagerOrAdmin, async (req: any, res) => {
     try {
       const filters = userFiltersSchema.parse(req.query);
-      const users = await storage.getAllUsers(filters);
+      const users = await storage.getAllUsers(req.user.tenantId, filters);
       
       // Remove sensitive data before sending
       const safeUsers = users.map(user => ({
@@ -891,7 +937,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user statistics (Admin/Manager only)
   app.get("/api/users/stats", authenticateToken, requireManagerOrAdmin, async (req: any, res) => {
     try {
-      const stats = await storage.getUserStats();
+      const stats = await storage.getUserStats(req.user.tenantId);
       res.json(stats);
     } catch (error) {
       console.error("Get user stats error:", error);
@@ -904,8 +950,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userData = createUserSchema.parse(req.body);
       
-      // Check if user already exists
-      const existingUser = await storage.getUserByEmail(userData.email);
+      // Check if user already exists in tenant
+      const existingUser = await storage.getUserByEmail(userData.email, req.user.tenantId);
       if (existingUser) {
         return res.status(400).json({ message: "User with this email already exists" });
       }
@@ -917,7 +963,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.createUserAsAdmin({
         ...userData,
         password: hashedPassword,
-      });
+      }, req.user.tenantId);
 
       // Remove sensitive data before sending
       const safeUser = {
@@ -953,21 +999,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const userData = updateUserSchema.parse(req.body);
       
-      // Check if user exists
-      const existingUser = await storage.getUser(id);
+      // Check if user exists in tenant
+      const existingUser = await storage.getUser(id, req.user.tenantId);
       if (!existingUser) {
         return res.status(404).json({ message: "User not found" });
       }
 
       // Check if email is being changed and if it's already taken
       if (userData.email !== existingUser.email) {
-        const emailTaken = await storage.getUserByEmail(userData.email);
+        const emailTaken = await storage.getUserByEmail(userData.email, req.user.tenantId);
         if (emailTaken) {
           return res.status(400).json({ message: "Email already in use by another user" });
         }
       }
 
-      const updatedUser = await storage.updateUserAsAdmin(id, userData);
+      const updatedUser = await storage.updateUserAsAdmin(id, userData, req.user.tenantId);
       
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found" });
@@ -975,7 +1021,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // If user is deactivated, delete all their sessions
       if (!userData.isActive) {
-        await storage.deleteUserRefreshTokens(id);
+        await storage.deleteUserRefreshTokens(id, req.user.tenantId);
       }
 
       // Remove sensitive data before sending
@@ -1016,13 +1062,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Cannot delete your own account" });
       }
 
-      // Check if user exists
-      const existingUser = await storage.getUser(id);
+      // Check if user exists in tenant
+      const existingUser = await storage.getUser(id, req.user.tenantId);
       if (!existingUser) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      await storage.deleteUser(id);
+      await storage.deleteUser(id, req.user.tenantId);
 
       res.json({ message: "User deleted successfully" });
     } catch (error) {
@@ -1380,6 +1426,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error upgrading subscription:", error);
       res.status(500).json({ message: "Error upgrading subscription: " + error.message });
+    }
+  });
+
+  // Forms API Routes (tenant-aware)
+  
+  // Get user's forms
+  app.get("/api/forms", authenticateToken, async (req: any, res) => {
+    try {
+      const forms = await storage.getUserForms(req.user.id, req.user.tenantId);
+      res.json({ forms });
+    } catch (error) {
+      console.error("Get forms error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get tenant forms (for admin/manager)
+  app.get("/api/forms/tenant", authenticateToken, requireManagerOrAdmin, async (req: any, res) => {
+    try {
+      const forms = await storage.getTenantForms(req.user.tenantId);
+      res.json({ forms });
+    } catch (error) {
+      console.error("Get tenant forms error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get specific form
+  app.get("/api/forms/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const form = await storage.getForm(id, req.user.tenantId);
+      
+      if (!form) {
+        return res.status(404).json({ message: "Form not found" });
+      }
+
+      res.json({ form });
+    } catch (error) {
+      console.error("Get form error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Create new form
+  app.post("/api/forms", authenticateToken, async (req: any, res) => {
+    try {
+      const formData = req.body; // Already validated by DragFormMaster
+      
+      const form = await storage.createForm(formData, req.user.id, req.user.tenantId);
+      
+      res.status(201).json({ 
+        message: "Form created successfully", 
+        form 
+      });
+    } catch (error) {
+      console.error("Create form error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Update form
+  app.put("/api/forms/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const formData = req.body;
+      
+      // Check if form exists and belongs to user's tenant
+      const existingForm = await storage.getForm(id, req.user.tenantId);
+      if (!existingForm) {
+        return res.status(404).json({ message: "Form not found" });
+      }
+
+      const updatedForm = await storage.updateForm(id, formData, req.user.tenantId);
+      
+      res.json({ 
+        message: "Form updated successfully", 
+        form: updatedForm 
+      });
+    } catch (error) {
+      console.error("Update form error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Delete form
+  app.delete("/api/forms/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Check if form exists and belongs to user's tenant
+      const existingForm = await storage.getForm(id, req.user.tenantId);
+      if (!existingForm) {
+        return res.status(404).json({ message: "Form not found" });
+      }
+
+      await storage.deleteForm(id, req.user.tenantId);
+      
+      res.json({ message: "Form deleted successfully" });
+    } catch (error) {
+      console.error("Delete form error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get form responses
+  app.get("/api/forms/:id/responses", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Check if form exists and belongs to user's tenant
+      const form = await storage.getForm(id, req.user.tenantId);
+      if (!form) {
+        return res.status(404).json({ message: "Form not found" });
+      }
+
+      const responses = await storage.getFormResponses(id, req.user.tenantId);
+      const responseCount = await storage.getFormResponseCount(id, req.user.tenantId);
+      
+      res.json({ responses, responseCount });
+    } catch (error) {
+      console.error("Get form responses error:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 

@@ -13,7 +13,6 @@ import UsersPage from "@/pages/users";
 import Subscribe from "@/pages/subscribe";
 import VerifyEmailPage from "@/pages/verify-email";
 import PendingVerificationPage from "@/pages/pending-verification";
-import AddFormPage from "@/pages/forms/add";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -42,7 +41,6 @@ function Router() {
             <Route path="/profile" component={ProfilePage} />
             <Route path="/sessions" component={SessionsPage} />
             <Route path="/users" component={UsersPage} />
-            <Route path="/forms/add" component={AddFormPage} />
             <Route path="/subscribe" component={Subscribe} />
             <Route path="/auth" component={Dashboard} /> {/* Redirect logged-in users to dashboard */}
             <Route path="/pending-verification" component={Dashboard} /> {/* Redirect verified users to dashboard */}

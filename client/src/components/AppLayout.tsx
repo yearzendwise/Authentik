@@ -8,7 +8,8 @@ import {
   Shield,
   Monitor,
   Users,
-  CreditCard
+  CreditCard,
+  FileText
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ import { useAuth, useLogout, useUpdateMenuPreference } from "@/hooks/useAuth";
 const getNavigation = (userRole?: string) => {
   const baseNavigation = [
     { name: "Dashboard", href: "/dashboard", icon: Home },
+    { name: "Forms", href: "/forms/add", icon: FileText },
     { name: "Subscription", href: "/subscribe", icon: CreditCard },
     { name: "Profile", href: "/profile", icon: User },
     { name: "Sessions", href: "/sessions", icon: Monitor },

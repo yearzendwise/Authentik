@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/AppLayout";
 import { authManager } from "@/lib/auth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import AuthPage from "@/pages/auth";
 import Dashboard from "@/pages/dashboard";
 import ProfilePage from "@/pages/profile";
@@ -20,17 +20,31 @@ import NotFound from "@/pages/not-found";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+
+  // Add a delay to prevent premature authentication decisions on page refresh
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setInitialLoadComplete(true);
+    }, 1000); // Wait 1 second for authentication to stabilize
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  console.log("🔍 Router state:", { isAuthenticated, isLoading, hasUser: !!user, initialLoadComplete });
 
   // Show loading state during authentication initialization
-  // This prevents flash of login screen when user is actually authenticated
-  // Also wait a bit longer for authentication to stabilize
-  if (isLoading || (authManager.isAuthenticated() && !user)) {
+  // Wait for both React Query loading AND our initial load delay
+  if (!initialLoadComplete || isLoading || (authManager.isAuthenticated() && !user)) {
+    console.log("📱 Showing loading screen - waiting for auth to stabilize");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }
+
+  console.log("🚀 Authentication stabilized, determining route");
 
   // Only determine email verification status if we have a user object
   const isEmailVerified = user ? user.emailVerified : undefined;

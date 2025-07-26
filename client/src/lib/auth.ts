@@ -56,6 +56,8 @@ class AuthManager {
   }
 
   clearTokens(): void {
+    console.log("🔴 CLEARING TOKENS - This should only happen on logout or definitive auth failure");
+    console.trace("Token clear stack trace:");
     localStorage.removeItem(this.ACCESS_TOKEN_KEY);
     this.clearRefreshTimer();
   }
@@ -435,30 +437,33 @@ class AuthManager {
   }
 
   isAuthenticated(): boolean {
+    console.log("🔍 Checking authentication status...");
     const token = this.getAccessToken();
     if (!token) {
-      console.log("No access token found in localStorage");
+      console.log("❌ No access token found in localStorage");
       return false;
     }
     
+    console.log("✅ Token found in localStorage, validating...");
     try {
       // Check if token is expired
       const payload = JSON.parse(atob(token.split('.')[1]));
       const expTime = payload.exp * 1000;
       const now = Date.now();
+      const timeUntilExpiry = expTime - now;
       
       // Token is valid if it hasn't expired yet
       const isValid = expTime > now;
       if (!isValid) {
-        console.log("Token has expired, will attempt refresh instead of clearing");
+        console.log("⏰ Token has expired, will attempt refresh instead of clearing");
         // Don't clear tokens immediately - let the refresh mechanism handle it
         return false;
       }
       
-      console.log(`Token is valid, expires in ${Math.round((expTime - now) / 1000)} seconds`);
+      console.log(`✅ Token is valid, expires in ${Math.round(timeUntilExpiry / 1000)} seconds`);
       return true;
     } catch (error) {
-      console.error("Error validating token, but keeping it for potential recovery:", error);
+      console.error("⚠️ Error validating token, but keeping it for potential recovery:", error);
       // Don't clear tokens on parse errors - they might be recoverable
       return false;
     }

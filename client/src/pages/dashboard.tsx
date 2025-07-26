@@ -24,7 +24,7 @@ export default function Dashboard() {
 
   // If user doesn't have subscription, redirect to subscription page
   useEffect(() => {
-    if (!subscriptionLoading && !subscription) {
+    if (!subscriptionLoading && !subscription?.subscription) {
       setLocation('/subscribe');
     }
   }, [subscription, subscriptionLoading, setLocation]);
@@ -107,7 +107,7 @@ export default function Dashboard() {
         </div>
       </div>
         {/* Subscription Status */}
-        {subscription && (
+        {subscription?.subscription && (
           <Card className="mb-8 border-l-4 border-l-blue-600">
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -118,31 +118,37 @@ export default function Dashboard() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Plan</p>
-                  <p className="text-lg font-bold text-gray-900">{subscription.plan?.displayName}</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Plan</p>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">{subscription.subscription.plan?.displayName}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Status</p>
-                  <Badge variant={subscription.status === 'active' ? 'default' : 'secondary'}>
-                    {subscription.status}
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Status</p>
+                  <Badge variant={subscription.subscription.status === 'active' ? 'default' : 'secondary'}>
+                    {subscription.subscription.status === 'trialing' ? 'Free Trial' : subscription.subscription.status}
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Billing</p>
-                  <p className="text-sm text-gray-900">{subscription.isYearly ? 'Yearly' : 'Monthly'}</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Billing</p>
+                  <p className="text-sm text-gray-900 dark:text-white">{subscription.subscription.isYearly ? 'Yearly' : 'Monthly'}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Next Payment</p>
-                  <p className="text-sm text-gray-900 flex items-center">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    {subscription.subscription.status === 'trialing' ? 'Trial Ends' : 'Next Payment'}
+                  </p>
+                  <p className="text-sm text-gray-900 dark:text-white flex items-center">
                     <Calendar className="mr-1 h-3 w-3" />
-                    {subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd).toLocaleDateString() : 'N/A'}
+                    {subscription.subscription.status === 'trialing' && subscription.subscription.trialEnd 
+                      ? new Date(subscription.subscription.trialEnd).toLocaleDateString()
+                      : subscription.subscription.currentPeriodEnd 
+                      ? new Date(subscription.subscription.currentPeriodEnd).toLocaleDateString() 
+                      : 'N/A'}
                   </p>
                 </div>
               </div>
-              {subscription.trialEnd && new Date(subscription.trialEnd) > new Date() && (
-                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-800">
-                    <strong>Free Trial Active:</strong> Your trial ends on {new Date(subscription.trialEnd).toLocaleDateString()}
+              {subscription.subscription.status === 'trialing' && subscription.subscription.trialEnd && new Date(subscription.subscription.trialEnd) > new Date() && (
+                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <strong>🎉 Free Trial Active:</strong> Your 14-day trial ends on {new Date(subscription.subscription.trialEnd).toLocaleDateString()}. Enjoy full access to all features!
                   </p>
                 </div>
               )}

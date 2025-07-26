@@ -25,6 +25,8 @@ export interface AuthResponse {
 class AuthManager {
   private readonly ACCESS_TOKEN_KEY = "auth_access_token";
   private refreshPromise: Promise<string> | null = null;
+  private refreshTimer: NodeJS.Timeout | null = null;
+  private isInitialized = false;
 
   getAccessToken(): string | null {
     return localStorage.getItem(this.ACCESS_TOKEN_KEY);
@@ -32,10 +34,61 @@ class AuthManager {
 
   setAccessToken(token: string): void {
     localStorage.setItem(this.ACCESS_TOKEN_KEY, token);
+    this.scheduleTokenRefresh(token);
   }
 
   clearTokens(): void {
     localStorage.removeItem(this.ACCESS_TOKEN_KEY);
+    this.clearRefreshTimer();
+  }
+
+  private clearRefreshTimer(): void {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+      this.refreshTimer = null;
+    }
+  }
+
+  private scheduleTokenRefresh(token: string): void {
+    // Clear any existing timer
+    this.clearRefreshTimer();
+
+    try {
+      // Parse token to get expiry time
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const expTime = payload.exp * 1000; // Convert to milliseconds
+      const now = Date.now();
+      const timeUntilExpiry = expTime - now;
+
+      // Schedule refresh 30 seconds before expiry (or immediately if less than 60 seconds)
+      const refreshTime = Math.max(timeUntilExpiry - 30000, 5000); // At least 5 seconds delay
+
+      if (refreshTime > 0) {
+        this.refreshTimer = setTimeout(async () => {
+          try {
+            await this.refreshAccessToken();
+          } catch (error) {
+            console.error("Automatic token refresh failed:", error);
+            // Redirect to login if refresh fails
+            window.location.href = "/auth";
+          }
+        }, refreshTime);
+      }
+    } catch (error) {
+      console.error("Failed to schedule token refresh:", error);
+    }
+  }
+
+  // Initialize automatic refresh on app start
+  initialize(): void {
+    if (this.isInitialized) return;
+    
+    const token = this.getAccessToken();
+    if (token) {
+      this.scheduleTokenRefresh(token);
+    }
+    
+    this.isInitialized = true;
   }
 
   async refreshAccessToken(): Promise<string> {

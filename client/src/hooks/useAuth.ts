@@ -5,7 +5,7 @@ import type { AuthUser, AuthResponse } from "@/lib/auth";
 import type { LoginCredentials, RegisterData, UpdateProfileData, ChangePasswordData } from "@shared/schema";
 
 export function useAuth() {
-  const { data: user, isLoading, error } = useQuery<AuthUser | null>({
+  const { data: user, isLoading, error, isError } = useQuery<AuthUser | null>({
     queryKey: ["/api/auth/me"],
     queryFn: async () => {
       try {
@@ -34,22 +34,27 @@ export function useAuth() {
       if (error?.message?.includes("Authentication failed")) {
         return false;
       }
-      // Retry up to 1 time for other errors
-      return failureCount < 1;
+      // Retry up to 2 times for other errors (network issues, etc.)
+      return failureCount < 2;
     },
-    retryDelay: 2000, // 2 second delay between retries
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Exponential backoff
     staleTime: 5 * 60 * 1000, // 5 minutes - much longer cache to reduce frequent checks
     gcTime: 10 * 60 * 1000, // 10 minutes garbage collection time
     refetchOnWindowFocus: false, // Don't refetch when window regains focus
-    refetchOnMount: false, // Don't always refetch on component mount
+    refetchOnMount: true, // Always refetch on component mount for fresh data
   });
+
+  // Enhanced authentication state logic
+  const hasValidToken = authManager.isAuthenticated();
+  
+  // If we have a valid token, consider user authenticated during loading
+  // Only mark as unauthenticated if we have definitive failure or no token
+  const isAuthenticated = hasValidToken && (isLoading || !!user || !isError);
 
   return {
     user,
     isLoading,
-    // Only consider user as not authenticated if we're sure they're logged out
-    // This prevents temporary states from logging users out
-    isAuthenticated: authManager.isAuthenticated() && (isLoading || !!user),
+    isAuthenticated,
   };
 }
 

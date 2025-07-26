@@ -74,8 +74,21 @@ class AuthManager {
             this.scheduleTokenRefresh(newToken);
           } catch (error) {
             console.error("Automatic token refresh failed:", error);
-            // Clear tokens and let the app handle the logout
-            this.clearTokens();
+            
+            // Only clear tokens if it's a definitive authentication failure
+            if (error instanceof Error && error.message.includes("authentication required")) {
+              console.log("Authentication failed, clearing tokens");
+              this.clearTokens();
+            } else {
+              console.log("Temporary refresh failure, will retry on next request");
+              // For temporary errors, try to reschedule refresh with shorter delay
+              setTimeout(() => {
+                const currentToken = this.getAccessToken();
+                if (currentToken) {
+                  this.scheduleTokenRefresh(currentToken);
+                }
+              }, 60000); // Retry in 1 minute
+            }
           }
         }, refreshTime);
         
@@ -93,7 +106,28 @@ class AuthManager {
     const token = this.getAccessToken();
     if (token) {
       console.log("Initializing automatic token refresh system");
-      this.scheduleTokenRefresh(token);
+      
+      // Check if token is about to expire and refresh immediately if needed
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const expTime = payload.exp * 1000;
+        const now = Date.now();
+        const timeUntilExpiry = expTime - now;
+        
+        // If token expires in less than 2 minutes, refresh immediately
+        if (timeUntilExpiry < 120000) {
+          console.log("Token expires soon, refreshing immediately on initialization");
+          this.refreshAccessToken().catch(error => {
+            console.error("Initial token refresh failed:", error);
+            this.clearTokens();
+          });
+        } else {
+          this.scheduleTokenRefresh(token);
+        }
+      } catch (error) {
+        console.error("Error parsing token during initialization:", error);
+        this.clearTokens();
+      }
     } else {
       console.log("No token found during initialization");
     }
@@ -125,14 +159,24 @@ class AuthManager {
       });
 
       if (!response.ok) {
-        throw new Error("Token refresh failed");
+        if (response.status === 401 || response.status === 403) {
+          // Authentication definitively failed - clear tokens
+          this.clearTokens();
+          throw new Error("Token refresh failed - authentication required");
+        } else {
+          // Server error or network issue - don't clear tokens yet
+          throw new Error("Token refresh failed - temporary error");
+        }
       }
 
       const data: AuthResponse = await response.json();
       this.setAccessToken(data.accessToken);
       return data.accessToken;
     } catch (error) {
-      this.clearTokens();
+      // Only clear tokens on authentication failures, not network issues
+      if (error instanceof Error && error.message.includes("authentication required")) {
+        this.clearTokens();
+      }
       throw error;
     }
   }

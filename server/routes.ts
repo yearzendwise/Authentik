@@ -305,7 +305,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        sameSite: "lax", // Changed from "strict" to "lax" for better cross-site behavior
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
@@ -486,32 +486,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Refresh token endpoint
   app.post("/api/auth/refresh", async (req, res) => {
     try {
+      console.log("🔄 [Server] Refresh token request received");
+      console.log("🔄 [Server] Cookies:", req.cookies);
+      console.log("🔄 [Server] Headers:", req.headers);
+      
       const refreshToken = req.cookies.refreshToken;
 
       if (!refreshToken) {
+        console.log("🔄 [Server] No refresh token found in cookies");
         return res.status(401).json({ message: "Refresh token required" });
       }
 
+      console.log("🔄 [Server] Refresh token found, verifying...");
+
       // Verify refresh token
       const decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET) as any;
+      console.log("🔄 [Server] Token decoded successfully:", { userId: decoded.userId, tenantId: decoded.tenantId });
       
       // Check if refresh token exists in database and is not expired
       const storedToken = await storage.getRefreshToken(refreshToken);
       if (!storedToken) {
+        console.log("🔄 [Server] Refresh token not found in database");
         return res.status(401).json({ message: "Invalid refresh token" });
       }
+      console.log("🔄 [Server] Refresh token found in database");
 
       // Get user with tenant context
       const user = await storage.getUser(decoded.userId, decoded.tenantId);
       if (!user || !user.isActive) {
+        console.log("🔄 [Server] User not found or inactive");
         return res.status(401).json({ message: "User not found or inactive" });
       }
+      console.log("🔄 [Server] User found and active");
 
       // Update session last used time
       await storage.updateSessionLastUsed(refreshToken);
 
       // Generate new tokens with tenant context
       const { accessToken, refreshToken: newRefreshToken } = generateTokens(user.id, user.tenantId);
+      console.log("🔄 [Server] New tokens generated");
 
       // Get device info to preserve it in the new token
       const deviceInfo = getDeviceInfo(req);
@@ -530,10 +543,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.cookie("refreshToken", newRefreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        sameSite: "lax", // Changed from "strict" to "lax"
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
+      console.log("🔄 [Server] Sending successful refresh response");
       res.json({
         message: "Token refreshed successfully",
         accessToken,
@@ -572,6 +586,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Logout successful" });
     } catch (error) {
       console.error("Logout error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Check authentication status endpoint - doesn't require access token
+  app.get("/api/auth/check", async (req, res) => {
+    try {
+      console.log("🔍 [Server] Auth check request received");
+      const refreshToken = req.cookies.refreshToken;
+      
+      if (!refreshToken) {
+        console.log("🔍 [Server] No refresh token in cookies");
+        return res.json({ hasAuth: false });
+      }
+
+      // Try to verify the refresh token
+      try {
+        const decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET) as any;
+        
+        // Check if refresh token exists in database
+        const storedToken = await storage.getRefreshToken(refreshToken);
+        if (!storedToken) {
+          console.log("🔍 [Server] Refresh token not found in database");
+          return res.json({ hasAuth: false });
+        }
+        
+        console.log("🔍 [Server] Valid refresh token found");
+        return res.json({ hasAuth: true });
+      } catch (error) {
+        console.log("🔍 [Server] Invalid refresh token:", error);
+        return res.json({ hasAuth: false });
+      }
+    } catch (error) {
+      console.error("Auth check error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

@@ -1,13 +1,13 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 // Lazy import to avoid circular dependency
-let authManager: any = null;
-const getAuthManager = async () => {
-  if (!authManager) {
-    const authModule = await import("./auth");
-    authManager = authModule.authManager;
+let store: any = null;
+const getStore = async () => {
+  if (!store) {
+    const storeModule = await import("../store");
+    store = storeModule.store;
   }
-  return authManager;
+  return store;
 };
 
 async function throwIfResNotOk(res: Response) {
@@ -23,10 +23,11 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   try {
-    const auth = await getAuthManager();
+    const reduxStore = await getStore();
+    const authState = reduxStore.getState().auth;
     
     // Check if user is authenticated, if not use direct fetch for auth endpoints
-    if (!auth.isAuthenticated() && (url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/forgot-password'))) {
+    if (!authState.isAuthenticated && (url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/forgot-password'))) {
       const headers: Record<string, string> = {
         ...(data ? { "Content-Type": "application/json" } : {}),
       };
@@ -42,8 +43,25 @@ export async function apiRequest(
       return res;
     }
     
-    // Use auth manager for authenticated requests (handles token refresh automatically)
-    return await auth.makeAuthenticatedRequest(method, url, data);
+    // For authenticated requests, use the access token from Redux state
+    if (!authState.accessToken) {
+      throw new Error("No access token available");
+    }
+
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${authState.accessToken}`,
+      ...(data ? { "Content-Type": "application/json" } : {}),
+    };
+
+    const res = await fetch(url, {
+      method,
+      headers,
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: "include",
+    });
+
+    await throwIfResNotOk(res);
+    return res;
   } catch (error) {
     throw error;
   }
@@ -56,18 +74,19 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     try {
-      const auth = await getAuthManager();
+      const reduxStore = await getStore();
+      const authState = reduxStore.getState().auth;
       
       // Check if user is authenticated
-      if (!auth.isAuthenticated()) {
+      if (!authState.isAuthenticated || !authState.accessToken) {
         if (unauthorizedBehavior === "returnNull") {
           return null;
         }
         throw new Error("401: Not authenticated");
       }
       
-      // Use auth manager for authenticated requests (handles token refresh automatically)
-      const res = await auth.makeAuthenticatedRequest("GET", queryKey.join("/") as string);
+      // Make authenticated request using Redux token
+      const res = await apiRequest("GET", queryKey.join("/") as string);
       return await res.json();
     } catch (error: any) {
       if (unauthorizedBehavior === "returnNull" && error.message?.includes("401")) {

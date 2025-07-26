@@ -183,12 +183,19 @@ class AuthManager {
 
   private async performRefresh(): Promise<string> {
     try {
+      console.log("🔄 Starting token refresh request...");
       const response = await fetch("/api/auth/refresh", {
         method: "POST",
         credentials: "include", // Include httpOnly cookies
       });
 
+      console.log("🔄 Refresh response status:", response.status);
+      console.log("🔄 Refresh response headers:", response.headers);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.log("🔄 Refresh error response:", errorText);
+        
         if (response.status === 401 || response.status === 403) {
           // Authentication definitively failed - clear tokens
           console.log("Refresh failed with auth error, clearing tokens");
@@ -202,10 +209,12 @@ class AuthManager {
       }
 
       const data: AuthResponse = await response.json();
-      console.log("Token refresh successful, updating stored token");
+      console.log("🔄 Token refresh successful, received new token");
+      console.log("🔄 User data from refresh:", data.user);
       this.setAccessToken(data.accessToken);
       return data.accessToken;
     } catch (error) {
+      console.error("🔄 Token refresh error:", error);
       // Only clear tokens on authentication failures, not network issues
       if (error instanceof Error && error.message.includes("authentication required")) {
         console.log("Clearing tokens due to authentication failure");
@@ -233,6 +242,9 @@ class AuthManager {
         headers["Content-Type"] = "application/json";
       }
 
+      console.log(`📡 Making ${method} request to ${url}`);
+      console.log("📡 Request headers:", headers);
+
       return fetch(url, {
         method,
         headers,
@@ -246,6 +258,7 @@ class AuthManager {
     }
 
     let response = await makeRequest(token);
+    console.log(`📡 Response status for ${url}:`, response.status);
 
     // If token expired, try to refresh and retry once
     if (response.status === 401) {

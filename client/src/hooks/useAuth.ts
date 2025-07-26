@@ -9,27 +9,70 @@ export function useAuth() {
     queryKey: ["/api/auth/me"],
     queryFn: async () => {
       try {
-        // Check if we have a token first
-        if (!authManager.isAuthenticated()) {
-          console.log("No valid token available for auth check");
+        console.log("🔐 Starting authentication check...");
+        
+        // First, check if we have any valid authentication (refresh token)
+        const checkResponse = await fetch("/api/auth/check", {
+          method: "GET",
+          credentials: "include",
+        });
+        
+        if (!checkResponse.ok) {
+          console.log("🔐 Auth check failed with status:", checkResponse.status);
           return null;
         }
         
-        console.log("Fetching current user data...");
+        const checkData = await checkResponse.json();
+        console.log("🔐 Auth check result:", checkData);
+        
+        if (!checkData.hasAuth) {
+          console.log("🔐 No valid refresh token found");
+          // Clear any stale access tokens
+          authManager.clearTokens();
+          return null;
+        }
+        
+        // We have a valid refresh token, now try to get user data
+        // First check if we have a valid access token
+        const token = authManager.getAccessToken();
+        const isCurrentlyValid = token ? authManager.isAuthenticated() : false;
+        
+        if (!isCurrentlyValid) {
+          console.log("🔐 Access token missing or expired, attempting refresh...");
+          try {
+            // Try to refresh the token before proceeding
+            await authManager.refreshAccessToken();
+            console.log("🔐 Token refresh successful, proceeding with user fetch");
+          } catch (refreshError: any) {
+            console.log("🔐 Token refresh failed:", refreshError.message);
+            
+            // Only clear tokens and return null for definitive auth failures
+            if (refreshError.message?.includes("authentication required")) {
+              console.log("🔐 Authentication definitively failed, clearing tokens");
+              authManager.clearTokens();
+              return null;
+            }
+            
+            // For temporary errors, we'll let the subsequent getCurrentUser call handle it
+            console.log("🔐 Temporary refresh error, will attempt getCurrentUser anyway");
+          }
+        }
+        
+        console.log("🔐 Fetching current user data...");
         return await authManager.getCurrentUser();
       } catch (error: any) {
-        console.log("Auth query failed:", error.message);
+        console.log("🔐 Auth query failed:", error.message);
         
         // Handle different types of auth failures
         if (error.message?.includes("Authentication failed") || 
             error.message?.includes("Token refresh failed - authentication required")) {
-          console.log("Authentication definitively failed, clearing tokens");
+          console.log("🔐 Authentication definitively failed, clearing tokens");
           authManager.clearTokens();
           return null;
         }
         
         // For network errors, server errors, or other temporary issues, keep tokens but return null
-        console.log("Temporary auth error, keeping tokens but returning null");
+        console.log("🔐 Temporary auth error, keeping tokens but returning null");
         return null;
       }
     },
@@ -53,8 +96,8 @@ export function useAuth() {
   const hasInitialized = isFetched || isError;
   
   // Determine authentication state based on token and user data
-  const hasValidToken = authManager.isAuthenticated();
-  const isAuthenticated = hasValidToken && !!user && !isError;
+  const hasAnyToken = !!authManager.getAccessToken();
+  const isAuthenticated = hasAnyToken && !!user && !isError;
 
   return {
     user,

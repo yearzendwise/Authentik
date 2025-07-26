@@ -26,7 +26,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useAuth, useLogout, useUpdateMenuPreference } from "@/hooks/useAuth";
+import { useReduxAuth, useReduxLogout, useReduxUpdateMenuPreference } from "@/hooks/useReduxAuth";
 
 const getNavigation = (userRole?: string) => {
   const baseNavigation = [
@@ -51,9 +51,9 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const [location] = useLocation();
-  const { user } = useAuth();
-  const logout = useLogout();
-  const updateMenuPreference = useUpdateMenuPreference();
+  const { user } = useReduxAuth();
+  const { logout } = useReduxLogout();
+  const updateMenuPreference = useReduxUpdateMenuPreference();
   const navigation = getNavigation(user?.role);
   // Load initial menu state from localStorage or user preference
   const getInitialMenuState = () => {
@@ -99,7 +99,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   }, []);
 
   const handleLogout = () => {
-    logout.mutate();
+    logout();
   };
 
 

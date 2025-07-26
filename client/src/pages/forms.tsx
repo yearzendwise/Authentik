@@ -3,8 +3,7 @@ import { Link } from "wouter";
 import { Plus, FileText, Edit, Trash2, Save, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FormBuilder } from "../../../components/DragFormMaster/lib/dist";
-import "../../../components/DragFormMaster/lib/dist/index.css";
+import { FormBuilder } from "@/components/FormBuilder";
 
 function FormsAddPage() {
   const handleSave = (formData: any) => {
@@ -25,7 +24,7 @@ function FormsAddPage() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Create New Form</h1>
               <p className="text-gray-600 dark:text-gray-400 mt-2">
-                Use the DragFormMaster component to create custom forms
+                Use the FormBuilder component to create custom forms
               </p>
             </div>
             <div className="flex items-center space-x-2">

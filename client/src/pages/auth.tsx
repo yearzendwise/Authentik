@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useLogin, useRegister, useForgotPassword } from "@/hooks/useAuth";
+import { useReduxLogin } from "@/hooks/useReduxAuth";
 import { loginSchema, registerSchema, forgotPasswordSchema } from "@shared/schema";
 import type { LoginCredentials, RegisterData, ForgotPasswordData } from "@shared/schema";
 import { calculatePasswordStrength, getPasswordStrengthText, getPasswordStrengthColor } from "@/lib/authUtils";
@@ -31,9 +31,41 @@ export default function AuthPage() {
     tempLoginId: string;
   } | null>(null);
 
-  const loginMutation = useLogin();
-  const registerMutation = useRegister();
-  const forgotPasswordMutation = useForgotPassword();
+  const { login, isLoading: isLoginLoading } = useReduxLogin();
+  
+  // For now, keep register and forgot password as simple fetch calls
+  // These can be moved to Redux later if needed
+  const registerMutation = { 
+    mutateAsync: async (data: RegisterData) => {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message);
+      }
+      return response.json();
+    },
+    isPending: false 
+  };
+  
+  const forgotPasswordMutation = { 
+    mutateAsync: async (data: ForgotPasswordData) => {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message);
+      }
+      return response.json();
+    },
+    isPending: false 
+  };
 
   const loginForm = useForm<LoginCredentials>({
     resolver: zodResolver(loginSchema),
@@ -55,8 +87,12 @@ export default function AuthPage() {
   });
 
   // Simplified registration - always use regular registration
-  const handleRegister = (data: RegisterData) => {
-    registerMutation.mutate(data);
+  const handleRegister = async (data: RegisterData) => {
+    try {
+      await registerMutation.mutateAsync(data);
+    } catch (error) {
+      console.error('Registration failed:', error);
+    }
   };
 
   const forgotForm = useForm<ForgotPasswordData>({
@@ -82,7 +118,7 @@ export default function AuthPage() {
 
   const onLogin = async (data: LoginCredentials) => {
     try {
-      const result = await loginMutation.mutateAsync(data);
+      const result = await login(data);
       if ('requires2FA' in result) {
         setTwoFactorData({
           email: data.email,
@@ -120,7 +156,7 @@ export default function AuthPage() {
     if (!twoFactorData) return;
     
     try {
-      const result = await loginMutation.mutateAsync({
+      const result = await login({
         email: twoFactorData.email,
         password: twoFactorData.password,
         twoFactorToken: data.token,
@@ -327,9 +363,9 @@ export default function AuthPage() {
                     <Button
                       type="submit"
                       className="w-full mt-6"
-                      disabled={loginMutation.isPending}
+                      disabled={isLoginLoading}
                     >
-                      {loginMutation.isPending ? (
+                      {isLoginLoading ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                           Signing in...
@@ -587,9 +623,9 @@ export default function AuthPage() {
                     <Button
                       type="submit"
                       className="w-full mt-6"
-                      disabled={loginMutation.isPending}
+                      disabled={isLoginLoading}
                     >
-                      {loginMutation.isPending ? (
+                      {isLoginLoading ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                           Verifying...

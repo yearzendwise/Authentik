@@ -80,10 +80,10 @@ class AuthManager {
       const now = Date.now();
       const timeUntilExpiry = expTime - now;
 
-      // Schedule refresh 45 seconds before expiry (with minimum 10 seconds)
-      const refreshTime = Math.max(timeUntilExpiry - 45000, 10000);
+      // Schedule refresh 2 minutes before expiry (with minimum 30 seconds)
+      const refreshTime = Math.max(timeUntilExpiry - 120000, 30000);
 
-      if (refreshTime > 0 && timeUntilExpiry > 60000) { // Only schedule if more than 1 minute left
+      if (refreshTime > 0 && timeUntilExpiry > 150000) { // Only schedule if more than 2.5 minutes left
         this.refreshTimer = setTimeout(async () => {
           try {
             console.log("Executing automatic token refresh...");
@@ -136,8 +136,8 @@ class AuthManager {
         
         console.log(`Token found, expires in ${Math.round(timeUntilExpiry / 1000)} seconds`);
         
-        // If token expires in less than 5 minutes, refresh immediately
-        if (timeUntilExpiry < 300000) {
+        // If token expires in less than 2 minutes, refresh immediately
+        if (timeUntilExpiry < 120000) {
           console.log("Token expires soon, refreshing immediately on initialization");
           this.refreshAccessToken().catch(error => {
             console.error("Initial token refresh failed:", error);
@@ -146,12 +146,8 @@ class AuthManager {
               console.log("Authentication definitely failed, clearing tokens");
               this.clearTokens();
             } else {
-              console.log("Temporary refresh failure, will retry in 30 seconds");
-              setTimeout(() => {
-                if (this.getAccessToken()) {
-                  this.initialize();
-                }
-              }, 30000);
+              console.log("Temporary refresh failure, will retry later");
+              // Don't retry immediately - let normal auth flow handle it
             }
           });
         } else {
@@ -195,21 +191,27 @@ class AuthManager {
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
           // Authentication definitively failed - clear tokens
+          console.log("Refresh failed with auth error, clearing tokens");
           this.clearTokens();
           throw new Error("Token refresh failed - authentication required");
         } else {
           // Server error or network issue - don't clear tokens yet
+          console.log(`Refresh failed with status ${response.status}, keeping tokens for retry`);
           throw new Error("Token refresh failed - temporary error");
         }
       }
 
       const data: AuthResponse = await response.json();
+      console.log("Token refresh successful, updating stored token");
       this.setAccessToken(data.accessToken);
       return data.accessToken;
     } catch (error) {
       // Only clear tokens on authentication failures, not network issues
       if (error instanceof Error && error.message.includes("authentication required")) {
+        console.log("Clearing tokens due to authentication failure");
         this.clearTokens();
+      } else {
+        console.log("Keeping tokens due to temporary error:", error);
       }
       throw error;
     }
@@ -328,10 +330,15 @@ class AuthManager {
       const now = Date.now();
       const timeUntilExpiry = expTime - now;
       
-      // If token expires in less than 30 seconds, refresh it first
-      if (timeUntilExpiry < 30000) {
+      // If token expires in less than 60 seconds, refresh it first
+      if (timeUntilExpiry < 60000) {
         console.log("getCurrentUser: Token about to expire, refreshing first...");
-        await this.refreshAccessToken();
+        try {
+          await this.refreshAccessToken();
+        } catch (error) {
+          console.error("Pre-request token refresh failed:", error);
+          // Continue with request - let makeAuthenticatedRequest handle the retry
+        }
       }
     } catch (error) {
       console.error("getCurrentUser: Error checking token expiry, proceeding anyway:", error);
@@ -455,7 +462,7 @@ class AuthManager {
       // Token is valid if it hasn't expired yet
       const isValid = expTime > now;
       if (!isValid) {
-        console.log("⏰ Token has expired, will attempt refresh instead of clearing");
+        console.log("⏰ Token has expired, marking as invalid but keeping for refresh attempt");
         // Don't clear tokens immediately - let the refresh mechanism handle it
         return false;
       }

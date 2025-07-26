@@ -54,7 +54,7 @@ export function useAuth() {
   
   // Determine authentication state based on token and user data
   const hasValidToken = authManager.isAuthenticated();
-  const isAuthenticated = hasValidToken && !!user;
+  const isAuthenticated = hasValidToken && !!user && !isError;
 
   return {
     user,

@@ -15,6 +15,7 @@ import type { LoginCredentials, RegisterData, ForgotPasswordData } from "@shared
 import { calculatePasswordStrength, getPasswordStrengthText, getPasswordStrengthColor } from "@/lib/authUtils";
 import { Eye, EyeOff, Shield, CheckCircle, Mail, Lock, ArrowLeft, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
+import { toast } from "@/hooks/use-toast";
 
 type AuthView = "login" | "register" | "forgot" | "twoFactor";
 
@@ -34,7 +35,7 @@ export default function AuthPage() {
   } | null>(null);
 
   const dispatch = useAppDispatch();
-  const { isLoading: isLoginLoading } = useAppSelector((state) => state.auth);
+  const { isLoading: isLoginLoading, isAuthenticated } = useAppSelector((state) => state.auth);
   const registerMutation = useRegister();
   const forgotPasswordMutation = useForgotPassword();
 
@@ -83,6 +84,22 @@ export default function AuthPage() {
     }
   }, [watchPassword]);
 
+  // Redirect to dashboard when authenticated
+  useEffect(() => {
+    console.log("🔍 Auth page - isAuthenticated changed:", isAuthenticated);
+    if (isAuthenticated) {
+      console.log("✅ User is authenticated, redirecting to dashboard from useEffect");
+      setLocation("/dashboard");
+      // Double check with timeout
+      setTimeout(() => {
+        if (window.location.pathname !== "/dashboard") {
+          console.log("🔄 Redirect didn't work, forcing navigation");
+          window.location.href = "/dashboard";
+        }
+      }, 100);
+    }
+  }, [isAuthenticated, setLocation]);
+
   const onLogin = async (data: LoginCredentials) => {
     console.log("🚀 onLogin called with data:", data);
     try {
@@ -92,28 +109,35 @@ export default function AuthPage() {
       console.log("🔐 Login action result:", result);
       console.log("🔐 Result type:", result.type);
       console.log("🔐 Result payload:", result.payload);
+      console.log("🔐 Result meta:", result.meta);
       
       if (login.fulfilled.match(result)) {
-        console.log("✅ Login successful, redirecting to dashboard...");
-        console.log("Current location:", window.location.pathname);
-        console.log("Calling setLocation with /dashboard");
-        setLocation("/dashboard");
-        // Force navigation as a fallback
-        setTimeout(() => {
-          console.log("Checking if navigation happened...");
-          console.log("Current location after timeout:", window.location.pathname);
-          if (window.location.pathname !== "/dashboard") {
-            console.log("Navigation didn't work, forcing reload to dashboard");
-            window.location.href = "/dashboard";
-          }
-        }, 500);
+        console.log("✅ Login successful!");
+        console.log("✅ User data received:", result.payload);
+        console.log("Current auth state after login:", isAuthenticated);
+        // Show success toast
+        toast({
+          title: "Login Successful",
+          description: "Welcome back! Redirecting to dashboard...",
+        });
+        // The redirect will happen via useEffect when isAuthenticated changes
       } else if (login.rejected.match(result)) {
         console.error("❌ Login rejected:", result.payload);
+        toast({
+          title: "Login Failed", 
+          description: result.payload as string || "Invalid credentials",
+          variant: "destructive",
+        });
       } else {
         console.log("🤔 Unexpected result:", result);
       }
     } catch (error) {
       console.error("💥 Login error:", error);
+      toast({
+        title: "Login Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
     }
   };
 

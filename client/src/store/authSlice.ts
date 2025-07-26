@@ -163,10 +163,12 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(login.fulfilled, (state, action) => {
+        console.log("Redux: Login fulfilled, updating state with user:", action.payload);
         state.isLoading = false;
         state.user = action.payload;
         state.isAuthenticated = !!action.payload;
         state.error = null;
+        console.log("Redux: State updated - isAuthenticated:", state.isAuthenticated);
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false;

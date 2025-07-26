@@ -25,11 +25,11 @@ export function useAuth() {
   }, []);
 
   console.log("🔍 Checking authentication status...");
+  console.log("🔍 Redux auth state:", { user: !!user, isAuthenticated, isLoading, isInitialized });
   if (user) {
-    console.log("✅ Token found in localStorage, validating...");
-    console.log(`✅ Token is valid, expires in ${Math.round((Date.now() + 2 * 60 * 1000) / 1000)} seconds`);
+    console.log("✅ User found in Redux state");
   } else {
-    console.log("❌ No access token found in localStorage");
+    console.log("❌ No user in Redux state");
   }
 
   const hasUser = !!user;

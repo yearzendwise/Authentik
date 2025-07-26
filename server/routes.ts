@@ -1149,6 +1149,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expand: ['latest_invoice.payment_intent'],
       });
 
+      // Helper function to safely convert Stripe timestamps to dates
+      const safeTimestampToDate = (timestamp: any): Date | null => {
+        if (!timestamp) return null;
+        if (typeof timestamp === 'number') {
+          const date = new Date(timestamp * 1000);
+          return isNaN(date.getTime()) ? null : date;
+        }
+        return null;
+      };
+
       // Save subscription to database
       await storage.createSubscription({
         userId: newUser.id,
@@ -1156,10 +1166,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         stripeSubscriptionId: subscription.id,
         stripeCustomerId: customer.id,
         status: subscription.status,
-        currentPeriodStart: new Date((subscription as any).current_period_start * 1000),
-        currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
-        trialStart: (subscription as any).trial_start ? new Date((subscription as any).trial_start * 1000) : null,
-        trialEnd: (subscription as any).trial_end ? new Date((subscription as any).trial_end * 1000) : null,
+        currentPeriodStart: safeTimestampToDate((subscription as any).current_period_start) || new Date(),
+        currentPeriodEnd: safeTimestampToDate((subscription as any).current_period_end) || new Date(Date.now() + (30 * 24 * 60 * 60 * 1000)),
+        trialStart: safeTimestampToDate((subscription as any).trial_start),
+        trialEnd: safeTimestampToDate((subscription as any).trial_end),
         isYearly: billingCycle === 'yearly',
       });
 
@@ -1177,7 +1187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subscription: {
           id: subscription.id,
           status: subscription.status,
-          trialEnd: (subscription as any).trial_end ? new Date((subscription as any).trial_end * 1000) : null
+          trialEnd: safeTimestampToDate((subscription as any).trial_end)
         }
       });
 
@@ -1225,6 +1235,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         trial_period_days: plan.trialDays || undefined,
       });
 
+      // Helper function to safely convert Stripe timestamps to dates
+      const safeTimestampToDate = (timestamp: any): Date | null => {
+        if (!timestamp) return null;
+        if (typeof timestamp === 'number') {
+          const date = new Date(timestamp * 1000);
+          return isNaN(date.getTime()) ? null : date;
+        }
+        return null;
+      };
+
       // Save subscription to database
       await storage.createSubscription({
         userId: user.id,
@@ -1232,10 +1252,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         stripeSubscriptionId: subscription.id,
         stripeCustomerId: customer.id,
         status: subscription.status,
-        currentPeriodStart: new Date((subscription as any).current_period_start * 1000),
-        currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
-        trialStart: (subscription as any).trial_start ? new Date((subscription as any).trial_start * 1000) : null,
-        trialEnd: (subscription as any).trial_end ? new Date((subscription as any).trial_end * 1000) : null,
+        currentPeriodStart: safeTimestampToDate((subscription as any).current_period_start) || new Date(),
+        currentPeriodEnd: safeTimestampToDate((subscription as any).current_period_end) || new Date(Date.now() + (30 * 24 * 60 * 60 * 1000)), // Default to 30 days from now
+        trialStart: safeTimestampToDate((subscription as any).trial_start),
+        trialEnd: safeTimestampToDate((subscription as any).trial_end),
         isYearly: billingData.billingCycle === 'yearly',
       });
 

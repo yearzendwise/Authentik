@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Check, Star, Loader2, CreditCard, Calendar, Users, Settings, TrendingUp } from "lucide-react";
+import { Check, Star, Loader2, CreditCard, Calendar, Users, Settings, TrendingUp, Shield } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useReduxAuth } from "@/hooks/useReduxAuth";
 import type { SubscriptionPlan, UserSubscriptionResponse } from "@shared/schema";
 
 // Make sure to call `loadStripe` outside of a component's render to avoid
@@ -334,6 +335,31 @@ export default function Subscribe() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { user: reduxUser } = useReduxAuth();
+
+  // Check if user has Owner role - only Owners can access subscription management
+  if (reduxUser && reduxUser.role !== "Owner") {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center max-w-md mx-auto">
+          <div className="mb-6">
+            <Shield className="mx-auto h-16 w-16 text-muted-foreground" />
+          </div>
+          <h1 className="text-2xl font-bold mb-4">Access Restricted</h1>
+          <p className="text-muted-foreground mb-6">
+            Only organization owners can access subscription management. 
+            Please contact your organization owner to manage subscription plans.
+          </p>
+          <Button 
+            onClick={() => setLocation('/dashboard')}
+            variant="outline"
+          >
+            Return to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   // Check if user already has a subscription
   const { data: userSubscription, isLoading: subscriptionLoading } = useQuery<UserSubscriptionResponse>({

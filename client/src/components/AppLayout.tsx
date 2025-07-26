@@ -38,10 +38,14 @@ const getNavigation = (userRole?: string) => {
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Company", href: "/company", icon: Building2 },
     { name: "Forms", href: "/forms", icon: ClipboardList },
-    { name: "Subscription", href: "/subscribe", icon: CreditCard },
     { name: "Profile", href: "/profile", icon: User },
     { name: "Sessions", href: "/sessions", icon: Activity },
   ];
+
+  // Add subscription menu only for Owner role
+  if (userRole === "Owner") {
+    baseNavigation.splice(3, 0, { name: "Subscription", href: "/subscribe", icon: CreditCard });
+  }
 
   // Add Users management for Admin and Manager roles
   if (userRole === "Administrator" || userRole === "Manager") {

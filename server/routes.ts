@@ -1783,6 +1783,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post(
     "/api/create-subscription",
     authenticateToken,
+    requireRole(["Owner"]),
     async (req: any, res) => {
       try {
         const billingData = billingInfoSchema.parse(req.body);
@@ -1880,7 +1881,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 
   // Get user's current subscription
-  app.get("/api/my-subscription", authenticateToken, async (req: any, res) => {
+  app.get("/api/my-subscription", authenticateToken, requireRole(["Owner"]), async (req: any, res) => {
     try {
       const userId = req.user?.id;
       if (!userId) {
@@ -1911,6 +1912,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post(
     "/api/upgrade-subscription",
     authenticateToken,
+    requireRole(["Owner"]),
     async (req: any, res) => {
       try {
         const { planId, billingCycle } = billingInfoSchema.parse(req.body);

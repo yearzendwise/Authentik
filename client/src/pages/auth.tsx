@@ -7,7 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useLogin, useRegister, useForgotPassword } from "@/hooks/useAuth";
+import { useRegister, useForgotPassword } from "@/hooks/useAuth";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { login, clearError } from "@/store/authSlice";
 import { loginSchema, registerSchema, forgotPasswordSchema } from "@shared/schema";
 import type { LoginCredentials, RegisterData, ForgotPasswordData } from "@shared/schema";
 import { calculatePasswordStrength, getPasswordStrengthText, getPasswordStrengthColor } from "@/lib/authUtils";
@@ -31,7 +33,8 @@ export default function AuthPage() {
     tempLoginId: string;
   } | null>(null);
 
-  const loginMutation = useLogin();
+  const dispatch = useAppDispatch();
+  const { isLoading: isLoginLoading } = useAppSelector((state) => state.auth);
   const registerMutation = useRegister();
   const forgotPasswordMutation = useForgotPassword();
 
@@ -82,25 +85,18 @@ export default function AuthPage() {
 
   const onLogin = async (data: LoginCredentials) => {
     try {
-      const result = await loginMutation.mutateAsync(data);
-      if ('requires2FA' in result) {
-        setTwoFactorData({
-          email: data.email,
-          password: data.password,
-          tempLoginId: result.tempLoginId,
-        });
-        setCurrentView("twoFactor");
-      } else {
-        // Check if email verification is required
-        if (result.emailVerificationRequired) {
-          setLocation("/pending-verification");
-        } else {
-          // Always redirect to dashboard after successful login
-          setLocation("/dashboard");
-        }
+      const loginData = { ...data, tenantSlug: "default" };
+      const result = await dispatch(login(loginData));
+      
+      if (result.type === 'auth/login/fulfilled') {
+        // Login successful - redirect to dashboard
+        setLocation("/dashboard");
+      } else if (result.type === 'auth/login/rejected') {
+        // Error handling is already done in the Redux slice
+        console.error("Login failed:", result.payload);
       }
     } catch (error) {
-      // Error is handled by the mutation's onError
+      console.error("Login error:", error);
     }
   };
 
@@ -120,23 +116,23 @@ export default function AuthPage() {
     if (!twoFactorData) return;
     
     try {
-      const result = await loginMutation.mutateAsync({
+      const loginData = {
         email: twoFactorData.email,
         password: twoFactorData.password,
-        twoFactorToken: data.token,
-      });
+        tenantSlug: "default",
+        totpCode: data.token,
+      };
       
-      if (!('requires2FA' in result)) {
-        // Check if email verification is required
-        if (result.emailVerificationRequired) {
-          setLocation("/pending-verification");
-        } else {
-          // Always redirect to dashboard after successful login
-          setLocation("/dashboard");
-        }
+      const result = await dispatch(login(loginData));
+      
+      if (result.type === 'auth/login/fulfilled') {
+        // Login successful - redirect to dashboard
+        setLocation("/dashboard");
+      } else if (result.type === 'auth/login/rejected') {
+        console.error("2FA Login failed:", result.payload);
       }
     } catch (error) {
-      // Error is handled by the mutation's onError
+      console.error("2FA Login error:", error);
     }
   };
 
@@ -327,9 +323,9 @@ export default function AuthPage() {
                     <Button
                       type="submit"
                       className="w-full mt-6"
-                      disabled={loginMutation.isPending}
+                      disabled={isLoginLoading}
                     >
-                      {loginMutation.isPending ? (
+                      {isLoginLoading ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                           Signing in...
@@ -587,9 +583,9 @@ export default function AuthPage() {
                     <Button
                       type="submit"
                       className="w-full mt-6"
-                      disabled={loginMutation.isPending}
+                      disabled={isLoginLoading}
                     >
-                      {loginMutation.isPending ? (
+                      {isLoginLoading ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                           Verifying...

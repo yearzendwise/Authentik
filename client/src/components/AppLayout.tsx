@@ -47,8 +47,8 @@ const getNavigation = (userRole?: string) => {
     baseNavigation.splice(3, 0, { name: "Subscription", href: "/subscribe", icon: CreditCard });
   }
 
-  // Add Users management for Admin and Manager roles
-  if (userRole === "Administrator" || userRole === "Manager") {
+  // Add Users management for Owner, Admin and Manager roles
+  if (userRole === "Owner" || userRole === "Administrator" || userRole === "Manager") {
     baseNavigation.push({ name: "Users", href: "/users", icon: Users });
   }
 

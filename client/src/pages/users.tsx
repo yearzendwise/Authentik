@@ -63,7 +63,7 @@ export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   // Check if current user has permission to access this page
-  if (!currentUser || (currentUser.role !== 'Administrator' && currentUser.role !== 'Manager')) {
+  if (!currentUser || (currentUser.role !== 'Owner' && currentUser.role !== 'Administrator' && currentUser.role !== 'Manager')) {
     return (
       <div className="max-w-4xl mx-auto p-6">
         <div className="text-center">
@@ -77,7 +77,7 @@ export default function UsersPage() {
     );
   }
 
-  const isAdmin = currentUser.role === 'Administrator';
+  const isAdmin = currentUser.role === 'Owner' || currentUser.role === 'Administrator';
 
   // Fetch users
   const { data: usersData, isLoading: usersLoading } = useQuery({
@@ -281,7 +281,7 @@ export default function UsersPage() {
       lastName: user.lastName || "",
       email: user.email,
       role: user.role as UserRole,
-      isActive: user.isActive,
+      isActive: user.isActive ?? true,
     });
     setIsEditDialogOpen(true);
   };
@@ -603,7 +603,7 @@ export default function UsersPage() {
                     <Avatar className="h-12 w-12">
                       <AvatarImage src="" />
                       <AvatarFallback className="bg-blue-100 text-blue-600">
-                        {getUserInitials(user.firstName, user.lastName)}
+                        {getUserInitials(user.firstName || undefined, user.lastName || undefined)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="space-y-1">
@@ -639,7 +639,7 @@ export default function UsersPage() {
                         )}
                         <span className="flex items-center">
                           <Calendar className="h-3 w-3 mr-1" />
-                          Joined {formatDistanceToNow(new Date(user.createdAt), { addSuffix: true })}
+                          Joined {formatDistanceToNow(new Date(user.createdAt || Date.now()), { addSuffix: true })}
                         </span>
                       </div>
                     </div>

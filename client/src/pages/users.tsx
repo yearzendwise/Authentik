@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Users as UsersIcon, Plus, Search, Filter, Edit, Trash2, Shield, UserCheck, UserX, Calendar, Mail, MapPin, Eye, EyeOff } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useForm } from "react-hook-form";
@@ -23,6 +24,13 @@ interface UserStats {
   totalUsers: number;
   activeUsers: number;
   usersByRole: Record<string, number>;
+}
+
+interface UserLimits {
+  canAddUser: boolean;
+  currentUsers: number;
+  maxUsers: number | null;
+  planName: string;
 }
 
 function getRoleBadgeVariant(role: string) {
@@ -103,8 +111,22 @@ export default function UsersPage() {
     staleTime: 60000,
   });
 
+  // Fetch user limits
+  const { data: limitsData } = useQuery({
+    queryKey: ['/api/users/limits'],
+    queryFn: async () => {
+      const response = await authManager.makeAuthenticatedRequest('GET', '/api/users/limits');
+      if (!response.ok) {
+        throw new Error('Failed to fetch user limits');
+      }
+      return response.json();
+    },
+    staleTime: 60000,
+  });
+
   const users = usersData?.users || [];
   const stats: UserStats = statsData || { totalUsers: 0, activeUsers: 0, usersByRole: {} };
+  const limits: UserLimits = limitsData || { canAddUser: true, currentUsers: 0, maxUsers: null, planName: 'Unknown' };
 
   // Create user form
   const createForm = useForm<CreateUserData>({
@@ -144,6 +166,7 @@ export default function UsersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
       queryClient.invalidateQueries({ queryKey: ['/api/users/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users/limits'] });
       setIsCreateDialogOpen(false);
       createForm.reset();
       toast({
@@ -173,6 +196,7 @@ export default function UsersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
       queryClient.invalidateQueries({ queryKey: ['/api/users/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users/limits'] });
       setIsEditDialogOpen(false);
       setSelectedUser(null);
       editForm.reset();
@@ -203,6 +227,7 @@ export default function UsersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
       queryClient.invalidateQueries({ queryKey: ['/api/users/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users/limits'] });
       toast({
         title: "Success",
         description: "User deleted successfully",
@@ -230,6 +255,7 @@ export default function UsersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
       queryClient.invalidateQueries({ queryKey: ['/api/users/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users/limits'] });
       toast({
         title: "Success",
         description: "User status updated successfully",
@@ -325,14 +351,18 @@ export default function UsersPage() {
             </div>
           </div>
           {isAdmin && (
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add User
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button disabled={!limits.canAddUser}>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add User
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                   <DialogTitle>Create New User</DialogTitle>
                   <DialogDescription>
@@ -441,11 +471,23 @@ export default function UsersPage() {
                 </Form>
               </DialogContent>
             </Dialog>
+                  </span>
+                </TooltipTrigger>
+                {!limits.canAddUser && (
+                  <TooltipContent>
+                    <p>
+                      User limit reached ({limits.currentUsers}/{limits.maxUsers}). 
+                      Please upgrade your {limits.planName} to add more users.
+                    </p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -484,6 +526,23 @@ export default function UsersPage() {
                 <Shield className="text-purple-500 w-8 h-8" />
               </div>
               <p className="text-xs text-muted-foreground mt-2">Different user roles</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-orange-600">Plan Limits</p>
+                  <p className="text-2xl font-bold text-orange-900">
+                    {limits.currentUsers}{limits.maxUsers ? `/${limits.maxUsers}` : ''}
+                  </p>
+                </div>
+                <UsersIcon className="text-orange-500 w-8 h-8" />
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {limits.planName} {limits.maxUsers ? `(${limits.maxUsers - limits.currentUsers} remaining)` : '(Unlimited)'}
+              </p>
             </CardContent>
           </Card>
         </div>

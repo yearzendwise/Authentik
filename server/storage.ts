@@ -124,6 +124,11 @@ export interface IStorage {
   getUserSubscription(userId: string): Promise<Subscription | undefined>;
   updateSubscription(id: string, updates: Partial<Subscription>): Promise<Subscription | undefined>;
   updateUserStripeInfo(userId: string, stripeCustomerId: string, stripeSubscriptionId: string): Promise<void>;
+  
+  // SaaS Limits and Validation
+  getTenantSubscription(tenantId: string): Promise<(Subscription & { plan: SubscriptionPlan }) | undefined>;
+  checkUserLimits(tenantId: string): Promise<{ canAddUser: boolean; currentUsers: number; maxUsers: number | null; planName: string }>;
+  validateUserCreation(tenantId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -764,6 +769,119 @@ export class DatabaseStorage implements IStorage {
     return company;
   }
 
+  // SaaS Limits and Validation
+  async getTenantSubscription(tenantId: string): Promise<(Subscription & { plan: SubscriptionPlan }) | undefined> {
+    const result = await db
+      .select({
+        id: subscriptions.id,
+        tenantId: subscriptions.tenantId,
+        userId: subscriptions.userId,
+        planId: subscriptions.planId,
+        stripeSubscriptionId: subscriptions.stripeSubscriptionId,
+        stripeCustomerId: subscriptions.stripeCustomerId,
+        status: subscriptions.status,
+        currentPeriodStart: subscriptions.currentPeriodStart,
+        currentPeriodEnd: subscriptions.currentPeriodEnd,
+        trialStart: subscriptions.trialStart,
+        trialEnd: subscriptions.trialEnd,
+        cancelAtPeriodEnd: subscriptions.cancelAtPeriodEnd,
+        canceledAt: subscriptions.canceledAt,
+        isYearly: subscriptions.isYearly,
+        createdAt: subscriptions.createdAt,
+        updatedAt: subscriptions.updatedAt,
+        plan: {
+          id: subscriptionPlans.id,
+          name: subscriptionPlans.name,
+          displayName: subscriptionPlans.displayName,
+          description: subscriptionPlans.description,
+          price: subscriptionPlans.price,
+          yearlyPrice: subscriptionPlans.yearlyPrice,
+          stripePriceId: subscriptionPlans.stripePriceId,
+          stripeYearlyPriceId: subscriptionPlans.stripeYearlyPriceId,
+          features: subscriptionPlans.features,
+          maxUsers: subscriptionPlans.maxUsers,
+          maxProjects: subscriptionPlans.maxProjects,
+          storageLimit: subscriptionPlans.storageLimit,
+          supportLevel: subscriptionPlans.supportLevel,
+          trialDays: subscriptionPlans.trialDays,
+          isPopular: subscriptionPlans.isPopular,
+          isActive: subscriptionPlans.isActive,
+          sortOrder: subscriptionPlans.sortOrder,
+          createdAt: subscriptionPlans.createdAt,
+          updatedAt: subscriptionPlans.updatedAt,
+        },
+      })
+      .from(subscriptions)
+      .innerJoin(subscriptionPlans, eq(subscriptions.planId, subscriptionPlans.id))
+      .where(and(
+        eq(subscriptions.tenantId, tenantId),
+        or(eq(subscriptions.status, 'active'), eq(subscriptions.status, 'trialing'))
+      ))
+      .limit(1);
+
+    if (result.length === 0) return undefined;
+
+    const row = result[0];
+    return {
+      ...row,
+      plan: row.plan,
+    } as Subscription & { plan: SubscriptionPlan };
+  }
+
+  async checkUserLimits(tenantId: string): Promise<{ canAddUser: boolean; currentUsers: number; maxUsers: number | null; planName: string }> {
+    // Get current user count for the tenant
+    const userCountResult = await db
+      .select({ count: count() })
+      .from(users)
+      .where(and(eq(users.tenantId, tenantId), eq(users.isActive, true)));
+    
+    const currentUsers = userCountResult[0]?.count || 0;
+
+    // Get tenant's subscription and plan limits
+    const subscription = await this.getTenantSubscription(tenantId);
+    
+    if (!subscription) {
+      // No subscription found - use basic plan limits as default
+      const basicPlan = await db
+        .select()
+        .from(subscriptionPlans)
+        .where(eq(subscriptionPlans.name, 'basic'))
+        .limit(1);
+      
+      const maxUsers = basicPlan[0]?.maxUsers || 20; // Default to 20 if basic plan not found
+      return {
+        canAddUser: currentUsers < maxUsers,
+        currentUsers,
+        maxUsers,
+        planName: basicPlan[0]?.displayName || 'Basic Plan',
+      };
+    }
+
+    const maxUsers = subscription.plan.maxUsers;
+    const planName = subscription.plan.displayName;
+
+    return {
+      canAddUser: maxUsers === null || currentUsers < maxUsers, // null means unlimited
+      currentUsers,
+      maxUsers,
+      planName,
+    };
+  }
+
+  async validateUserCreation(tenantId: string): Promise<void> {
+    const limits = await this.checkUserLimits(tenantId);
+    
+    if (!limits.canAddUser) {
+      if (limits.maxUsers === null) {
+        // This shouldn't happen, but just in case
+        throw new Error('Unable to validate user limits');
+      }
+      
+      throw new Error(
+        `User limit reached. Your ${limits.planName} allows ${limits.maxUsers} users, and you currently have ${limits.currentUsers}. Please upgrade your plan to add more users.`
+      );
+    }
+  }
 
 }
 

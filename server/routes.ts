@@ -1403,6 +1403,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  // Get current user limits and usage (Admin/Manager only)
+  app.get(
+    "/api/users/limits",
+    authenticateToken,
+    requireManagerOrAdmin,
+    async (req: any, res) => {
+      try {
+        const limits = await storage.checkUserLimits(req.user.tenantId);
+        res.json(limits);
+      } catch (error) {
+        console.error("Get user limits error:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    },
+  );
+
   // Create a new user (Admin only)
   app.post(
     "/api/users",
@@ -1411,6 +1427,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req: any, res) => {
       try {
         const userData = createUserSchema.parse(req.body);
+
+        // Validate user limits before creating new user
+        await storage.validateUserCreation(req.user.tenantId);
 
         // Check if user already exists in tenant
         const existingUser = await storage.getUserByEmail(

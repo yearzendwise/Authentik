@@ -3,9 +3,8 @@ import { Link } from "wouter";
 import { Plus, FileText, Edit, Trash2, Save, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-// Temporarily using a simple placeholder until import issues are resolved
-// import { FormBuilder } from "../../../components/DragFormMaster/lib/dist";
-// import "../../../components/DragFormMaster/lib/dist/index.css";
+import { FormBuilder } from "../../../components/DragFormMaster/lib/dist";
+import "../../../components/DragFormMaster/lib/dist/index.css";
 
 function FormsAddPage() {
   const handleSave = (formData: any) => {
@@ -41,21 +40,12 @@ function FormsAddPage() {
           </div>
         </div>
         
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 h-[calc(100vh-200px)] flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">DragFormMaster Integration</h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              The DragFormMaster component is being integrated. Import path issues are being resolved.
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Component location: /components/DragFormMaster/lib/dist/
-            </p>
-          </div>
-          {/* <FormBuilder 
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 h-[calc(100vh-200px)]">
+          <FormBuilder 
             onSave={handleSave}
             onExport={handleExport}
             className="h-full w-full"
-          /> */}
+          />
         </div>
       </div>
     </div>

@@ -315,7 +315,12 @@ export default function AuthPage() {
 
                   <form onSubmit={(e) => {
                     console.log("📝 Form submit event triggered");
-                    loginForm.handleSubmit(onLogin)(e);
+                    e.preventDefault();
+                    console.log("Form validation state:", loginForm.formState.isValid);
+                    console.log("Form errors:", loginForm.formState.errors);
+                    loginForm.handleSubmit(onLogin, (errors) => {
+                      console.error("Form validation failed:", errors);
+                    })(e);
                   }} className="space-y-4">
                     <div>
                       <Label htmlFor="email">Email address</Label>
@@ -386,6 +391,11 @@ export default function AuthPage() {
                       type="submit"
                       className="w-full mt-6"
                       disabled={isLoginLoading}
+                      onClick={(e) => {
+                        console.log("🔘 Button clicked!");
+                        console.log("Form errors:", loginForm.formState.errors);
+                        console.log("Form values:", loginForm.getValues());
+                      }}
                     >
                       {isLoginLoading ? (
                         <>

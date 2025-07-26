@@ -123,19 +123,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = registerSchema.parse(req.body);
       
-      // First create or get tenant
-      let tenant = await storage.getTenantBySlug(validatedData.tenantSlug);
+      // Use the default tenant
+      const tenant = await storage.getTenantBySlug('default');
       if (!tenant) {
-        tenant = await storage.createTenant({
-          name: validatedData.tenantName,
-          slug: validatedData.tenantSlug,
-        });
+        return res.status(500).json({ message: "System configuration error" });
       }
       
-      // Check if user already exists in this tenant
+      // Check if user already exists in the default tenant
       const existingUser = await storage.getUserByEmail(validatedData.email, tenant.id);
       if (existingUser) {
-        return res.status(409).json({ message: "User already exists with this email in this organization" });
+        return res.status(409).json({ message: "User already exists with this email" });
       }
 
       // Hash password
@@ -191,19 +188,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Login endpoint - now requires tenant context via subdomain or slug
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { email, password, twoFactorToken, tenantSlug } = loginSchema.parse(req.body);
+      const { email, password, twoFactorToken } = loginSchema.parse(req.body);
       
-      // Get tenant context
-      let tenant;
-      if (tenantSlug) {
-        tenant = await storage.getTenantBySlug(tenantSlug);
-      } else {
-        // Use default tenant for backward compatibility
-        tenant = await storage.getTenantBySlug('default');
-      }
-      
+      // Always use default tenant for backward compatibility
+      const tenant = await storage.getTenantBySlug('default');
       if (!tenant) {
-        return res.status(404).json({ message: "Organization not found" });
+        return res.status(500).json({ message: "System configuration error" });
       }
       
       // Find user by email within tenant

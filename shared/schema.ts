@@ -239,7 +239,6 @@ export const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   twoFactorToken: z.string().optional(),
-  tenantSlug: z.string().optional(),
 });
 
 export const registerSchema = z.object({
@@ -252,10 +251,6 @@ export const registerSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   confirmPassword: z.string(),
-  selectedPlan: z.string().optional(), // Plan ID for subscription
-  billingCycle: z.enum(['monthly', 'yearly']).default('monthly'),
-  tenantName: z.string().min(1, "Organization name is required"),
-  tenantSlug: z.string().min(1, "Organization identifier is required").regex(/^[a-z0-9-]+$/, "Only lowercase letters, numbers, and hyphens allowed"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],

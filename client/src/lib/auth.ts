@@ -234,6 +234,28 @@ class AuthManager {
   }
 
   async getCurrentUser(): Promise<AuthUser> {
+    // First check if we have a token
+    const token = this.getAccessToken();
+    if (!token) {
+      throw new Error("No access token available");
+    }
+    
+    // Check if token is about to expire (within 30 seconds)
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const expTime = payload.exp * 1000;
+      const now = Date.now();
+      const timeUntilExpiry = expTime - now;
+      
+      // If token expires in less than 30 seconds, refresh it first
+      if (timeUntilExpiry < 30000) {
+        console.log("Token about to expire, refreshing before getCurrentUser...");
+        await this.refreshAccessToken();
+      }
+    } catch (error) {
+      console.error("Error checking token expiry:", error);
+    }
+    
     const response = await this.makeAuthenticatedRequest("GET", "/api/auth/me");
     
     if (!response.ok) {
@@ -325,7 +347,28 @@ class AuthManager {
   }
 
   isAuthenticated(): boolean {
-    return !!this.getAccessToken();
+    const token = this.getAccessToken();
+    if (!token) return false;
+    
+    try {
+      // Check if token is expired
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const expTime = payload.exp * 1000;
+      const now = Date.now();
+      
+      // Token is valid if it hasn't expired yet
+      const isValid = expTime > now;
+      if (!isValid) {
+        console.log("Token has expired, clearing tokens");
+        this.clearTokens();
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Error validating token:", error);
+      return false;
+    }
   }
 }
 

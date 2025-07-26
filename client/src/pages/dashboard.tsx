@@ -25,9 +25,10 @@ export default function Dashboard() {
 
   // If user doesn't have subscription, redirect to subscription page
   useEffect(() => {
-    if (!subscriptionLoading && !subscription?.subscription) {
-      setLocation('/subscribe');
-    }
+    // Temporarily disabled to debug logout issue
+    // if (!subscriptionLoading && !subscription?.subscription) {
+    //   setLocation('/subscribe');
+    // }
   }, [subscription, subscriptionLoading, setLocation]);
 
   useEffect(() => {

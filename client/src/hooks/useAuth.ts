@@ -47,7 +47,9 @@ export function useAuth() {
   return {
     user,
     isLoading,
-    isAuthenticated: !!user && authManager.isAuthenticated(),
+    // Only consider user as not authenticated if we're sure they're logged out
+    // This prevents temporary states from logging users out
+    isAuthenticated: authManager.isAuthenticated() && (isLoading || !!user),
   };
 }
 

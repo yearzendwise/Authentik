@@ -59,15 +59,22 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState<UserRole | "">("");
   const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "">("");
   const [showInactive, setShowInactive] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
   // Debounce search term to reduce API calls
   useEffect(() => {
+    // Show loading state when search term changes
+    if (searchTerm !== debouncedSearchTerm) {
+      setIsSearching(true);
+    }
+
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
+      setIsSearching(false);
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchTerm]);
+  }, [searchTerm, debouncedSearchTerm]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -90,7 +97,7 @@ export default function UsersPage() {
   const isAdmin = currentUser.role === 'Owner' || currentUser.role === 'Administrator';
 
   // Fetch users
-  const { data: usersData, isLoading: usersLoading } = useQuery({
+  const { data: usersData, isLoading: usersLoading, isFetching } = useQuery({
     queryKey: ['/api/users', { search: debouncedSearchTerm, role: roleFilter, status: statusFilter, showInactive }],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -604,8 +611,22 @@ export default function UsersPage() {
         </div>
 
         {/* Users List */}
-        <div className="grid gap-4">
-          {users.map((user: User) => (
+        <div className="relative">
+          {/* Loading overlay for search */}
+          {(isSearching || isFetching) && (
+            <div className="absolute top-0 left-0 right-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-lg">
+              <div className="flex items-center justify-center py-8">
+                <div className="flex items-center space-x-2 text-blue-600">
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+                  <span className="text-sm font-medium">
+                    {isSearching ? "Searching..." : "Loading..."}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+          <div className="grid gap-4">
+            {users.map((user: User) => (
             <Card key={user.id} className={!user.isActive ? "opacity-60" : ""}>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -717,6 +738,7 @@ export default function UsersPage() {
               </CardContent>
             </Card>
           )}
+          </div>
         </div>
 
         {/* Edit User Dialog */}

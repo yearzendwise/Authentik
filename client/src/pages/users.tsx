@@ -18,7 +18,7 @@ import { formatDistanceToNow } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createUserSchema, updateUserSchema, userRoles, type User, type CreateUserData, type UpdateUserData, type UserRole } from "@shared/schema";
-import { useAuth } from "@/hooks/useAuth";
+import { useReduxAuth } from "@/hooks/useReduxAuth";
 
 interface UserStats {
   totalUsers: number;
@@ -51,7 +51,8 @@ function getUserInitials(firstName?: string, lastName?: string) {
 }
 
 export default function UsersPage() {
-  const { user: currentUser } = useAuth();
+  console.log("🔍 [UsersPage] Component rendered");
+  const { user: currentUser, isLoading: authLoading } = useReduxAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
@@ -70,6 +71,15 @@ export default function UsersPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
+  // Check authentication first
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   // Check if current user has permission to access this page
   if (!currentUser || (currentUser.role !== 'Owner' && currentUser.role !== 'Administrator' && currentUser.role !== 'Manager')) {

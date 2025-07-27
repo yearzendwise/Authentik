@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useAuth, useLogout } from "@/hooks/useAuth";
+import { useLogout } from "@/hooks/useAuth";
+import { useReduxAuth } from "@/hooks/useReduxAuth";
 import type { UserSubscriptionResponse } from "@shared/schema";
 import { authManager } from "@/lib/auth";
 import { Shield, Users, Clock, TrendingUp, LogOut, RefreshCw, Settings, CreditCard, Calendar } from "lucide-react";
@@ -11,7 +12,7 @@ import { useLocation } from "wouter";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading } = useReduxAuth();
   const logoutMutation = useLogout();
   const [tokenExpiry, setTokenExpiry] = useState<string>("--");
   const [sessionCount] = useState(3);

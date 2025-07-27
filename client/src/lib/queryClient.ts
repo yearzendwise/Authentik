@@ -1,14 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-
-// Lazy import to avoid circular dependency
-let store: any = null;
-const getStore = async () => {
-  if (!store) {
-    const storeModule = await import("../store");
-    store = storeModule.store;
-  }
-  return store;
-};
+import { authManager } from "./auth";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -23,12 +14,9 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   try {
-    const reduxStore = await getStore();
-    const authState = reduxStore.getState().auth;
-
     // Check if user is authenticated, if not use direct fetch for auth endpoints
     if (
-      !authState.isAuthenticated &&
+      !authManager.isAuthenticated() &&
       (url.includes("/auth/login") ||
         url.includes("/auth/register") ||
         url.includes("/auth/forgot-password"))
@@ -48,13 +36,14 @@ export async function apiRequest(
       return res;
     }
 
-    // For authenticated requests, use the access token from Redux state
-    if (!authState.accessToken) {
+    // For authenticated requests, use the auth manager
+    const token = authManager.getAccessToken();
+    if (!token) {
       throw new Error("No access token available");
     }
 
     const headers: Record<string, string> = {
-      Authorization: `Bearer ${authState.accessToken}`,
+      Authorization: `Bearer ${token}`,
       ...(data ? { "Content-Type": "application/json" } : {}),
     };
 
@@ -79,18 +68,15 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     try {
-      const reduxStore = await getStore();
-      const authState = reduxStore.getState().auth;
-
       // Check if user is authenticated
-      if (!authState.isAuthenticated || !authState.accessToken) {
+      if (!authManager.isAuthenticated()) {
         if (unauthorizedBehavior === "returnNull") {
           return null;
         }
         throw new Error("401: Not authenticated");
       }
 
-      // Make authenticated request using Redux token
+      // Make authenticated request using auth manager
       const res = await apiRequest("GET", queryKey.join("/") as string);
       return await res.json();
     } catch (error: any) {

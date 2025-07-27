@@ -1,53 +1,9 @@
-import { Switch, Route } from "wouter";
 import { Link } from "wouter";
-import { Plus, FileText, Edit, Trash2, Save, Eye } from "lucide-react";
+import { Plus, FileText, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FormBuilder } from "../components/form-builder";
 
-function FormsAddPage() {
-  const handleSave = (formData: any) => {
-    console.log("Form saved:", formData);
-    // TODO: Implement form saving logic
-  };
-
-  const handleExport = (formData: any) => {
-    console.log("Form exported:", formData);
-    // TODO: Implement form export logic
-  };
-
-  return (
-    <div className="h-full w-full">
-      <div className="p-6">
-        <div className="mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Create New Form</h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-2">
-                Use the DragFormMaster component to create custom forms
-              </p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Link href="/forms">
-                <Button variant="outline">Back to Forms</Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 h-[calc(100vh-200px)]">
-          <FormBuilder 
-            onSave={handleSave}
-            onExport={handleExport}
-            className="h-full w-full"
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FormsListPage() {
+export default function FormsListPage() {
   const mockForms = [
     {
       id: 1,
@@ -120,7 +76,7 @@ function FormsListPage() {
                 No forms yet
               </h3>
               <p className="text-gray-500 dark:text-gray-400 mb-6">
-                Get started by creating your first form with our drag-and-drop builder
+                Get started by creating your first form
               </p>
               <Link href="/forms/add">
                 <Button>
@@ -134,13 +90,4 @@ function FormsListPage() {
       </div>
     </div>
   );
-}
-
-export default function FormsPage() {
-  return (
-    <Switch>
-      <Route path="/forms/add" component={FormsAddPage} />
-      <Route path="/forms" component={FormsListPage} />
-    </Switch>
-  );
-}
+} 

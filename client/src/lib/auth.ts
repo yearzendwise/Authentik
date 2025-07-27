@@ -22,6 +22,25 @@ export interface AuthResponse {
   emailVerificationRequired?: boolean;
 }
 
+// Create a simple event system for auth state changes
+type AuthStateListener = (token: string | null) => void;
+const authListeners: AuthStateListener[] = [];
+
+export const addAuthStateListener = (listener: AuthStateListener) => {
+  authListeners.push(listener);
+};
+
+export const removeAuthStateListener = (listener: AuthStateListener) => {
+  const index = authListeners.indexOf(listener);
+  if (index > -1) {
+    authListeners.splice(index, 1);
+  }
+};
+
+const notifyAuthStateChange = (token: string | null) => {
+  authListeners.forEach(listener => listener(token));
+};
+
 class AuthManager {
   private readonly ACCESS_TOKEN_KEY = "auth_access_token";
   private refreshPromise: Promise<string> | null = null;
@@ -49,15 +68,15 @@ class AuthManager {
       console.log("Token stored in localStorage successfully");
       this.scheduleTokenRefresh(token);
       
-      // Update Redux store with new token (async but don't wait)
-      this.updateReduxStore(token).catch(console.error);
+      // Notify listeners about the token change
+      notifyAuthStateChange(token);
     } catch (error) {
       console.error("Error storing token in localStorage:", error);
       // Still schedule refresh even if storage fails
       this.scheduleTokenRefresh(token);
       
-      // Try to update Redux store even if localStorage fails
-      this.updateReduxStore(token).catch(console.error);
+      // Notify listeners even if localStorage fails
+      notifyAuthStateChange(token);
     }
   }
 
@@ -69,54 +88,8 @@ class AuthManager {
     localStorage.removeItem(this.ACCESS_TOKEN_KEY);
     this.clearRefreshTimer();
     
-    // Clear Redux store as well (async but don't wait)
-    this.clearReduxStore().catch(console.error);
-  }
-
-  private async updateReduxStore(token: string): Promise<void> {
-    try {
-      // Dynamically import to avoid circular dependency
-      const { store } = await import("../store");
-      const { setAccessToken } = await import("../store/authSlice");
-      
-      console.log("🔄 Updating Redux store with new token");
-      store.dispatch(setAccessToken(token));
-    } catch (error) {
-      console.error("Failed to update Redux store with token:", error);
-    }
-  }
-
-  private async clearReduxStore(): Promise<void> {
-    try {
-      // Dynamically import to avoid circular dependency
-      const { store } = await import("../store");
-      const { clearAuth } = await import("../store/authSlice");
-      
-      console.log("🔄 Clearing Redux store authentication state");
-      store.dispatch(clearAuth());
-    } catch (error) {
-      console.error("Failed to clear Redux store:", error);
-    }
-  }
-
-  private async updateReduxStoreWithUserData(user: AuthUser, token: string): Promise<void> {
-    try {
-      // Dynamically import to avoid circular dependency
-      const { store } = await import("../store");
-      
-      console.log("🔄 Updating Redux store with user data and token");
-      
-      // Dispatch actions to update auth state
-      store.dispatch({
-        type: 'auth/checkAuthStatus/fulfilled',
-        payload: {
-          user,
-          accessToken: token
-        }
-      });
-    } catch (error) {
-      console.error("Failed to update Redux store with user data:", error);
-    }
+    // Notify listeners about the token clear
+    notifyAuthStateChange(null);
   }
 
   private clearRefreshTimer(): void {
@@ -285,11 +258,6 @@ class AuthManager {
       console.log("🔄 Token refresh successful, received new token");
       console.log("🔄 User data from refresh:", data.user);
       this.setAccessToken(data.accessToken);
-      
-      // Also update Redux store with user data if available
-      if (data.user) {
-        this.updateReduxStoreWithUserData(data.user, data.accessToken).catch(console.error);
-      }
       
       return data.accessToken;
     } catch (error) {

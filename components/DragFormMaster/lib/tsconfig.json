@@ -1,0 +1,42 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": false,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": false,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["../client/src/*"],
+      "@/components/ui/*": ["../client/src/components/ui/*"],
+      "@/hooks/*": ["../client/src/hooks/*"],
+      "@/lib/*": ["../client/src/lib/*"],
+      "@/utils/*": ["../client/src/utils/*"],
+      "@/types/*": ["../client/src/types/*"]
+    }
+  },
+  "include": [
+    "index.ts",
+    "../client/src/**/*",
+    "../shared/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.stories.ts"
+  ]
+}

@@ -52,9 +52,16 @@ function getUserInitials(firstName?: string, lastName?: string) {
 }
 
 export default function UsersPage() {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Debug logging
+  console.log("🔍 [Users Page] Auth state:", { 
+    currentUser: currentUser ? { email: currentUser.email, role: currentUser.role } : null, 
+    authLoading,
+    hasCurrentUser: !!currentUser 
+  });
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<UserRole | "">("");
   const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "">("");
@@ -72,8 +79,46 @@ export default function UsersPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
+  // Show loading state while auth is still loading
+  if (authLoading) {
+    console.log("🔍 [Users Page] Auth still loading, showing loading state");
+    return (
+      <div className="max-w-6xl mx-auto p-6">
+        <div className="space-y-6">
+          <div className="mb-8">
+            <div className="flex items-center space-x-4">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <UsersIcon className="text-white w-6 h-6" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Users</h1>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Loading authentication...
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-4">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="animate-pulse">
+                <CardContent className="p-6">
+                  <div className="h-4 bg-muted rounded w-1/3 mb-2"></div>
+                  <div className="h-3 bg-muted rounded w-1/2"></div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Check if current user has permission to access this page
   if (!currentUser || (currentUser.role !== 'Owner' && currentUser.role !== 'Administrator' && currentUser.role !== 'Manager')) {
+    console.log("🔍 [Users Page] Access denied:", { 
+      hasUser: !!currentUser, 
+      role: currentUser?.role 
+    });
     return (
       <div className="max-w-4xl mx-auto p-6">
         <div className="text-center">
@@ -89,8 +134,10 @@ export default function UsersPage() {
 
   const isAdmin = currentUser.role === 'Owner' || currentUser.role === 'Administrator';
 
+  console.log("🔍 [Users Page] Starting queries for user:", currentUser?.email);
+
   // Fetch users with stable query key - no search params in key
-  const { data: usersData, isLoading: usersLoading, isFetching, refetch } = useQuery({
+  const { data: usersData, isLoading: usersLoading, isFetching, refetch, error: usersError } = useQuery({
     queryKey: ['/api/users'],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -165,6 +212,14 @@ export default function UsersPage() {
   const users = usersData?.users || [];
   const stats: UserStats = statsData || { totalUsers: 0, activeUsers: 0, inactiveUsers: 0, usersByRole: {} };
   const limits: UserLimits = limitsData || { canAddUser: true, currentUsers: 0, maxUsers: null, planName: 'Unknown' };
+  
+  console.log("🔍 [Users Page] Query states:", { 
+    usersLoading, 
+    usersError: usersError?.message,
+    usersCount: users.length,
+    hasUsersData: !!usersData,
+    isFetching
+  });
 
   // Create user form
   const createForm = useForm<CreateUserData>({

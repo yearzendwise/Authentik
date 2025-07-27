@@ -612,20 +612,20 @@ export default function UsersPage() {
 
         {/* Users List */}
         <div className="relative">
-          {/* Loading overlay for search */}
-          {(isSearching || isFetching) && (
-            <div className="absolute top-0 left-0 right-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-lg">
-              <div className="flex items-center justify-center py-8">
-                <div className="flex items-center space-x-2 text-blue-600">
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
-                  <span className="text-sm font-medium">
-                    {isSearching ? "Searching..." : "Loading..."}
-                  </span>
+          <div className="grid gap-4 relative">
+            {/* Loading overlay for search - only covers user cards */}
+            {(isSearching || isFetching) && (
+              <div className="absolute inset-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-lg">
+                <div className="flex items-center justify-center py-8">
+                  <div className="flex items-center space-x-2 text-blue-600">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+                    <span className="text-sm font-medium">
+                      {isSearching ? "Searching..." : "Loading..."}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-          <div className="grid gap-4">
+            )}
             {users.map((user: User) => (
             <Card key={user.id} className={!user.isActive ? "opacity-60" : ""}>
               <CardContent className="p-6">
@@ -727,7 +727,7 @@ export default function UsersPage() {
               </CardContent>
             </Card>
           ))}
-          {users.length === 0 && (
+          {users.length === 0 && !isSearching && !isFetching && (
             <Card>
               <CardContent className="p-12 text-center">
                 <UsersIcon className="mx-auto h-12 w-12 text-gray-400" />

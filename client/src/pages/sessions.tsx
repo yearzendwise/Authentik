@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { authManager } from "@/lib/auth";
+import { useReduxAuth } from "@/hooks/useReduxAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Smartphone, Monitor, Tablet, Globe, Clock, MapPin, LogOut } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useLocation } from "wouter";
 
 interface Session {
   id: string;
@@ -31,8 +33,25 @@ function getDeviceIcon(deviceName: string) {
 }
 
 export default function Sessions() {
+  console.log("🔍 [SessionsPage] Component rendered");
+  const { user, isLoading: authLoading } = useReduxAuth();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Check authentication first
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    setLocation("/auth");
+    return null;
+  }
 
   const { data: sessionsData, isLoading } = useQuery({
     queryKey: ['/api/auth/sessions'],

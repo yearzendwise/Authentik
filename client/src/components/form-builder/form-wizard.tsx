@@ -4,6 +4,10 @@ import { StyleStep } from './wizard-steps/style-step';
 import { PreviewStep } from './wizard-steps/preview-step';
 import { Button } from '../../components/ui/button';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { authManager } from '../../lib/auth';
+import { useToast } from '../../hooks/use-toast';
+import { useLocation } from 'wouter';
 
 export function FormWizard() {
   const {
@@ -19,22 +23,82 @@ export function FormWizard() {
     resetWizard
   } = useFormWizard();
 
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
+
   const canProceedToStyle = wizardState.formData.elements.length > 0;
   const canProceedToPreview = wizardState.selectedTheme !== null;
 
+  // Save form mutation
+  const saveFormMutation = useMutation({
+    mutationFn: async (formData: any) => {
+      const response = await authManager.makeAuthenticatedRequest('POST', '/api/forms', {
+        title: formData.title,
+        description: formData.settings?.description || '',
+        elements: formData.elements,
+        theme: formData.theme,
+        settings: formData.settings
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to save form');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/forms'] });
+      toast({
+        title: "Success",
+        description: "Form saved successfully!",
+      });
+      completeWizard();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save form",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSave = () => {
-    // TODO: Implement actual save functionality
-    console.log('Saving form:', {
+    const formData = {
       title: wizardState.formData.title,
       elements: wizardState.formData.elements,
-      theme: wizardState.selectedTheme
-    });
-    completeWizard();
+      theme: wizardState.selectedTheme,
+      settings: wizardState.formData.settings
+    };
+    
+    saveFormMutation.mutate(formData);
   };
 
   const handleExport = () => {
-    // TODO: Implement export functionality
-    console.log('Exporting form:', wizardState);
+    // Export form data as JSON
+    const formData = {
+      title: wizardState.formData.title,
+      elements: wizardState.formData.elements,
+      theme: wizardState.selectedTheme,
+      settings: wizardState.formData.settings
+    };
+    
+    const blob = new Blob([JSON.stringify(formData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${wizardState.formData.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Exported",
+      description: "Form exported successfully!",
+    });
   };
 
   const getStepTitle = () => {
@@ -72,7 +136,10 @@ export function FormWizard() {
           </div>
           <h2 className="text-2xl font-bold text-slate-800 mb-2">Form Saved Successfully!</h2>
           <p className="text-slate-600 mb-6">Your form has been created and saved.</p>
-          <Button onClick={resetWizard}>Create Another Form</Button>
+          <div className="flex gap-4 justify-center">
+            <Button onClick={() => setLocation('/forms')}>View All Forms</Button>
+            <Button variant="outline" onClick={resetWizard}>Create Another Form</Button>
+          </div>
         </div>
       </div>
     );
@@ -117,6 +184,8 @@ export function FormWizard() {
                   <span className={`text-sm font-medium ${
                     wizardState.currentStep === item.key
                       ? 'text-slate-800'
+                      : getStepNumber() > item.step
+                      ? 'text-green-600'
                       : 'text-slate-500'
                   }`}>
                     {item.title}
@@ -127,31 +196,58 @@ export function FormWizard() {
           </div>
         </div>
 
-        <div className="text-sm text-slate-600">
-          Step {getStepNumber()} of 3
+        {/* Step Title */}
+        <div className="text-center lg:text-left">
+          <h1 className="text-lg font-semibold text-slate-800">{getStepTitle()}</h1>
+          <p className="text-sm text-slate-500 hidden lg:block">
+            Step {getStepNumber()} of 3
+          </p>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center space-x-3">
+          {wizardState.currentStep === 'preview' && (
+            <Button
+              variant="outline"
+              onClick={handleExport}
+              disabled={saveFormMutation.isPending}
+            >
+              Export
+            </Button>
+          )}
+          
+          {wizardState.currentStep === 'preview' && (
+            <Button
+              onClick={handleSave}
+              disabled={saveFormMutation.isPending}
+            >
+              {saveFormMutation.isPending ? 'Saving...' : 'Save Form'}
+            </Button>
+          )}
         </div>
       </header>
-      {/* Step Content */}
-      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-hidden">
         {wizardState.currentStep === 'build' && (
-          <BuildStep 
+          <BuildStep
             onDataChange={updateFormData}
             initialTitle={wizardState.formData.title}
             initialElements={wizardState.formData.elements}
             initialSettings={wizardState.formData.settings}
           />
         )}
-        
-        {wizardState.currentStep === 'style' && (
-          <StyleStep 
-            themes={themes} 
-            selectedTheme={wizardState.selectedTheme}
-            onSelectTheme={selectTheme}
-          />
-        )}
-        
+
+                  {wizardState.currentStep === 'style' && (
+            <StyleStep
+              themes={themes}
+              selectedTheme={wizardState.selectedTheme}
+              onSelectTheme={selectTheme}
+            />
+          )}
+
         {wizardState.currentStep === 'preview' && (
-          <PreviewStep 
+          <PreviewStep
             formTitle={wizardState.formData.title}
             elements={wizardState.formData.elements}
             selectedTheme={wizardState.selectedTheme}
@@ -163,48 +259,37 @@ export function FormWizard() {
           />
         )}
       </div>
-      {/* Navigation Footer */}
-      <footer className="bg-white border-t border-slate-200 px-6 py-4 flex-shrink-0 z-10">
+
+      {/* Footer Navigation */}
+      <footer className="bg-white/95 backdrop-blur-lg border-t border-slate-200/60 px-6 py-4">
         <div className="flex items-center justify-between">
-          <div>
-            {wizardState.currentStep !== 'build' && (
-              <Button variant="outline" onClick={previousStep} className="flex items-center space-x-2">
-                <ArrowLeft className="w-4 h-4" />
-                <span>Previous</span>
-              </Button>
-            )}
-          </div>
+          <Button
+            variant="outline"
+            onClick={previousStep}
+            disabled={wizardState.currentStep === 'build'}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Previous
+          </Button>
 
           <div className="flex items-center space-x-3">
             {wizardState.currentStep === 'build' && (
-              <div className="text-sm text-slate-600">
-                {canProceedToStyle ? 
-                  `${wizardState.formData.elements.length} element${wizardState.formData.elements.length !== 1 ? 's' : ''} added` :
-                  'Add at least one form element to continue'
-                }
-              </div>
-            )}
-            
-            {wizardState.currentStep === 'style' && (
-              <div className="text-sm text-slate-600">
-                {canProceedToPreview ? 
-                  `${wizardState.selectedTheme?.name} theme selected` :
-                  'Select a theme to continue'
-                }
-              </div>
+              <Button
+                onClick={nextStep}
+                disabled={!canProceedToStyle}
+              >
+                Next
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
             )}
 
-            {wizardState.currentStep !== 'preview' && (
-              <Button 
+            {wizardState.currentStep === 'style' && (
+              <Button
                 onClick={nextStep}
-                disabled={
-                  (wizardState.currentStep === 'build' && !canProceedToStyle) ||
-                  (wizardState.currentStep === 'style' && !canProceedToPreview)
-                }
-                className="flex items-center space-x-2"
+                disabled={!canProceedToPreview}
               >
-                <span>Next</span>
-                <ArrowRight className="w-4 h-4" />
+                Next
+                <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             )}
           </div>

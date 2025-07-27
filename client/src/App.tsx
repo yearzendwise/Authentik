@@ -61,6 +61,9 @@ function Router() {
     currentPath: window.location.pathname,
     currentSearch: window.location.search
   });
+  
+  // Debug: Log when routes are being rendered
+  console.log("🚀 [Router] Rendering routes for authenticated:", isAuthenticated, "emailVerified:", isEmailVerified);
 
   return (
     <Switch>
@@ -72,9 +75,13 @@ function Router() {
             <Route path="/dashboard" component={Dashboard} />
             <Route path="/company" component={CompanyPage} />
             <Route path="/forms" component={FormsListPage} />
-            <Suspense fallback={<FormsLoading />}>
-              <Route path="/forms/add" component={FormsAddPage} />
-            </Suspense>
+            <Route path="/forms/add">
+              {() => (
+                <Suspense fallback={<FormsLoading />}>
+                  <FormsAddPage />
+                </Suspense>
+              )}
+            </Route>
             <Route path="/profile" component={ProfilePage} />
             <Route path="/sessions" component={SessionsPage} />
             <Route path="/users" component={UsersPage} />

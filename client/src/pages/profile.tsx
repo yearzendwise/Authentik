@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
-import { useAuth, useUpdateProfile, useChangePassword, useDeleteAccount, useSetup2FA, useEnable2FA, useDisable2FA, useUpdateMenuPreference } from "@/hooks/useAuth";
+import { useUpdateProfile, useChangePassword, useDeleteAccount, useSetup2FA, useEnable2FA, useDisable2FA, useUpdateMenuPreference } from "@/hooks/useAuth";
+import { useReduxAuth } from "@/hooks/useReduxAuth";
 import { updateProfileSchema, changePasswordSchema } from "@shared/schema";
 import type { UpdateProfileData, ChangePasswordData } from "@shared/schema";
 import { calculatePasswordStrength, getPasswordStrengthText, getPasswordStrengthColor } from "@/lib/authUtils";
@@ -31,8 +32,10 @@ import {
 import { useLocation, Link } from "wouter";
 
 export default function ProfilePage() {
+  console.log("🔍 [ProfilePage] Component rendered");
   const [, setLocation] = useLocation();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading } = useReduxAuth();
+  console.log("🔍 [ProfilePage] Auth state:", { user, isLoading });
   const updateProfileMutation = useUpdateProfile();
   const changePasswordMutation = useChangePassword();
   const deleteAccountMutation = useDeleteAccount();

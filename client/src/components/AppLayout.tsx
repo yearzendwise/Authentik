@@ -62,6 +62,7 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
+  console.log("🔍 [AppLayout] Component rendered with children:", children);
   const [location, setLocation] = useLocation();
   const { user } = useReduxAuth();
   const { logout } = useReduxLogout();

@@ -41,9 +41,17 @@ export function useAuth() {
 
         if (!checkData.hasAuth) {
           console.log("🔐 No valid refresh token found");
-          // Clear any stale access tokens
-          authManager.clearTokens();
-          return null;
+          // Only clear tokens if we don't have an access token that was just set
+          const currentToken = authManager.getAccessToken();
+          if (!currentToken) {
+            console.log("🔐 No access token either, clearing any stale tokens");
+            authManager.clearTokens();
+            return null;
+          } else {
+            console.log("🔐 Have access token but no refresh token yet - likely just logged in");
+            // Continue with the existing access token and try to get user data
+            // Don't return null here, continue to try getting user data
+          }
         }
 
         // We have a valid refresh token, now try to get user data

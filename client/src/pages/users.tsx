@@ -1,6 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { authManager } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,26 +55,18 @@ export default function UsersPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<UserRole | "">("");
   const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "">("");
   const [showInactive, setShowInactive] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-
-  // Debounce search term to reduce API calls
-  useEffect(() => {
-    // Show loading state when search term changes
-    if (searchTerm !== debouncedSearchTerm) {
-      setIsSearching(true);
-    }
-
-    const timer = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-      setIsSearching(false);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchTerm, debouncedSearchTerm]);
+  
+  // Store search params in a ref to use in query function without changing dependencies
+  const searchParamsRef = useRef({
+    search: "",
+    role: "",
+    status: "",
+    showInactive: false
+  });
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -97,46 +88,76 @@ export default function UsersPage() {
 
   const isAdmin = currentUser.role === 'Owner' || currentUser.role === 'Administrator';
 
-  // Fetch users using direct API request to avoid token refresh cycles during search
-  const { data: usersData, isLoading: usersLoading, isFetching } = useQuery({
-    queryKey: ['/api/users', { search: debouncedSearchTerm, role: roleFilter, status: statusFilter, showInactive }],
+  // Fetch users with stable query key - no search params in key
+  const { data: usersData, isLoading: usersLoading, isFetching, refetch } = useQuery({
+    queryKey: ['/api/users'],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
-      if (roleFilter) params.append('role', roleFilter);
-      if (statusFilter) params.append('status', statusFilter);
-      if (showInactive) params.append('showInactive', 'true');
+      const currentParams = searchParamsRef.current;
+      
+      if (currentParams.search) params.append('search', currentParams.search);
+      if (currentParams.role) params.append('role', currentParams.role);
+      if (currentParams.status) params.append('status', currentParams.status);
+      if (currentParams.showInactive) params.append('showInactive', 'true');
 
-      // Use apiRequest instead of authManager to avoid token refresh cycles
-      const response = await apiRequest('GET', `/api/users?${params}`);
+      const response = await authManager.makeAuthenticatedRequest('GET', `/api/users?${params}`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch users');
+      }
       return response.json();
     },
-    staleTime: 30000,
-    retry: false, // Disable retry to prevent refresh cycles
-    refetchOnWindowFocus: false, // Prevent accidental refetch on focus
+    enabled: !!currentUser,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
   });
 
-  // Fetch user statistics using direct API request
+  // Debounced search effect
+  useEffect(() => {
+    setIsSearching(true);
+    
+    const timer = setTimeout(() => {
+      searchParamsRef.current = {
+        search: searchTerm,
+        role: roleFilter,
+        status: statusFilter,
+        showInactive
+      };
+      refetch().then(() => setIsSearching(false));
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, roleFilter, statusFilter, showInactive, refetch]);
+
+  // Fetch user statistics
   const { data: statsData } = useQuery({
     queryKey: ['/api/users/stats'],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/users/stats');
+      const response = await authManager.makeAuthenticatedRequest('GET', '/api/users/stats');
+      if (!response.ok) {
+        throw new Error('Failed to fetch user stats');
+      }
       return response.json();
     },
+    enabled: !!currentUser,
     staleTime: 60000,
-    retry: false,
     refetchOnWindowFocus: false,
   });
 
-  // Fetch user limits using direct API request  
+  // Fetch user limits
   const { data: limitsData } = useQuery({
     queryKey: ['/api/users/limits'],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/users/limits');
+      const response = await authManager.makeAuthenticatedRequest('GET', '/api/users/limits');
+      if (!response.ok) {
+        throw new Error('Failed to fetch user limits');
+      }
       return response.json();
     },
+    enabled: !!currentUser,
     staleTime: 60000,
-    retry: false,
     refetchOnWindowFocus: false,
   });
 
@@ -172,7 +193,11 @@ export default function UsersPage() {
   // Create user mutation
   const createUserMutation = useMutation({
     mutationFn: async (data: CreateUserData) => {
-      const response = await apiRequest('POST', '/api/users', data);
+      const response = await authManager.makeAuthenticatedRequest('POST', '/api/users', data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to create user');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -198,7 +223,11 @@ export default function UsersPage() {
   // Update user mutation
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateUserData }) => {
-      const response = await apiRequest('PUT', `/api/users/${id}`, data);
+      const response = await authManager.makeAuthenticatedRequest('PUT', `/api/users/${id}`, data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update user');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -225,7 +254,11 @@ export default function UsersPage() {
   // Delete user mutation
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const response = await apiRequest('DELETE', `/api/users/${userId}`);
+      const response = await authManager.makeAuthenticatedRequest('DELETE', `/api/users/${userId}`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete user');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -249,7 +282,11 @@ export default function UsersPage() {
   // Toggle user status mutation
   const toggleStatusMutation = useMutation({
     mutationFn: async ({ userId, isActive }: { userId: string; isActive: boolean }) => {
-      const response = await apiRequest('PATCH', `/api/users/${userId}/status`, { isActive });
+      const response = await authManager.makeAuthenticatedRequest('PATCH', `/api/users/${userId}/status`, { isActive });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update user status');
+      }
       return response.json();
     },
     onSuccess: () => {

@@ -8,17 +8,22 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useReduxAuth } from "@/hooks/useReduxAuth";
 import { AppLayout } from "@/components/AppLayout";
+import { lazy, Suspense } from "react";
+import { FormsLoading } from "@/components/ui/forms-loading";
 import AuthPage from "@/pages/auth";
 import Dashboard from "@/pages/dashboard";
 import ProfilePage from "@/pages/profile";
 import SessionsPage from "@/pages/sessions";
 import UsersPage from "@/pages/users";
 import CompanyPage from "@/pages/company";
-import FormsPage from "@/pages/forms";
+import FormsListPage from "@/pages/forms-list";
 import Subscribe from "@/pages/subscribe";
 import VerifyEmailPage from "@/pages/verify-email";
 import PendingVerificationPage from "@/pages/pending-verification";
 import NotFound from "@/pages/not-found";
+
+// Lazy load only the form builder (add page)
+const FormsAddPage = lazy(() => import("@/pages/forms-add"));
 
 function Router() {
   const { isAuthenticated, isLoading, user, isInitialized } = useReduxAuth();
@@ -66,8 +71,10 @@ function Router() {
             {/* Dashboard will handle subscription redirects */}
             <Route path="/dashboard" component={Dashboard} />
             <Route path="/company" component={CompanyPage} />
-            <Route path="/forms/:rest*" component={FormsPage} />
-            <Route path="/forms" component={FormsPage} />
+            <Route path="/forms" component={FormsListPage} />
+            <Suspense fallback={<FormsLoading />}>
+              <Route path="/forms/add" component={FormsAddPage} />
+            </Suspense>
             <Route path="/profile" component={ProfilePage} />
             <Route path="/sessions" component={SessionsPage} />
             <Route path="/users" component={UsersPage} />

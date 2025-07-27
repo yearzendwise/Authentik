@@ -23,6 +23,7 @@ import { useAuth } from "@/hooks/useAuth";
 interface UserStats {
   totalUsers: number;
   activeUsers: number;
+  inactiveUsers: number;
   usersByRole: Record<string, number>;
 }
 
@@ -132,7 +133,7 @@ export default function UsersPage() {
   }, [searchTerm, roleFilter, statusFilter, showInactive, refetch]);
 
   // Fetch user statistics
-  const { data: statsData } = useQuery({
+  const { data: statsData, refetch: refetchStats } = useQuery({
     queryKey: ['/api/users/stats'],
     queryFn: async () => {
       const response = await authManager.makeAuthenticatedRequest('GET', '/api/users/stats');
@@ -142,12 +143,12 @@ export default function UsersPage() {
       return response.json();
     },
     enabled: !!currentUser,
-    staleTime: 60000,
+    staleTime: 0, // Always refetch when invalidated
     refetchOnWindowFocus: false,
   });
 
   // Fetch user limits
-  const { data: limitsData } = useQuery({
+  const { data: limitsData, refetch: refetchLimits } = useQuery({
     queryKey: ['/api/users/limits'],
     queryFn: async () => {
       const response = await authManager.makeAuthenticatedRequest('GET', '/api/users/limits');
@@ -157,12 +158,12 @@ export default function UsersPage() {
       return response.json();
     },
     enabled: !!currentUser,
-    staleTime: 60000,
+    staleTime: 0, // Always refetch when invalidated
     refetchOnWindowFocus: false,
   });
 
   const users = usersData?.users || [];
-  const stats: UserStats = statsData || { totalUsers: 0, activeUsers: 0, usersByRole: {} };
+  const stats: UserStats = statsData || { totalUsers: 0, activeUsers: 0, inactiveUsers: 0, usersByRole: {} };
   const limits: UserLimits = limitsData || { canAddUser: true, currentUsers: 0, maxUsers: null, planName: 'Unknown' };
 
   // Create user form
@@ -200,10 +201,18 @@ export default function UsersPage() {
       }
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/users/stats'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/users/limits'] });
+    onSuccess: async () => {
+      // Invalidate and immediately refetch to ensure UI updates
+      await queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/users/stats'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/users/limits'] });
+      
+      // Force immediate refetch
+      await Promise.all([
+        refetchStats(),
+        refetchLimits()
+      ]);
+      
       setIsCreateDialogOpen(false);
       createForm.reset();
       toast({
@@ -230,10 +239,18 @@ export default function UsersPage() {
       }
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/users/stats'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/users/limits'] });
+    onSuccess: async () => {
+      // Invalidate and immediately refetch to ensure UI updates
+      await queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/users/stats'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/users/limits'] });
+      
+      // Force immediate refetch
+      await Promise.all([
+        refetchStats(),
+        refetchLimits()
+      ]);
+      
       setIsEditDialogOpen(false);
       setSelectedUser(null);
       editForm.reset();
@@ -261,10 +278,18 @@ export default function UsersPage() {
       }
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/users/stats'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/users/limits'] });
+    onSuccess: async () => {
+      // Invalidate and immediately refetch to ensure UI updates
+      await queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/users/stats'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/users/limits'] });
+      
+      // Force immediate refetch
+      await Promise.all([
+        refetchStats(),
+        refetchLimits()
+      ]);
+      
       toast({
         title: "Success",
         description: "User deleted successfully",
@@ -289,10 +314,18 @@ export default function UsersPage() {
       }
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/users/stats'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/users/limits'] });
+    onSuccess: async () => {
+      // Invalidate and immediately refetch to ensure UI updates
+      await queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/users/stats'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/users/limits'] });
+      
+      // Force immediate refetch
+      await Promise.all([
+        refetchStats(),
+        refetchLimits()
+      ]);
+      
       toast({
         title: "Success",
         description: "User status updated successfully",
@@ -514,7 +547,7 @@ export default function UsersPage() {
                   <TooltipContent>
                     <p>
                       User limit reached ({limits.currentUsers}/{limits.maxUsers}). 
-                      Please upgrade your {limits.planName} to add more users.
+                      Inactive users count toward your limit. Please upgrade your {limits.planName} to add more users.
                     </p>
                   </TooltipContent>
                 )}
@@ -524,7 +557,7 @@ export default function UsersPage() {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -534,7 +567,7 @@ export default function UsersPage() {
                 </div>
                 <UsersIcon className="text-blue-500 w-8 h-8" />
               </div>
-              <p className="text-xs text-muted-foreground mt-2">Across all roles</p>
+              <p className="text-xs text-muted-foreground mt-2">Including inactive</p>
             </CardContent>
           </Card>
           
@@ -549,6 +582,21 @@ export default function UsersPage() {
               </div>
               <p className="text-xs text-muted-foreground mt-2">
                 {stats.totalUsers > 0 ? Math.round((stats.activeUsers / stats.totalUsers) * 100) : 0}% of total users
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-red-600">Inactive Users</p>
+                  <p className="text-2xl font-bold text-red-900">{stats.inactiveUsers}</p>
+                </div>
+                <UserX className="text-red-500 w-8 h-8" />
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Counted toward limit
               </p>
             </CardContent>
           </Card>
@@ -708,8 +756,11 @@ export default function UsersPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleToggleStatus(user.id, !user.isActive)}
+                        disabled={toggleStatusMutation.isPending}
                       >
-                        {user.isActive ? (
+                        {toggleStatusMutation.isPending ? (
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                        ) : user.isActive ? (
                           <EyeOff className="h-4 w-4" />
                         ) : (
                           <Eye className="h-4 w-4" />

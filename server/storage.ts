@@ -72,7 +72,7 @@ export interface IStorage {
   
   // User management operations (tenant-aware)
   getAllUsers(tenantId: string, filters?: UserFilters): Promise<User[]>;
-  getUserStats(tenantId: string): Promise<{ totalUsers: number; activeUsers: number; usersByRole: Record<string, number> }>;
+  getUserStats(tenantId: string): Promise<{ totalUsers: number; activeUsers: number; inactiveUsers: number; usersByRole: Record<string, number> }>;
   createUserAsAdmin(userData: CreateUserData, tenantId: string): Promise<User>;
   updateUserAsAdmin(id: string, userData: UpdateUserData, tenantId: string): Promise<User | undefined>;
   deleteUser(id: string, tenantId: string): Promise<void>;
@@ -648,20 +648,20 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async getUserStats(tenantId: string): Promise<{ totalUsers: number; activeUsers: number; usersByRole: Record<string, number> }> {
+  async getUserStats(tenantId: string): Promise<{ totalUsers: number; activeUsers: number; inactiveUsers: number; usersByRole: Record<string, number> }> {
     // Get total and active user counts for tenant
     const [totalResult] = await db.select({ count: count() }).from(users).where(eq(users.tenantId, tenantId));
     const [activeResult] = await db.select({ count: count() }).from(users)
       .where(and(eq(users.tenantId, tenantId), eq(users.isActive, true)));
 
-    // Get user counts by role for tenant
+    // Get user counts by role for tenant (including inactive users for limit purposes)
     const roleResults = await db
       .select({ 
         role: users.role, 
         count: count() 
       })
       .from(users)
-      .where(and(eq(users.tenantId, tenantId), eq(users.isActive, true)))
+      .where(eq(users.tenantId, tenantId))
       .groupBy(users.role);
 
     const usersByRole: Record<string, number> = {};
@@ -669,9 +669,12 @@ export class DatabaseStorage implements IStorage {
       usersByRole[result.role] = result.count;
     });
 
+    const inactiveUsers = totalResult.count - activeResult.count;
+
     return {
       totalUsers: totalResult.count,
       activeUsers: activeResult.count,
+      inactiveUsers,
       usersByRole
     };
   }
@@ -829,11 +832,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async checkUserLimits(tenantId: string): Promise<{ canAddUser: boolean; currentUsers: number; maxUsers: number | null; planName: string }> {
-    // Get current user count for the tenant
+    // Get current user count for the tenant (including both active and inactive users)
     const userCountResult = await db
       .select({ count: count() })
       .from(users)
-      .where(and(eq(users.tenantId, tenantId), eq(users.isActive, true)));
+      .where(eq(users.tenantId, tenantId));
     
     const currentUsers = userCountResult[0]?.count || 0;
 

@@ -38,7 +38,7 @@ import {
   type UpdateCompanyData
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gt, desc, ne, or, ilike, count, sql } from "drizzle-orm";
+import { eq, and, gt, lt, desc, ne, or, ilike, count, sql } from "drizzle-orm";
 
 export interface DeviceInfo {
   deviceId?: string;
@@ -317,7 +317,7 @@ export class DatabaseStorage implements IStorage {
 
   async cleanExpiredTokens(): Promise<void> {
     await db.delete(refreshTokens).where(
-      gt(refreshTokens.expiresAt, new Date())
+      lt(refreshTokens.expiresAt, new Date())
     );
   }
 

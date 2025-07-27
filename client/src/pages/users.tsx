@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { authManager } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -96,7 +97,7 @@ export default function UsersPage() {
 
   const isAdmin = currentUser.role === 'Owner' || currentUser.role === 'Administrator';
 
-  // Fetch users
+  // Fetch users using direct API request to avoid token refresh cycles during search
   const { data: usersData, isLoading: usersLoading, isFetching } = useQuery({
     queryKey: ['/api/users', { search: debouncedSearchTerm, role: roleFilter, status: statusFilter, showInactive }],
     queryFn: async () => {
@@ -106,39 +107,37 @@ export default function UsersPage() {
       if (statusFilter) params.append('status', statusFilter);
       if (showInactive) params.append('showInactive', 'true');
 
-      const response = await authManager.makeAuthenticatedRequest('GET', `/api/users?${params}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch users');
-      }
+      // Use apiRequest instead of authManager to avoid token refresh cycles
+      const response = await apiRequest('GET', `/api/users?${params}`);
       return response.json();
     },
     staleTime: 30000,
+    retry: false, // Disable retry to prevent refresh cycles
+    refetchOnWindowFocus: false, // Prevent accidental refetch on focus
   });
 
-  // Fetch user statistics
+  // Fetch user statistics using direct API request
   const { data: statsData } = useQuery({
     queryKey: ['/api/users/stats'],
     queryFn: async () => {
-      const response = await authManager.makeAuthenticatedRequest('GET', '/api/users/stats');
-      if (!response.ok) {
-        throw new Error('Failed to fetch user stats');
-      }
+      const response = await apiRequest('GET', '/api/users/stats');
       return response.json();
     },
     staleTime: 60000,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
-  // Fetch user limits
+  // Fetch user limits using direct API request  
   const { data: limitsData } = useQuery({
     queryKey: ['/api/users/limits'],
     queryFn: async () => {
-      const response = await authManager.makeAuthenticatedRequest('GET', '/api/users/limits');
-      if (!response.ok) {
-        throw new Error('Failed to fetch user limits');
-      }
+      const response = await apiRequest('GET', '/api/users/limits');
       return response.json();
     },
     staleTime: 60000,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
   const users = usersData?.users || [];
@@ -173,11 +172,7 @@ export default function UsersPage() {
   // Create user mutation
   const createUserMutation = useMutation({
     mutationFn: async (data: CreateUserData) => {
-      const response = await authManager.makeAuthenticatedRequest('POST', '/api/users', data);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create user');
-      }
+      const response = await apiRequest('POST', '/api/users', data);
       return response.json();
     },
     onSuccess: () => {
@@ -203,11 +198,7 @@ export default function UsersPage() {
   // Update user mutation
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateUserData }) => {
-      const response = await authManager.makeAuthenticatedRequest('PUT', `/api/users/${id}`, data);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update user');
-      }
+      const response = await apiRequest('PUT', `/api/users/${id}`, data);
       return response.json();
     },
     onSuccess: () => {
@@ -234,11 +225,7 @@ export default function UsersPage() {
   // Delete user mutation
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const response = await authManager.makeAuthenticatedRequest('DELETE', `/api/users/${userId}`);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to delete user');
-      }
+      const response = await apiRequest('DELETE', `/api/users/${userId}`);
       return response.json();
     },
     onSuccess: () => {
@@ -262,11 +249,7 @@ export default function UsersPage() {
   // Toggle user status mutation
   const toggleStatusMutation = useMutation({
     mutationFn: async ({ userId, isActive }: { userId: string; isActive: boolean }) => {
-      const response = await authManager.makeAuthenticatedRequest('PATCH', `/api/users/${userId}/status`, { isActive });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update user status');
-      }
+      const response = await apiRequest('PATCH', `/api/users/${userId}/status`, { isActive });
       return response.json();
     },
     onSuccess: () => {

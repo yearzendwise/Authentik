@@ -23,17 +23,18 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
+  // DISABLED: Mandatory subscription redirect
   // If user doesn't have subscription, show subscription prompt instead of hard redirect
-  useEffect(() => {
-    if (!subscriptionLoading && !subscription?.subscription) {
-      // Only redirect if user has been on dashboard for a moment (not immediate)
-      const timer = setTimeout(() => {
-        setLocation('/subscribe');
-      }, 1500); // Give time for auth to stabilize
-      
-      return () => clearTimeout(timer);
-    }
-  }, [subscription, subscriptionLoading, setLocation]);
+  // useEffect(() => {
+  //   if (!subscriptionLoading && !subscription?.subscription) {
+  //     // Only redirect if user has been on dashboard for a moment (not immediate)
+  //     const timer = setTimeout(() => {
+  //       setLocation('/subscribe');
+  //     }, 1500); // Give time for auth to stabilize
+  //     
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [subscription, subscriptionLoading, setLocation]);
 
   useEffect(() => {
     // Token countdown simulation
@@ -158,6 +159,26 @@ export default function Dashboard() {
                   </p>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Subscription Info for Non-Owners */}
+        {!subscription?.subscription && user?.role !== "Owner" && (
+          <Card className="mb-8 border-l-4 border-l-gray-300">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <CreditCard className="mr-2 h-5 w-5" />
+                Subscription Management
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <strong>ℹ️ Subscription Management:</strong> Subscription plans and billing are managed by your organization's Owner. 
+                  Contact your organization owner if you need to upgrade or modify subscription plans.
+                </p>
+              </div>
             </CardContent>
           </Card>
         )}

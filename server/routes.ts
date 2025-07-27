@@ -2179,36 +2179,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get tenant's company information
   app.get("/api/company", authenticateToken, async (req: any, res) => {
     try {
-      // Get the tenant information which contains company details
-      const tenant = await storage.getTenant(req.user.tenantId);
-      if (!tenant) {
-        return res.status(404).json({ message: "Tenant not found" });
-      }
-
-      // Get the tenant owner for company owner information
-      const owner = await storage.getTenantOwner(req.user.tenantId);
+      // Get the company information for this user
+      const company = await storage.getUserCompany(req.user.id, req.user.tenantId);
       
-      const company = {
-        id: tenant.id,
-        name: tenant.name,
-        description: tenant.description,
-        website: tenant.website,
-        phone: tenant.phone,
-        email: tenant.email,
-        address: tenant.address,
-        industry: tenant.industry,
-        companySize: tenant.companySize,
-        logo: tenant.logo,
-        isActive: tenant.isActive,
-        createdAt: tenant.createdAt,
-        updatedAt: tenant.updatedAt,
-        owner: owner ? {
-          id: owner.id,
-          firstName: owner.firstName,
-          lastName: owner.lastName,
-          email: owner.email,
-        } : null,
-      };
+      if (!company) {
+        return res.status(404).json({ message: "Company not found" });
+      }
 
       res.json({ company });
     } catch (error) {
@@ -2217,54 +2193,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update tenant's company information
+  // Create new company information
   app.post("/api/company", authenticateToken, requireRole(["Owner", "Administrator"]), async (req: any, res) => {
     try {
       const companyData = createCompanySchema.parse(req.body);
 
-      // Update the tenant with company information
-      const updatedTenant = await storage.updateTenant(req.user.tenantId, {
-        name: companyData.name,
-        description: companyData.description,
-        website: companyData.website,
-        phone: companyData.phone,
-        email: companyData.companyEmail,
-        address: companyData.address,
-        industry: companyData.industry,
-        companySize: companyData.companySize,
-      });
-
-      if (!updatedTenant) {
-        return res.status(404).json({ message: "Tenant not found" });
-      }
-
-      // Get the tenant owner for response
-      const owner = await storage.getTenantOwner(req.user.tenantId);
-      
-      const company = {
-        id: updatedTenant.id,
-        name: updatedTenant.name,
-        description: updatedTenant.description,
-        website: updatedTenant.website,
-        phone: updatedTenant.phone,
-        email: updatedTenant.email,
-        address: updatedTenant.address,
-        industry: updatedTenant.industry,
-        companySize: updatedTenant.companySize,
-        logo: updatedTenant.logo,
-        isActive: updatedTenant.isActive,
-        createdAt: updatedTenant.createdAt,
-        updatedAt: updatedTenant.updatedAt,
-        owner: owner ? {
-          id: owner.id,
-          firstName: owner.firstName,
-          lastName: owner.lastName,
-          email: owner.email,
-        } : null,
-      };
+      // Create the company information
+      const company = await storage.createCompany(companyData, req.user.id, req.user.tenantId);
 
       res.status(201).json({
-        message: "Company information updated successfully",
+        message: "Company information created successfully",
         company,
       });
     } catch (error: any) {
@@ -2274,7 +2212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           errors: error.errors,
         });
       }
-      console.error("Update company error:", error);
+      console.error("Create company error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -2284,46 +2222,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const companyData = updateCompanySchema.parse(req.body);
 
-      // Update the tenant with company information
-      const updatedTenant = await storage.updateTenant(req.user.tenantId, {
-        name: companyData.name,
-        description: companyData.description,
-        website: companyData.website,
-        phone: companyData.phone,
-        email: companyData.companyEmail,
-        address: companyData.address,
-        industry: companyData.industry,
-        companySize: companyData.companySize,
-      });
+      // Update the company information
+      const company = await storage.updateUserCompany(req.user.id, companyData, req.user.tenantId);
 
-      if (!updatedTenant) {
-        return res.status(404).json({ message: "Tenant not found" });
+      if (!company) {
+        return res.status(404).json({ message: "Company not found or not authorized" });
       }
-
-      // Get the tenant owner for response
-      const owner = await storage.getTenantOwner(req.user.tenantId);
-      
-      const company = {
-        id: updatedTenant.id,
-        name: updatedTenant.name,
-        description: updatedTenant.description,
-        website: updatedTenant.website,
-        phone: updatedTenant.phone,
-        email: updatedTenant.email,
-        address: updatedTenant.address,
-        industry: updatedTenant.industry,
-        companySize: updatedTenant.companySize,
-        logo: updatedTenant.logo,
-        isActive: updatedTenant.isActive,
-        createdAt: updatedTenant.createdAt,
-        updatedAt: updatedTenant.updatedAt,
-        owner: owner ? {
-          id: owner.id,
-          firstName: owner.firstName,
-          lastName: owner.lastName,
-          email: owner.email,
-        } : null,
-      };
 
       res.json({
         message: "Company information updated successfully",

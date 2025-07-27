@@ -67,6 +67,19 @@ export const refreshTokens = pgTable("refresh_tokens", {
   isActive: boolean("is_active").default(true),
 });
 
+// Stores table for multi-tenant shop management
+export const stores = pgTable("stores", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  name: text("name").notNull(),
+  address: text("address").notNull(),
+  telephone: text("telephone").notNull(),
+  email: text("email").notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Subscription plans table
 export const subscriptionPlans = pgTable("subscription_plans", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -166,6 +179,7 @@ export const formResponses = pgTable("form_responses", {
 // Relations
 export const tenantRelations = relations(tenants, ({ many }) => ({
   users: many(users),
+  stores: many(stores),
   forms: many(forms),
   refreshTokens: many(refreshTokens),
   verificationTokens: many(verificationTokens),
@@ -256,6 +270,13 @@ export const subscriptionRelations = relations(subscriptions, ({ one }) => ({
 
 export const subscriptionPlanRelations = relations(subscriptionPlans, ({ many }) => ({
   subscriptions: many(subscriptions),
+}));
+
+export const storeRelations = relations(stores, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [stores.tenantId],
+    references: [tenants.id],
+  }),
 }));
 
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -444,6 +465,29 @@ export const billingInfoSchema = z.object({
 });
 
 export type BillingInfo = z.infer<typeof billingInfoSchema>;
+
+// Store types
+export type Store = typeof stores.$inferSelect;
+export type InsertStore = z.infer<typeof insertStoreSchema>;
+export type CreateStoreData = z.infer<typeof createStoreSchema>;
+export type UpdateStoreData = z.infer<typeof updateStoreSchema>;
+
+// Store schemas
+export const insertStoreSchema = createInsertSchema(stores).omit({
+  id: true,
+  tenantId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateStoreSchema = insertStoreSchema.partial();
+
+export const createStoreSchema = z.object({
+  name: z.string().min(1, "Store name is required"),
+  address: z.string().min(1, "Address is required"),
+  telephone: z.string().min(1, "Telephone is required"),
+  email: z.string().email("Please enter a valid email address"),
+});
 
 // Company schemas
 export const insertCompanySchema = createInsertSchema(companies).omit({

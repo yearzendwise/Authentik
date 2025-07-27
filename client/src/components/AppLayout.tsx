@@ -11,6 +11,7 @@ import {
   CreditCard,
   ClipboardList,
   Building2,
+  Store,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ const getNavigation = (userRole?: string) => {
   const baseNavigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Company", href: "/company", icon: Building2 },
+    { name: "Shops", href: "/shops", icon: Store },
     { name: "Forms", href: "/forms", icon: ClipboardList },
     { name: "Profile", href: "/profile", icon: User },
     { name: "Sessions", href: "/sessions", icon: Activity },

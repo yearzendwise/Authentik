@@ -44,6 +44,7 @@ export function useReduxLogin() {
     email: string;
     password: string;
     twoFactorToken?: string;
+    rememberMe?: boolean;
   }) => {
     try {
       const result = await dispatch(loginUser(credentials)).unwrap();

@@ -145,12 +145,13 @@ export function useLogin() {
 
   return useMutation({
     mutationFn: async (
-      credentials: LoginCredentials & { twoFactorToken?: string },
+      credentials: LoginCredentials & { twoFactorToken?: string; rememberMe?: boolean },
     ) => {
       const loginResult = await authManager.login(
         credentials.email,
         credentials.password,
         credentials.twoFactorToken,
+        credentials.rememberMe,
       );
 
       // If 2FA is required, return early

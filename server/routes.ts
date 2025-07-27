@@ -427,6 +427,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sanitizedEmail = sanitizeEmail(rawData.email);
       const sanitizedPassword = sanitizePassword(rawData.password);
       const sanitizedTwoFactorToken = sanitizeString(rawData.twoFactorToken);
+      const rememberMe = rawData.rememberMe || false;
+      
+      console.log("🔍 [Login Debug] Request body:", JSON.stringify(req.body, null, 2));
+      console.log("🔍 [Login Debug] Parsed rememberMe:", rememberMe);
 
       if (!sanitizedEmail || !sanitizedPassword) {
         return res
@@ -492,7 +496,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const deviceInfo = getDeviceInfo(req);
 
       // Store refresh token in database with device info
-      const refreshTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      const tokenExpiryDays = rememberMe ? 30 : 7;
+      const refreshTokenExpiry = new Date(Date.now() + tokenExpiryDays * 24 * 60 * 60 * 1000);
+      
+      console.log("🔍 [Login Debug] Token expiry days:", tokenExpiryDays);
+      console.log("🔍 [Login Debug] Refresh token expiry:", refreshTokenExpiry);
       await storage.createRefreshToken(
         user.id,
         user.tenantId,
@@ -506,7 +514,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax", // Changed from "strict" to "lax" for better cross-site behavior
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: tokenExpiryDays * 24 * 60 * 60 * 1000, // 7 or 30 days based on rememberMe
       });
 
       res.json({
@@ -788,7 +796,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Remove old refresh token and store new one with preserved device info
       await storage.deleteRefreshToken(refreshToken);
-      const refreshTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      
+      // Calculate the original token duration to preserve it
+      const originalTokenDuration = storedToken.createdAt 
+        ? storedToken.expiresAt.getTime() - storedToken.createdAt.getTime()
+        : 7 * 24 * 60 * 60 * 1000; // Default to 7 days if createdAt is null
+      const refreshTokenExpiry = new Date(Date.now() + originalTokenDuration);
+      
+      console.log("🔄 [Server] Preserving original token duration:", {
+        originalExpiry: storedToken.expiresAt,
+        originalCreated: storedToken.createdAt,
+        durationMs: originalTokenDuration,
+        newExpiry: refreshTokenExpiry
+      });
+      
       await storage.createRefreshToken(
         user.id,
         user.tenantId,
@@ -802,12 +823,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       );
 
-      // Set new refresh token as httpOnly cookie
+      // Set new refresh token as httpOnly cookie with preserved duration
+      const cookieMaxAge = refreshTokenExpiry.getTime() - Date.now();
       res.cookie("refreshToken", newRefreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax", // Changed from "strict" to "lax"
-        maxAge: 7 * 24 * 60 * 60 * 1000,
+        maxAge: cookieMaxAge,
       });
 
       console.log("🔄 [Server] Sending successful refresh response");
@@ -934,6 +956,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
         menuExpanded: req.user.menuExpanded || false,
       },
     });
+  });
+
+  // Get refresh token info endpoint
+  app.get("/api/auth/refresh-token-info", async (req, res) => {
+    try {
+      const refreshToken = req.cookies.refreshToken;
+
+      if (!refreshToken) {
+        return res.status(401).json({ message: "No refresh token found" });
+      }
+
+      // Verify and get refresh token info
+      const decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET) as any;
+      const storedToken = await storage.getRefreshToken(refreshToken);
+      
+      if (!storedToken) {
+        return res.status(401).json({ message: "Invalid refresh token" });
+      }
+
+      const now = Date.now();
+      const expiryTime = storedToken.expiresAt.getTime();
+      const timeLeft = expiryTime - now;
+      
+      // Calculate days, hours, minutes
+      const days = Math.floor(timeLeft / (24 * 60 * 60 * 1000));
+      const hours = Math.floor((timeLeft % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+      const minutes = Math.floor((timeLeft % (60 * 60 * 1000)) / (60 * 1000));
+
+      res.json({
+        expiresAt: storedToken.expiresAt,
+        timeLeft: timeLeft,
+        days: days,
+        hours: hours,
+        minutes: minutes,
+        isExpired: timeLeft <= 0
+      });
+    } catch (error: any) {
+      if (error instanceof jwt.TokenExpiredError) {
+        return res.status(401).json({ message: "Refresh token expired" });
+      }
+      if (error instanceof jwt.JsonWebTokenError) {
+        // Handle malformed tokens more gracefully
+        console.log("🔍 [Server] Malformed refresh token detected, clearing cookie");
+        res.clearCookie("refreshToken");
+        return res.status(401).json({ message: "Malformed refresh token" });
+      }
+      console.error("Refresh token info error:", error);
+      res.status(401).json({ message: "Invalid refresh token" });
+    }
   });
 
   // Update menu preference endpoint

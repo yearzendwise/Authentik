@@ -70,7 +70,7 @@ export const checkAuthStatus = createAsyncThunk(
 export const loginUser = createAsyncThunk(
   "auth/login",
   async (
-    credentials: { email: string; password: string; twoFactorToken?: string },
+    credentials: { email: string; password: string; twoFactorToken?: string; rememberMe?: boolean },
     { rejectWithValue },
   ) => {
     try {

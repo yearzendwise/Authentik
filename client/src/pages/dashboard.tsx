@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useLogout } from "@/hooks/useAuth";
 import { useReduxAuth } from "@/hooks/useReduxAuth";
-import type { UserSubscriptionResponse } from "@shared/schema";
+import type { UserSubscriptionResponse, RefreshTokenInfo } from "@shared/schema";
 import { authManager } from "@/lib/auth";
 import { Shield, Users, Clock, TrendingUp, LogOut, RefreshCw, Settings, CreditCard, Calendar } from "lucide-react";
 import { useLocation } from "wouter";
@@ -15,6 +15,7 @@ export default function Dashboard() {
   const { user, isLoading } = useReduxAuth();
   const logoutMutation = useLogout();
   const [tokenExpiry, setTokenExpiry] = useState<string>("--");
+  const [refreshTokenExpiry, setRefreshTokenExpiry] = useState<string>("--");
   const [sessionCount] = useState(3);
   const [apiRequests] = useState(1247);
 
@@ -36,6 +37,44 @@ export default function Dashboard() {
   //     return () => clearTimeout(timer);
   //   }
   // }, [subscription, subscriptionLoading, setLocation]);
+
+  // Function to fetch refresh token info
+  const fetchRefreshTokenInfo = async () => {
+    try {
+      const response = await fetch('/api/auth/refresh-token-info', {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data: RefreshTokenInfo = await response.json();
+        if (data.isExpired) {
+          setRefreshTokenExpiry("Expired");
+        } else {
+          const { days, hours, minutes } = data;
+          if (days > 0) {
+            setRefreshTokenExpiry(`${days} day${days !== 1 ? 's' : ''}`);
+          } else if (hours > 0) {
+            setRefreshTokenExpiry(`${hours} hour${hours !== 1 ? 's' : ''}`);
+          } else {
+            setRefreshTokenExpiry(`${minutes} minute${minutes !== 1 ? 's' : ''}`);
+          }
+        }
+      } else {
+        // Handle different error responses
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        if (errorData.message === "Malformed refresh token") {
+          setRefreshTokenExpiry("Invalid Token");
+        } else if (errorData.message === "Refresh token expired") {
+          setRefreshTokenExpiry("Expired");
+        } else {
+          setRefreshTokenExpiry("No Token");
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch refresh token info:", error);
+      setRefreshTokenExpiry("Network Error");
+    }
+  };
 
   useEffect(() => {
     // Token countdown simulation
@@ -71,6 +110,14 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    // Fetch refresh token expiry info
+    fetchRefreshTokenInfo();
+    const refreshInterval = setInterval(fetchRefreshTokenInfo, 5 * 60 * 1000);
+
+    return () => clearInterval(refreshInterval);
+  }, []);
+
   const handleLogout = async () => {
     await logoutMutation.mutateAsync();
     setLocation("/auth");
@@ -79,6 +126,8 @@ export default function Dashboard() {
   const handleRefreshToken = async () => {
     try {
       await authManager.refreshAccessToken();
+      // Refresh the token expiry displays
+      await fetchRefreshTokenInfo();
     } catch (error) {
       console.error("Token refresh failed:", error);
       setLocation("/auth");
@@ -252,7 +301,7 @@ export default function Dashboard() {
                 <div className="w-3 h-3 bg-green-400 rounded-full"></div>
                 <div>
                   <p className="font-medium text-gray-900">Refresh Token</p>
-                  <p className="text-sm text-gray-600">Expires in 7 days</p>
+                  <p className="text-sm text-gray-600">Expires in {refreshTokenExpiry}</p>
                 </div>
               </div>
               <Badge variant="secondary" className="bg-gray-100 text-gray-700">

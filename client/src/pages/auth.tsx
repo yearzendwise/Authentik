@@ -118,7 +118,7 @@ export default function AuthPage() {
 
   const onLogin = async (data: LoginCredentials) => {
     try {
-      const result = await login(data);
+      const result = await login({ ...data, rememberMe });
       if ('requires2FA' in result) {
         setTwoFactorData({
           email: data.email,
@@ -160,6 +160,7 @@ export default function AuthPage() {
         email: twoFactorData.email,
         password: twoFactorData.password,
         twoFactorToken: data.token,
+        rememberMe,
       });
 
       if (!('requires2FA' in result)) {

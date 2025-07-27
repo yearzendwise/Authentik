@@ -331,11 +331,13 @@ class AuthManager {
     email: string,
     password: string,
     twoFactorToken?: string,
+    rememberMe?: boolean,
   ): Promise<AuthResponse | { requires2FA: boolean; tempLoginId: string }> {
     const response = await apiRequest("POST", "/api/auth/login", {
       email,
       password,
       twoFactorToken,
+      rememberMe,
     });
 
     const data = await response.json();

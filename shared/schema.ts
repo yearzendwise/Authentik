@@ -289,6 +289,7 @@ export const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   twoFactorToken: z.string().optional(),
+  rememberMe: z.boolean().optional().default(false),
 });
 
 export const registerSchema = z.object({
@@ -591,4 +592,13 @@ export interface FormWithDetails extends Form {
   user: User;
   tenant: Tenant;
   responseCount: number;
+}
+
+export interface RefreshTokenInfo {
+  expiresAt: string;
+  timeLeft: number;
+  days: number;
+  hours: number;
+  minutes: number;
+  isExpired: boolean;
 }

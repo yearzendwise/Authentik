@@ -2,6 +2,7 @@ import { configureStore, combineReducers } from "@reduxjs/toolkit";
 import { persistStore, persistReducer } from "redux-persist";
 import storage from "redux-persist/lib/storage";
 import authReducer from "./authSlice";
+import { initializeAuthStoreSync } from "../lib/authStoreSync";
 
 // Persist configuration
 const persistConfig = {
@@ -30,6 +31,9 @@ export const store = configureStore({
     }),
   devTools: process.env.NODE_ENV !== "production",
 });
+
+// Initialize auth store sync
+initializeAuthStoreSync(store);
 
 // Create persistor
 export const persistor = persistStore(store);

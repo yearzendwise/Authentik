@@ -552,6 +552,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Verify the user's email
       await storage.verifyUserEmail(user.id, user.tenantId);
 
+      // Generate tokens for automatic login
+      const { accessToken, refreshToken } = generateTokens(user.id, user.tenantId);
+
+      // Store refresh token with device info
+      const deviceInfo = getDeviceInfo(req);
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days in milliseconds
+      await storage.createRefreshToken(
+        user.id,
+        user.tenantId,
+        refreshToken,
+        expiresAt,
+        deviceInfo,
+      );
+
+      // Set refresh token as HTTP-only cookie
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+      });
+
       // Send welcome email
       try {
         await emailService.sendWelcomeEmail(
@@ -564,9 +586,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json({
-        message:
-          "Email verified successfully! You can now log in to your account.",
+        message: "Email verified successfully! You are now logged in.",
         verified: true,
+        accessToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          twoFactorEnabled: user.twoFactorEnabled,
+          emailVerified: true, // Now verified
+        },
       });
     } catch (error: any) {
       if (error.name === "ZodError") {
@@ -2241,6 +2272,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       console.error("Update company error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Development endpoint to update test user to Owner role
+  app.post("/api/dev/update-test-user", async (req, res) => {
+    try {
+      // Get default tenant
+      const tenant = await storage.getTenantBySlug("default");
+      if (!tenant) {
+        return res.status(500).json({ message: "Default tenant not found" });
+      }
+
+      // Find test user
+      const user = await storage.getUserByEmail("test@example.com", tenant.id);
+      if (!user) {
+        return res.status(404).json({ message: "Test user not found" });
+      }
+
+      // Update user to Owner role
+      const updatedUser = await storage.updateUser(
+        user.id,
+        { role: "Owner" },
+        tenant.id
+      );
+
+      if (!updatedUser) {
+        return res.status(500).json({ message: "Failed to update user" });
+      }
+
+      res.json({
+        message: "Test user updated to Owner role successfully",
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+          role: updatedUser.role,
+          tenantId: updatedUser.tenantId
+        }
+      });
+    } catch (error) {
+      console.error("Update test user error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Development endpoint to test verification with specific token
+  app.post("/api/dev/test-verification", async (req, res) => {
+    try {
+      const { token } = req.body;
+
+      if (!token) {
+        return res.status(400).json({ message: "Token is required" });
+      }
+
+      console.log("🔍 [Dev] Testing verification with token:", token);
+
+      // Test the verification endpoint
+      const verificationResponse = await fetch(`http://localhost:5000/api/auth/verify-email?token=${token}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const verificationData = await verificationResponse.json();
+
+      res.json({
+        message: "Verification test completed",
+        verificationResponse: {
+          status: verificationResponse.status,
+          ok: verificationResponse.ok,
+          data: verificationData
+        }
+      });
+    } catch (error: any) {
+      console.error("Dev verification test error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

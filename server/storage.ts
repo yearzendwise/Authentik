@@ -829,11 +829,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async checkUserLimits(tenantId: string): Promise<{ canAddUser: boolean; currentUsers: number; maxUsers: number | null; planName: string }> {
-    // Get current user count for the tenant
+    // Get current total user count for the tenant (count all users including inactive)
     const userCountResult = await db
       .select({ count: count() })
       .from(users)
-      .where(and(eq(users.tenantId, tenantId), eq(users.isActive, true)));
+      .where(eq(users.tenantId, tenantId));
     
     const currentUsers = userCountResult[0]?.count || 0;
 

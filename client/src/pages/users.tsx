@@ -157,7 +157,7 @@ export default function UsersPage() {
   });
 
   // Fetch user limits
-  const { data: limitsData } = useQuery({
+  const { data: limitsData, refetch: refetchLimits } = useQuery({
     queryKey: ['/api/users/limits'],
     queryFn: async () => {
       const response = await authManager.makeAuthenticatedRequest('GET', '/api/users/limits');
@@ -167,7 +167,7 @@ export default function UsersPage() {
       return response.json();
     },
     enabled: !!currentUser,
-    staleTime: 60000,
+    staleTime: 0, // Set to 0 to always fetch fresh data
     refetchOnWindowFocus: false,
   });
 

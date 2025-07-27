@@ -3,8 +3,8 @@ import { Link } from "wouter";
 import { Plus, FileText, Edit, Trash2, Save, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FormBuilder } from "../../../components/DragFormMaster/lib/dist";
-import "../../../components/DragFormMaster/lib/dist/index.css";
+import { FormBuilder } from "../components/form-builder";
+import "../components/form-builder/index.css";
 
 function FormsAddPage() {
   const handleSave = (formData: any) => {

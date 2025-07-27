@@ -139,12 +139,24 @@ export function useAuth() {
   const hasAnyToken = !!authManager.getAccessToken();
   const isAuthenticated = hasAnyToken && !!user && !isError;
 
-  return {
+  const result = {
     user,
     isLoading,
     isAuthenticated,
     hasInitialized,
   };
+  
+  console.log("🔍 [useAuth] Hook result:", {
+    hasUser: !!user,
+    userEmail: user?.email,
+    userRole: user?.role,
+    isLoading,
+    isAuthenticated,
+    hasInitialized,
+    hasToken: hasAnyToken
+  });
+  
+  return result;
 }
 
 export function useLogin() {

@@ -228,7 +228,7 @@ export function FormWizard() {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-y-auto">
         {wizardState.currentStep === 'build' && (
           <BuildStep
             onDataChange={updateFormData}

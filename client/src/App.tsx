@@ -28,6 +28,9 @@ function Router() {
     isLoading,
     hasUser: !!user,
     isInitialized,
+    userEmail: user?.email,
+    userEmailVerified: user?.emailVerified,
+    userRole: user?.role
   });
 
   // Show loading state while authentication is being determined
@@ -46,6 +49,13 @@ function Router() {
 
   // Only determine email verification status if we have a user object
   const isEmailVerified = user ? user.emailVerified : undefined;
+
+  console.log("🔍 [Router] Route determination:", {
+    isAuthenticated,
+    isEmailVerified,
+    currentPath: window.location.pathname,
+    currentSearch: window.location.search
+  });
 
   return (
     <Switch>

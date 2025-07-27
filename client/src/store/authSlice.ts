@@ -98,6 +98,10 @@ export const loginUser = createAsyncThunk(
         return rejectWithValue("2FA_REQUIRED");
       }
 
+      // Store the token in localStorage via auth manager
+      const { authManager } = await import("../lib/auth");
+      authManager.setAccessToken(data.accessToken);
+
       return {
         user: data.user,
         accessToken: data.accessToken,
@@ -133,6 +137,14 @@ export const logoutUser = createAsyncThunk(
           method: "POST",
           credentials: "include",
         });
+      }
+
+      // Clear tokens from auth manager as well
+      try {
+        const { authManager } = await import("../lib/auth");
+        authManager.clearTokens();
+      } catch (error) {
+        console.error("Error clearing auth manager tokens during logout:", error);
       }
 
       console.log("🔐 [Redux] Logout successful");
@@ -185,12 +197,28 @@ const authSlice = createSlice({
   reducers: {
     setAccessToken: (state, action: PayloadAction<string>) => {
       state.accessToken = action.payload;
+      
+      // Sync with auth manager
+      try {
+        const { authManager } = require("../lib/auth");
+        authManager.setAccessToken(action.payload);
+      } catch (error) {
+        console.error("Error syncing token to auth manager:", error);
+      }
     },
     clearAuth: (state) => {
       state.user = null;
       state.accessToken = null;
       state.isAuthenticated = false;
       state.error = null;
+      
+      // Also clear tokens from auth manager
+      try {
+        const { authManager } = require("../lib/auth");
+        authManager.clearTokens();
+      } catch (error) {
+        console.error("Error clearing auth manager tokens:", error);
+      }
     },
     setError: (state, action: PayloadAction<string>) => {
       state.error = action.payload;

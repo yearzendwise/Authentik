@@ -8,6 +8,7 @@ import {
   clearAuth,
   setError,
   clearError,
+  initializeFromAuthManager,
 } from "@/store/authSlice";
 import { useToast } from "@/hooks/use-toast";
 
@@ -20,6 +21,9 @@ export function useReduxAuth() {
   useEffect(() => {
     if (!authState.isInitialized && !authState.isLoading) {
       console.log("🔐 [Hook] Initializing authentication...");
+      // First, sync with authManager's localStorage data
+      dispatch(initializeFromAuthManager());
+      // Then check auth status
       dispatch(checkAuthStatus());
     }
   }, [dispatch, authState.isInitialized, authState.isLoading]);

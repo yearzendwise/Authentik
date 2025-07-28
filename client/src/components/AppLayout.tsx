@@ -10,6 +10,8 @@ import {
   ClipboardList,
   Building2,
   Store,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -29,7 +31,9 @@ import {
 import {
   useReduxAuth,
   useReduxLogout,
+  useReduxUpdateProfile,
 } from "@/hooks/useReduxAuth";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const getNavigation = (userRole?: string) => {
   const baseNavigation = [
@@ -62,7 +66,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [location, setLocation] = useLocation();
   const { user } = useReduxAuth();
   const { logout } = useReduxLogout();
+  const { theme, toggleTheme, setUserTheme } = useTheme();
   const navigation = getNavigation(user?.role);
+  const { updateProfile } = useReduxUpdateProfile();
   // Load initial menu state from localStorage or user preference
   const getInitialMenuState = () => {
     const localPref = localStorage.getItem("menuExpanded");
@@ -84,6 +90,13 @@ export function AppLayout({ children }: AppLayoutProps) {
       setIsCollapsed(!user.menuExpanded);
     }
   }, [user?.menuExpanded]);
+
+  // Sync theme when user data changes
+  useEffect(() => {
+    if (user?.theme) {
+      setUserTheme(user.theme);
+    }
+  }, [user?.theme, setUserTheme]);
 
   // Listen for localStorage changes from other tabs and immediate changes
   useEffect(() => {
@@ -116,6 +129,25 @@ export function AppLayout({ children }: AppLayoutProps) {
   const handleLogout = async () => {
     await logout();
     setLocation("/auth");
+  };
+
+  const handleThemeToggle = async () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    toggleTheme();
+    
+    // If user is authenticated, sync with backend
+    if (user) {
+      try {
+        await updateProfile({
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          theme: newTheme,
+        });
+      } catch (error) {
+        console.error('Failed to update theme preference on backend:', error);
+      }
+    }
   };
 
   if (!user) {
@@ -225,6 +257,23 @@ export function AppLayout({ children }: AppLayoutProps) {
                   <Activity className="mr-2 h-5 w-5" />
                   Sessions
                 </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleThemeToggle}
+                className="cursor-pointer"
+              >
+                {theme === 'light' ? (
+                  <>
+                    <Moon className="mr-2 h-5 w-5" />
+                    Dark mode
+                  </>
+                ) : (
+                  <>
+                    <Sun className="mr-2 h-5 w-5" />
+                    Light mode
+                  </>
+                )}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem

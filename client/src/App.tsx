@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useReduxAuth } from "@/hooks/useReduxAuth";
 import { AppLayout } from "@/components/AppLayout";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import AuthPage from "@/pages/auth";
 import Dashboard from "@/pages/dashboard";
 import ProfilePage from "@/pages/profile";
@@ -138,8 +139,10 @@ function App() {
       >
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
-            <Toaster />
-            <Router />
+            <ThemeProvider>
+              <Toaster />
+              <Router />
+            </ThemeProvider>
           </TooltipProvider>
         </QueryClientProvider>
       </PersistGate>

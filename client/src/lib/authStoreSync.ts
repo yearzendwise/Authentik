@@ -1,4 +1,5 @@
 import { authManager, addAuthStateListener, removeAuthStateListener } from "./auth";
+import { setAccessToken, clearAuth } from "../store/authSlice";
 
 // This module handles synchronization between the auth manager and Redux store
 // It's imported by the Redux store to listen for auth state changes
@@ -16,22 +17,24 @@ export const initializeAuthStoreSync = (reduxStore: any) => {
   
   // Create new listener
   authListener = (token: string | null) => {
-    if (!store) return;
+    if (!store) {
+      console.warn("🔄 Auth store sync attempted but no store available");
+      return;
+    }
     
     try {
       if (token) {
         // Token was set - update Redux store
-        const { setAccessToken } = require("../store/authSlice");
         console.log("🔄 Syncing token to Redux store");
         store.dispatch(setAccessToken(token));
       } else {
         // Token was cleared - clear Redux store
-        const { clearAuth } = require("../store/authSlice");
         console.log("🔄 Clearing Redux store authentication state");
         store.dispatch(clearAuth());
       }
     } catch (error) {
       console.error("Failed to sync auth state to Redux store:", error);
+      // Don't rethrow to prevent breaking the auth system
     }
   };
   

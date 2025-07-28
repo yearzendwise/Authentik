@@ -84,7 +84,7 @@ function getDeviceInfo(req: any): {
     ipAddress: req.ip || req.connection?.remoteAddress || "Unknown",
   };
 }
-const ACCESS_TOKEN_EXPIRES = "2m"; // Shorter expiry for more immediate logout
+const ACCESS_TOKEN_EXPIRES = "15m"; // 15 minutes - reasonable balance between security and UX
 const REFRESH_TOKEN_EXPIRES = "7d";
 
 // Middleware to verify JWT token
@@ -92,29 +92,57 @@ const authenticateToken = async (req: any, res: any, next: any) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
 
+  console.log("🔐 [Auth Middleware] Authorization header:", authHeader);
+  console.log("🔐 [Auth Middleware] Extracted token:", token ? `${token.substring(0, 20)}...` : 'no token');
+
   if (!token) {
     return res.status(401).json({ message: "Access token required" });
   }
 
   try {
+    console.log("🔐 [Auth Middleware] Verifying token with JWT_SECRET");
     const decoded = jwt.verify(token, JWT_SECRET) as any;
+    console.log("🔐 [Auth Middleware] Token decoded successfully:", { userId: decoded.userId, tenantId: decoded.tenantId });
+    
     const user = await storage.getUser(decoded.userId, decoded.tenantId);
 
     if (!user || !user.isActive) {
+      console.log("🔐 [Auth Middleware] User not found or inactive");
       return res.status(401).json({ message: "User not found or inactive" });
     }
 
+    console.log("🔐 [Auth Middleware] User authenticated successfully:", user.email);
     req.user = {
       id: user.id,
       email: user.email,
       role: user.role,
       tenantId: user.tenantId,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      password: user.password,
+      twoFactorEnabled: user.twoFactorEnabled,
+      twoFactorSecret: user.twoFactorSecret,
+      emailVerified: user.emailVerified,
+      menuExpanded: user.menuExpanded,
+      theme: user.theme,
     };
     next();
-  } catch (error) {
+  } catch (error: any) {
+    console.error("🔐 [Auth Middleware] Token verification failed:", error.message);
+    console.error("🔐 [Auth Middleware] Error type:", error.constructor.name);
+    console.error("🔐 [Auth Middleware] Error details:", error);
+    
     if (error instanceof jwt.TokenExpiredError) {
       return res.status(401).json({ message: "Access token expired" });
     }
+    if (error instanceof jwt.JsonWebTokenError) {
+      return res.status(403).json({ message: "Invalid access token" });
+    }
+    if (error instanceof jwt.NotBeforeError) {
+      return res.status(403).json({ message: "Access token not active yet" });
+    }
+    
+    // Generic JWT error
     return res.status(403).json({ message: "Invalid access token" });
   }
 };
@@ -531,6 +559,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           role: user.role,
           twoFactorEnabled: user.twoFactorEnabled,
           emailVerified: user.emailVerified,
+          theme: user.theme || 'light',
         },
         emailVerificationRequired,
       });
@@ -608,6 +637,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           role: user.role,
           twoFactorEnabled: user.twoFactorEnabled,
           emailVerified: true, // Now verified
+          theme: user.theme || 'light',
         },
       });
     } catch (error: any) {
@@ -848,6 +878,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           twoFactorEnabled: user.twoFactorEnabled,
           emailVerified: user.emailVerified,
           menuExpanded: user.menuExpanded || false,
+          theme: user.theme || 'light',
         },
       });
     } catch (error: any) {
@@ -957,6 +988,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         twoFactorEnabled: req.user.twoFactorEnabled,
         emailVerified: req.user.emailVerified,
         menuExpanded: req.user.menuExpanded || false,
+        theme: req.user.theme || 'light',
       },
     });
   });
@@ -1063,6 +1095,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastName: rawData.lastName,
         email: rawData.email,
       });
+      
+      // Add theme preference if provided
+      const updateData = {
+        ...sanitizedData,
+        ...(rawData.theme && { theme: rawData.theme })
+      };
 
       // Check if email is already taken by another user
       if (sanitizedData.email && sanitizedData.email !== req.user.email) {
@@ -1079,7 +1117,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const updatedUser = await storage.updateUser(
         req.user.id,
-        sanitizedData,
+        updateData,
         req.user.tenantId,
       );
 
@@ -2550,6 +2588,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Update test user error:", error);
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Development endpoint to test token generation
+  app.post("/api/dev/test-token", async (req, res) => {
+    try {
+      const testUserId = "test-user-123";
+      const testTenantId = "test-tenant-456";
+      
+      // Generate test tokens
+      const { accessToken, refreshToken } = generateTokens(testUserId, testTenantId);
+      
+      // Try to verify the access token immediately
+      try {
+        const decoded = jwt.verify(accessToken, JWT_SECRET) as any;
+        console.log("🔍 [Dev] Token verification successful:", decoded);
+        
+        res.json({
+          message: "Token generation and verification test successful",
+          accessToken: accessToken.substring(0, 50) + "...",
+          decoded: decoded,
+          jwtSecret: JWT_SECRET ? "✅ Set" : "❌ Missing",
+        });
+      } catch (verifyError: any) {
+        console.error("🔍 [Dev] Token verification failed:", verifyError);
+        res.status(500).json({
+          message: "Token verification failed",
+          error: verifyError.message,
+          jwtSecret: JWT_SECRET ? "✅ Set" : "❌ Missing",
+        });
+      }
+    } catch (error: any) {
+      console.error("🔍 [Dev] Token generation failed:", error);
+      res.status(500).json({ 
+        message: "Token generation failed", 
+        error: error.message 
+      });
     }
   });
 

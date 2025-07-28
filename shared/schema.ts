@@ -38,6 +38,7 @@ export const users = pgTable("users", {
   lastVerificationEmailSent: timestamp("last_verification_email_sent"),
   lastLoginAt: timestamp("last_login_at"), // Track last login for user management
   menuExpanded: boolean("menu_expanded").default(false), // New field for menu preference
+  theme: text("theme").default('light'), // Theme preference: 'light' or 'dark'
   // Stripe fields for subscription management
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
@@ -376,6 +377,7 @@ export const updateProfileSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Please enter a valid email address"),
+  theme: z.enum(['light', 'dark']).optional(),
 });
 
 export const verifyEmailSchema = z.object({

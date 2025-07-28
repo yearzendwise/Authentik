@@ -13,6 +13,7 @@ export interface AuthUser {
   twoFactorEnabled?: boolean;
   emailVerified?: boolean;
   menuExpanded?: boolean;
+  theme?: 'light' | 'dark';
 }
 
 export interface AuthResponse {
@@ -176,8 +177,8 @@ class AuthManager {
           `Token found, expires in ${Math.round(timeUntilExpiry / 1000)} seconds`,
         );
 
-        // If token expires in less than 2 minutes, refresh immediately
-        if (timeUntilExpiry < 120000) {
+        // If token expires in less than 3 minutes, refresh immediately
+        if (timeUntilExpiry < 180000) {
           console.log(
             "Token expires soon, refreshing immediately on initialization",
           );
@@ -405,8 +406,8 @@ class AuthManager {
       const now = Date.now();
       const timeUntilExpiry = expTime - now;
 
-      // If token expires in less than 60 seconds, refresh it first
-      if (timeUntilExpiry < 60000) {
+      // If token expires in less than 2 minutes, refresh it first
+      if (timeUntilExpiry < 120000) {
         console.log(
           "getCurrentUser: Token about to expire, refreshing first...",
         );

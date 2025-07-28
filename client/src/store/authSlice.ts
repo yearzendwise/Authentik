@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import type { AuthUser } from "@/lib/auth";
+import { authManager } from "@/lib/auth";
 
 export interface AuthState {
   user: AuthUser | null;
@@ -157,7 +158,7 @@ export const updateUserProfile = createAsyncThunk(
       }
 
       const response = await fetch("/api/auth/profile", {
-        method: "PATCH",
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -191,6 +192,8 @@ const authSlice = createSlice({
       state.accessToken = null;
       state.isAuthenticated = false;
       state.error = null;
+      // Also clear tokens from authManager
+      authManager.clearTokens();
     },
     setError: (state, action: PayloadAction<string>) => {
       state.error = action.payload;
@@ -204,6 +207,13 @@ const authSlice = createSlice({
     updateMenuPreference: (state, action: PayloadAction<boolean>) => {
       if (state.user) {
         state.user.menuExpanded = action.payload;
+      }
+    },
+    initializeFromAuthManager: (state) => {
+      // Get token from authManager if it exists
+      const token = authManager.getAccessToken();
+      if (token) {
+        state.accessToken = token;
       }
     },
   },
@@ -221,6 +231,11 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
         state.isInitialized = true;
         state.error = null;
+        
+        // Also store token in authManager for proper token management system
+        if (action.payload.accessToken) {
+          authManager.setAccessToken(action.payload.accessToken);
+        }
       })
       .addCase(checkAuthStatus.rejected, (state, action) => {
         state.isLoading = false;
@@ -243,6 +258,11 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
         state.isInitialized = true;
         state.error = null;
+        
+        // Also store token in authManager for proper token management system
+        if (action.payload.accessToken) {
+          authManager.setAccessToken(action.payload.accessToken);
+        }
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false;
@@ -257,6 +277,9 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         state.isLoading = false;
         state.error = null;
+        
+        // Also clear token from authManager
+        authManager.clearTokens();
       })
 
       // Update profile
@@ -273,5 +296,6 @@ export const {
   clearError,
   setInitialized,
   updateMenuPreference,
+  initializeFromAuthManager,
 } = authSlice.actions;
 export default authSlice.reducer;

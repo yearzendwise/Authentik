@@ -201,6 +201,11 @@ const authSlice = createSlice({
     setInitialized: (state, action: PayloadAction<boolean>) => {
       state.isInitialized = action.payload;
     },
+    updateMenuPreference: (state, action: PayloadAction<boolean>) => {
+      if (state.user) {
+        state.user.menuExpanded = action.payload;
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -267,5 +272,6 @@ export const {
   setError,
   clearError,
   setInitialized,
+  updateMenuPreference,
 } = authSlice.actions;
 export default authSlice.reducer;

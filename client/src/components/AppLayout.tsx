@@ -3,9 +3,7 @@ import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard,
   User,
-  Settings,
   LogOut,
-  Shield,
   Activity,
   Users,
   CreditCard,
@@ -15,7 +13,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,7 +29,6 @@ import {
 import {
   useReduxAuth,
   useReduxLogout,
-  useReduxUpdateMenuPreference,
 } from "@/hooks/useReduxAuth";
 
 const getNavigation = (userRole?: string) => {
@@ -62,11 +59,9 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-  console.log("🔍 [AppLayout] Component rendered with children:", children);
   const [location, setLocation] = useLocation();
   const { user } = useReduxAuth();
   const { logout } = useReduxLogout();
-  const updateMenuPreference = useReduxUpdateMenuPreference();
   const navigation = getNavigation(user?.role);
   // Load initial menu state from localStorage or user preference
   const getInitialMenuState = () => {
@@ -74,7 +69,8 @@ export function AppLayout({ children }: AppLayoutProps) {
     if (localPref !== null) {
       return !JSON.parse(localPref); // inverted because isCollapsed is opposite of expanded
     }
-    return !user?.menuExpanded; // default to collapsed if no preference
+    // Default to expanded (false for isCollapsed) if no preference is set
+    return user?.menuExpanded !== undefined ? !user.menuExpanded : false;
   };
 
   const [isCollapsed, setIsCollapsed] = useState(getInitialMenuState);
@@ -141,7 +137,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-center p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           {!isCollapsed && (
             <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
               SaaS Auth

@@ -32,10 +32,8 @@ import {
 import { useLocation, Link } from "wouter";
 
 export default function ProfilePage() {
-  console.log("🔍 [ProfilePage] Component rendered");
   const [, setLocation] = useLocation();
   const { user, isLoading } = useReduxAuth();
-  console.log("🔍 [ProfilePage] Auth state:", { user, isLoading });
   const updateProfileMutation = useUpdateProfile();
   const changePasswordMutation = useChangePassword();
   const deleteAccountMutation = useDeleteAccount();

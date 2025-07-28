@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { authManager } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { useAppDispatch } from "@/store";
+import { updateMenuPreference } from "@/store/authSlice";
 import type { AuthUser, AuthResponse } from "@/lib/auth";
 import type {
   LoginCredentials,
@@ -376,6 +378,9 @@ export function useChangePassword() {
 
 export function useUpdateMenuPreference() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+  // Import Redux store to dispatch updates
+  const dispatch = useAppDispatch();
 
   return useMutation({
     mutationFn: async (data: { menuExpanded: boolean }) => {
@@ -385,17 +390,44 @@ export function useUpdateMenuPreference() {
         data,
       );
       if (!response.ok) {
-        throw new Error("Failed to update menu preference");
+        const errorData = await response.json().catch(() => ({ message: "Unknown error" }));
+        throw new Error(errorData.message || "Failed to update menu preference");
       }
-      return response.json();
+      const result = await response.json();
+      return result;
     },
     onSuccess: (data, variables) => {
+      // Update Redux state immediately
+      dispatch(updateMenuPreference(variables.menuExpanded));
+      
       // Update the cached user data with new menu preference
       queryClient.setQueryData(["/api/auth/me"], (oldData: any) => {
-        if (oldData) {
-          return { ...oldData, menuExpanded: variables.menuExpanded };
+        if (oldData?.user) {
+          return { 
+            ...oldData, 
+            user: { 
+              ...oldData.user, 
+              menuExpanded: variables.menuExpanded 
+            } 
+          };
         }
         return oldData;
+      });
+      
+      // Don't invalidate the query as it causes a refetch that might override our update
+      // queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      
+      toast({
+        title: "Success",
+        description: "Menu preference updated successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("🔧 [Menu Preference] Error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update menu preference",
+        variant: "destructive",
       });
     },
   });

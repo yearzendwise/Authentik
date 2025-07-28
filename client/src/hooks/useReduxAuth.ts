@@ -173,41 +173,8 @@ export function useForceLogout() {
   const dispatch = useAppDispatch();
 
   const forceLogout = () => {
-    console.log("🔐 [Hook] Force logout triggered");
     dispatch(clearAuth());
   };
 
   return { forceLogout };
-}
-
-// Menu preference hook (temporary - uses direct API call)
-export function useReduxUpdateMenuPreference() {
-  const { accessToken } = useAppSelector((state) => state.auth);
-
-  const updateMenuPreference = async (data: { menuExpanded: boolean }) => {
-    if (!accessToken) {
-      throw new Error("No access token available");
-    }
-
-    const response = await fetch("/api/auth/menu-preference", {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      credentials: "include",
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to update menu preference");
-    }
-
-    return response.json();
-  };
-
-  return {
-    mutateAsync: updateMenuPreference,
-    isPending: false, // Simplified for now
-  };
 }

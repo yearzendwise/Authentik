@@ -98,7 +98,9 @@ interface SubscriptionManagementProps {
 }
 
 const SubscriptionManagement = ({ subscription, plans, onUpgrade, isUpgrading }: SubscriptionManagementProps) => {
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>(
+    subscription?.isYearly ? 'yearly' : 'monthly'
+  );
   
   if (!subscription) return null;
 
@@ -107,6 +109,17 @@ const SubscriptionManagement = ({ subscription, plans, onUpgrade, isUpgrading }:
   const trialEndsAt = subscription.trialEnd ? new Date(subscription.trialEnd) : null;
   const currentPeriodEnd = new Date(subscription.currentPeriodEnd);
   const daysLeft = trialEndsAt ? Math.ceil((trialEndsAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+  
+  // Handle case where plan might not be loaded
+  if (!currentPlan) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Loading subscription details...</h1>
+        </div>
+      </div>
+    );
+  }
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', { 
@@ -238,8 +251,8 @@ const SubscriptionManagement = ({ subscription, plans, onUpgrade, isUpgrading }:
               const isUpgrade = parseFloat(plan.price) > parseFloat(currentPlan.price);
               
               return (
-                <Card key={plan.id} className={`relative ${plan.isPopular ? 'border-primary shadow-lg' : ''} ${isCurrent ? 'bg-primary/5 border-primary' : ''}`}>
-                  {plan.isPopular && (
+                <Card key={plan.id} className={`relative ${plan.isPopular ? 'border-primary shadow-lg' : ''} ${isCurrent ? 'bg-primary/10 border-primary border-2' : ''}`}>
+                  {plan.isPopular && !isCurrent && (
                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                       <Badge className="bg-primary text-primary-foreground px-3 py-1">
                         <Star className="w-3 h-3 mr-1" />
@@ -249,8 +262,9 @@ const SubscriptionManagement = ({ subscription, plans, onUpgrade, isUpgrading }:
                   )}
                   
                   {isCurrent && (
-                    <div className="absolute -top-3 right-4">
-                      <Badge variant="outline" className="bg-background">
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+                      <Badge className="bg-green-600 text-white px-4 py-1">
+                        <Check className="w-3 h-3 mr-1" />
                         Current Plan
                       </Badge>
                     </div>

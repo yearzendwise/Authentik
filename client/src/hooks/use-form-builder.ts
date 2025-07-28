@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { FormElement, FormElementType, FormBuilderState, FormSettings } from '../types/form-builder';
+import { FormElement, FormElementType, FormBuilderState, FormSettings } from '@/types/form-builder';
 import { nanoid } from 'nanoid';
 
 const defaultSettings: FormSettings = {

@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { DndContext, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSensors, DragOverlay, DragStartEvent } from '@dnd-kit/core';
-import { useFormBuilder } from '../../../hooks/use-form-builder';
-import { ComponentPalette } from '../component-palette';
-import { FormCanvas } from '../form-canvas';
-import { PropertiesPanel } from '../properties-panel';
-import { FormProperties } from '../form-properties';
+import { useFormBuilder } from '@/hooks/use-form-builder';
+import { ComponentPalette } from '@/components/form-builder/component-palette';
+import { FormCanvas } from '@/components/form-builder/form-canvas';
+import { PropertiesPanel } from '@/components/form-builder/properties-panel';
+import { FormProperties } from '@/components/form-builder/form-properties';
 
-import { FormElementType, DragItem } from '../../../types/form-builder';
-import { Button } from '../../../components/ui/button';
+import { FormElementType, DragItem } from '@/types/form-builder';
+import { Button } from '@/components/ui/button';
 
 
 interface BuildStepProps {
@@ -152,14 +152,14 @@ export function BuildStep({ onDataChange, initialTitle, initialElements, initial
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex-1 flex relative overflow-hidden min-h-0">
+      <div className="flex-1 flex relative h-full">
         {/* Left Sidebar - Component Palette */}
         <div className="hidden lg:block flex-none relative z-20">
           <ComponentPalette onAddElement={handleAddElement} />
         </div>
         
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0 relative z-10 overflow-hidden min-h-0">
+        <div className="flex-1 flex flex-col min-w-0 relative z-10">
           <FormCanvas
             formTitle={formTitle}
             elements={elements}
@@ -178,7 +178,7 @@ export function BuildStep({ onDataChange, initialTitle, initialElements, initial
         </div>
         
         {/* Right Sidebar - Form Properties & Element Properties */}
-        <div className="hidden lg:block flex-none relative z-20 flex flex-col overflow-hidden min-h-0">
+        <div className="hidden lg:block flex-none relative z-20 flex flex-col">
           {/* Form Properties - Always visible */}
           <FormProperties
             formTitle={formTitle}
@@ -204,7 +204,7 @@ export function BuildStep({ onDataChange, initialTitle, initialElements, initial
           
           {/* Helper text when no element is selected */}
           {!selectedElement && (
-            <div className="w-80 p-6 border-l border-neutral-200 bg-neutral-50 flex-1 flex items-center justify-center overflow-hidden">
+            <div className="w-80 p-6 border-l border-neutral-200 bg-neutral-50 flex-1 flex items-center justify-center">
               <div className="text-center text-neutral-500">
                 <svg className="w-12 h-12 mx-auto mb-3 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.122 2.122" />

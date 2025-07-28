@@ -17,6 +17,8 @@ import SessionsPage from "@/pages/sessions";
 import UsersPage from "@/pages/users";
 import CompanyPage from "@/pages/company";
 import FormsListPage from "@/pages/forms-list";
+import Forms2Page from "@/pages/forms2";
+import Forms2AddPage from "@/pages/forms2/add";
 import Subscribe from "@/pages/subscribe";
 import VerifyEmailPage from "@/pages/verify-email";
 import PendingVerificationPage from "@/pages/pending-verification";
@@ -82,6 +84,8 @@ function Router() {
                 </Suspense>
               )}
             </Route>
+            <Route path="/forms2" component={Forms2Page} />
+            <Route path="/forms2/add" component={Forms2AddPage} />
             <Route path="/profile" component={ProfilePage} />
             <Route path="/sessions" component={SessionsPage} />
             <Route path="/users" component={UsersPage} />

@@ -1,12 +1,12 @@
-import { FormElement, FormTheme } from '../../types/form-builder';
-import { Input } from '../../components/ui/input';
-import { Textarea } from '../../components/ui/textarea';
-import { RateScale } from '../../components/ui/rate-scale';
-import { NumberInput } from '../../components/ui/number-input';
-import { cn } from '../../lib/utils';
+import { FormElement, FormTheme } from '@/types/form-builder';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { RateScale } from '@/components/ui/rate-scale';
+import { NumberInput } from '@/components/ui/number-input';
+import { cn } from '@/lib/utils';
 import * as React from 'react';
 import { HeadlessUIBooleanSwitch, HeadlessUIRadioGroup, HeadlessUICheckbox, HeadlessUIDateTimePicker, HeadlessUISelect } from './headlessui-form-components';
-import { ThemedFullName } from '../../components/ui/themed-full-name';
+import { ThemedFullName } from '@/components/ui/themed-full-name';
 
 // Extended type for preview elements that includes buttons and spacer
 type PreviewFormElement = FormElement | {

@@ -1,5 +1,5 @@
 import { useDraggable } from '@dnd-kit/core';
-import { ComponentPaletteItem, FormElementType } from '../../types/form-builder';
+import { ComponentPaletteItem, FormElementType } from '@/types/form-builder';
 import { Type, Mail, FileText, Hash, ChevronDown, CheckSquare, Circle, Send, RotateCcw, Image, Star, User, ToggleLeft, Calendar } from 'lucide-react';
 
 interface DraggableComponentProps {

@@ -1,8 +1,8 @@
 import React from 'react';
 import { Switch, RadioGroup, Checkbox, Listbox, Transition } from '@headlessui/react';
-import { ChevronUpDownIcon, CheckIcon } from '@heroicons/react/24/solid';
-import { cn } from '../../lib/utils';
-import { FormTheme } from '../../types/form-builder';
+import { ChevronUpDownIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { cn } from '@/lib/utils';
+import { FormTheme } from '@/types/form-builder';
 
 // Helper functions for theme-specific radio button styling
 const getRadioThemeChecked = (baseInput: string) => {

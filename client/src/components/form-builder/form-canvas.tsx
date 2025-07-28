@@ -1,4 +1,4 @@
-import { FormElement, FormElementType } from '../../types/form-builder';
+import { FormElement, FormElementType } from '@/types/form-builder';
 import { DroppableCanvas } from './droppable-canvas';
 
 interface FormCanvasProps {
@@ -33,9 +33,9 @@ export function FormCanvas({
   onMoveElement,
 }: FormCanvasProps) {
   return (
-    <main className="flex-1 flex flex-col bg-neutral-50 overflow-hidden min-h-0">
+    <main className="flex-1 flex flex-col bg-neutral-50">
       {/* Canvas Header */}
-      <div className="bg-white/95 backdrop-blur-sm border-b border-slate-200/60 px-3 md:px-6 py-3 md:py-5 shadow-sm flex-shrink-0">
+      <div className="bg-white/95 backdrop-blur-sm border-b border-slate-200/60 px-3 md:px-6 py-3 md:py-5 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2 md:space-x-3 mb-2">

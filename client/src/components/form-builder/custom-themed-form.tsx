@@ -1,5 +1,5 @@
-import { FormTheme, FormElement } from '../../types/form-builder';
-import { ThemedFormRenderer } from './themed-form-renderer';
+import { FormTheme, FormElement } from '@/types/form-builder';
+import { ThemedFormRenderer } from '@/components/form-builder/themed-form-renderer';
 import { CSSProperties, useEffect } from 'react';
 
 interface CustomThemedFormProps {
@@ -25,13 +25,26 @@ export function CustomThemedForm({ theme, element, onChange, onReset }: CustomTh
         document.head.appendChild(existingStyle);
       }
       
+      // Define font families
+      const fontFamilies = {
+        sans: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        serif: 'Georgia, "Times New Roman", Times, serif',
+        mono: 'ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace'
+      };
+      
       existingStyle.textContent = `
+        .custom-theme-wrapper {
+          font-family: ${fontFamilies[customColors.font]} !important;
+        }
+        .custom-theme-wrapper * {
+          font-family: inherit !important;
+        }
         .custom-theme-wrapper button[type="submit"],
         .custom-theme-wrapper button[type="reset"] {
-          ${customColors.primaryGradient 
-            ? `background: ${customColors.primaryGradient} !important;` 
-            : `background-color: ${customColors.primary} !important;`}
-          border-color: ${customColors.primary} !important;
+          ${customColors.buttonGradient 
+            ? `background: ${customColors.buttonGradient} !important;` 
+            : `background-color: ${customColors.button} !important;`}
+          border-color: ${customColors.button} !important;
           color: white !important;
         }
         .custom-theme-wrapper button[type="submit"]:hover,
@@ -43,33 +56,68 @@ export function CustomThemedForm({ theme, element, onChange, onReset }: CustomTh
         .custom-theme-wrapper select:focus,
         .custom-theme-wrapper textarea:focus,
         .custom-theme-wrapper .headlessui-listbox-button:focus {
-          border-color: ${customColors.primary} !important;
-          box-shadow: 0 0 0 2px ${customColors.primary}30 !important;
+          border-color: ${customColors.button} !important;
+          box-shadow: 0 0 0 2px ${customColors.button}30 !important;
         }
         .custom-theme-wrapper label,
-        .custom-theme-wrapper h1,
-        .custom-theme-wrapper h2,
-        .custom-theme-wrapper h3 {
-          ${customColors.secondaryGradient 
-            ? `background: ${customColors.secondaryGradient}; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;` 
-            : `color: ${customColors.secondary} !important;`}
+        .custom-theme-wrapper p,
+        .custom-theme-wrapper span:not(.form-title) {
+          ${customColors.textGradient 
+            ? `background: ${customColors.textGradient}; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;` 
+            : `color: ${customColors.text} !important;`}
+        }
+        .custom-theme-wrapper .form-title,
+        .custom-theme-wrapper h1:first-child {
+          ${customColors.headerGradient 
+            ? `background: ${customColors.headerGradient} !important; 
+               -webkit-background-clip: text !important; 
+               -webkit-text-fill-color: transparent !important; 
+               background-clip: text !important;
+               color: transparent !important;` 
+            : `color: ${customColors.header} !important;
+               background: none !important;
+               -webkit-text-fill-color: ${customColors.header} !important;`}
+        }
+        .custom-theme-wrapper input,
+        .custom-theme-wrapper select,
+        .custom-theme-wrapper textarea {
+          ${customColors.textGradient 
+            ? `color: ${customColors.text} !important;` 
+            : `color: ${customColors.text} !important;`}
         }
         .custom-theme-wrapper .bg-gradient-primary {
-          ${customColors.primaryGradient 
-            ? `background: ${customColors.primaryGradient} !important;` 
-            : `background-color: ${customColors.primary} !important;`}
+          ${customColors.buttonGradient 
+            ? `background: ${customColors.buttonGradient} !important;` 
+            : `background-color: ${customColors.button} !important;`}
         }
         .custom-theme-wrapper input[type="checkbox"]:checked,
         .custom-theme-wrapper input[type="radio"]:checked {
-          ${customColors.primaryGradient 
-            ? `background: ${customColors.primaryGradient} !important;` 
-            : `background-color: ${customColors.primary} !important;`}
-          border-color: ${customColors.primary} !important;
+          ${customColors.buttonGradient 
+            ? `background: ${customColors.buttonGradient} !important;` 
+            : `background-color: ${customColors.button} !important;`}
+          border-color: ${customColors.button} !important;
         }
         .custom-theme-wrapper .custom-progress-fill {
-          ${customColors.primaryGradient 
-            ? `background: ${customColors.primaryGradient} !important;` 
-            : `background-color: ${customColors.primary} !important;`}
+          ${customColors.buttonGradient 
+            ? `background: ${customColors.buttonGradient} !important;` 
+            : `background-color: ${customColors.button} !important;`}
+        }
+        /* Form container background is now handled by parent component */
+        /* Rate scale emoji colors */
+        .custom-theme-wrapper .rate-scale-emoji {
+          filter: none !important;
+        }
+        /* Boolean switch active state */
+        .custom-theme-wrapper [data-state="checked"] {
+          ${customColors.buttonGradient 
+            ? `background: ${customColors.buttonGradient} !important;` 
+            : `background-color: ${customColors.button} !important;`}
+        }
+        /* Ensure placeholder text is visible */
+        .custom-theme-wrapper input::placeholder,
+        .custom-theme-wrapper textarea::placeholder {
+          color: ${customColors.text}60 !important;
+          opacity: 0.6 !important;
         }
       `;
     }

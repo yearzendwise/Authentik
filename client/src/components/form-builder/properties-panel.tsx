@@ -1,15 +1,15 @@
-import { FormElement, ValidationRules, ElementStyling } from '../../types/form-builder';
-import { Input } from '../../components/ui/input';
-import { Label } from '../../components/ui/label';
-import { Checkbox } from '../../components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { Button } from '../../components/ui/button';
-import { Textarea } from '../../components/ui/textarea';
-import { LanguageSelector } from '../../components/ui/language-selector';
+import { FormElement, ValidationRules, ElementStyling } from '@/types/form-builder';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { LanguageSelector } from '@/components/ui/language-selector';
 import { Fragment, useState, useEffect } from 'react';
 import { Listbox, Transition } from '@headlessui/react';
-import { ChevronUpDownIcon, CheckIcon } from '@heroicons/react/24/solid';
-import { validateFieldName, normalizeFieldName } from '../../hooks/use-form-builder';
+import { ChevronUpDownIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { validateFieldName, normalizeFieldName } from '@/hooks/use-form-builder';
 
 interface PropertiesPanelProps {
   selectedElement: FormElement | null;

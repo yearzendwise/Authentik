@@ -80,12 +80,15 @@ export interface FormBuilderState {
 export type WizardStep = 'build' | 'style' | 'preview';
 
 export interface CustomColors {
-  primary: string;
-  primaryGradient?: string;
-  secondary: string;
-  secondaryGradient?: string;
+  text: string;
+  textGradient?: string;
+  font: 'sans' | 'serif' | 'mono';
   background: string;
   backgroundGradient?: string;
+  button: string;
+  buttonGradient?: string;
+  header: string;
+  headerGradient?: string;
 }
 
 export interface FormTheme {

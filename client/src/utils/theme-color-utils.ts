@@ -16,83 +16,169 @@ export function applyCustomColors(theme: FormTheme, customColors: CustomColors):
 
 // Helper function to extract dominant colors from a theme for defaults
 export function extractThemeColors(theme: FormTheme): CustomColors {
-  let primary = '#3B82F6'; // Default blue
-  let secondary = '#6B7280'; // Default gray
-  let background = '#F9FAFB'; // Default light gray
+  let text = '#1F2937'; // Default dark gray for text
+  let button = '#3B82F6'; // Default blue for buttons
+  let background = '#FFFFFF'; // Default white background
+  let header = '#1F2937'; // Default header color
+  let font: 'sans' | 'serif' | 'mono' = 'sans'; // Default font
 
   // Extract colors based on theme ID patterns
   switch (theme.id) {
     case 'minimal':
-      primary = '#1F2937'; // Dark gray for minimal
-      secondary = '#6B7280';
+      text = '#1F2937'; // Dark gray
+      header = '#111827'; // Darker gray for headers
+      button = '#1F2937'; // Dark gray for minimal
       background = '#FFFFFF';
+      font = 'sans';
       break;
     case 'modern':
-      primary = '#8B5CF6'; // Purple for modern
-      secondary = '#374151';
+      text = '#374151'; // Gray
+      header = '#8B5CF6'; // Purple for headers
+      button = '#8B5CF6'; // Purple for modern
       background = '#F8FAFC';
+      font = 'sans';
       break;
     case 'professional':
-      primary = '#2563EB'; // Blue for professional
-      secondary = '#4B5563';
+      text = '#1F2937'; // Dark gray
+      header = '#2563EB'; // Blue for headers
+      button = '#2563EB'; // Blue for professional
       background = '#FFFFFF';
+      font = 'sans';
       break;
     case 'playful':
-      primary = '#EC4899'; // Pink for playful
-      secondary = '#7C3AED';
+      text = '#7C3AED'; // Purple
+      header = '#EC4899'; // Pink for headers
+      button = '#EC4899'; // Pink for playful
       background = '#FDF2F8';
+      font = 'sans';
       break;
     case 'elegant':
-      primary = '#4F46E5'; // Indigo for elegant
-      secondary = '#6B7280';
+      text = '#1F2937'; // Dark gray
+      header = '#4F46E5'; // Indigo for headers
+      button = '#4F46E5'; // Indigo for elegant
       background = '#FFFFFF';
+      font = 'serif';
       break;
     case 'neon':
-      primary = '#00FF88'; // Neon green
-      secondary = '#00D9FF';
+      text = '#00D9FF'; // Neon cyan
+      header = '#00FF88'; // Neon green for headers
+      button = '#00FF88'; // Neon green
       background = '#0A0A0A';
+      font = 'mono';
       break;
     case 'nature':
-      primary = '#059669'; // Emerald green
-      secondary = '#047857';
+      text = '#047857'; // Dark emerald
+      header = '#059669'; // Emerald for headers
+      button = '#059669'; // Emerald green
       background = '#F0FDF4';
+      font = 'sans';
       break;
     case 'luxury':
-      primary = '#D97706'; // Amber/gold
-      secondary = '#92400E';
+      text = '#FCD34D'; // Gold/yellow
+      header = '#F59E0B'; // Amber for headers
+      button = '#D97706'; // Amber/gold
       background = '#0F0A02';
+      font = 'serif';
       break;
     case 'retro':
-      primary = '#F97316'; // Orange
-      secondary = '#EA580C';
+      text = '#DC2626'; // Red
+      header = '#F97316'; // Orange for headers
+      button = '#F97316'; // Orange
       background = '#FFF7ED';
+      font = 'mono';
       break;
     case 'cosmic':
-      primary = '#8B5CF6'; // Purple
-      secondary = '#A855F7';
+      text = '#E9D5FF'; // Light purple
+      header = '#A855F7'; // Bright purple for headers
+      button = '#8B5CF6'; // Purple
       background = '#0F0F23';
+      font = 'sans';
       break;
     case 'brutalist':
-      primary = '#000000'; // Black
-      secondary = '#374151';
+      text = '#000000'; // Black
+      header = '#000000'; // Black for headers
+      button = '#000000'; // Black
       background = '#FFFFFF';
+      font = 'mono';
       break;
     case 'pastel-dream':
-      primary = '#EC4899'; // Pink
-      secondary = '#8B5CF6';
+      text = '#BE185D'; // Pink
+      header = '#EC4899'; // Bright pink for headers
+      button = '#EC4899'; // Pink
       background = '#FDF2F8';
+      font = 'sans';
       break;
     case 'neo-modern':
-      primary = '#00FF41'; // Matrix green
-      secondary = '#10B981';
+      text = '#10B981'; // Green
+      header = '#00FF41'; // Matrix green for headers
+      button = '#00FF41'; // Matrix green
       background = '#0A0A0A';
+      font = 'mono';
       break;
     case 'modern-bold':
-      primary = '#F97316'; // Orange
-      secondary = '#DC2626';
+      text = '#1F2937'; // Dark gray
+      header = '#F97316'; // Orange for headers
+      button = '#F97316'; // Orange
       background = '#FFFFFF';
+      font = 'sans';
       break;
   }
 
-  return { primary, secondary, background };
+  return { text, button, background, header, font };
+}
+
+// Helper function to lighten a color
+export function lightenColor(color: string, percent: number = 20): string {
+  // Handle gradients by returning a semi-transparent white overlay
+  if (color.includes('gradient')) {
+    return color;
+  }
+  
+  // Convert hex to RGB
+  const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  };
+  
+  // If it's already an rgb/rgba color
+  if (color.startsWith('rgb')) {
+    const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+(?:\.\d+)?))?\)/);
+    if (match) {
+      const r = parseInt(match[1]);
+      const g = parseInt(match[2]);
+      const b = parseInt(match[3]);
+      const a = match[4] ? parseFloat(match[4]) : 1;
+      
+      // Lighten by mixing with white
+      const newR = Math.min(255, r + (255 - r) * (percent / 100));
+      const newG = Math.min(255, g + (255 - g) * (percent / 100));
+      const newB = Math.min(255, b + (255 - b) * (percent / 100));
+      
+      return `rgba(${Math.round(newR)}, ${Math.round(newG)}, ${Math.round(newB)}, ${a})`;
+    }
+  }
+  
+  // Handle hex colors
+  const rgb = hexToRgb(color);
+  if (rgb) {
+    // Lighten by mixing with white
+    const newR = Math.min(255, rgb.r + (255 - rgb.r) * (percent / 100));
+    const newG = Math.min(255, rgb.g + (255 - rgb.g) * (percent / 100));
+    const newB = Math.min(255, rgb.b + (255 - rgb.b) * (percent / 100));
+    
+    // Convert back to hex
+    const toHex = (n: number) => {
+      const hex = Math.round(n).toString(16);
+      return hex.length === 1 ? '0' + hex : hex;
+    };
+    
+    return `#${toHex(newR)}${toHex(newG)}${toHex(newB)}`;
+  }
+  
+  // Return original color if we can't parse it
+  return color;
 }

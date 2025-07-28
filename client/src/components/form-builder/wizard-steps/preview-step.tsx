@@ -1,11 +1,12 @@
-import { FormElement, FormTheme, CustomColors } from '../../../types/form-builder';
-import { ThemedFormRenderer } from '../themed-form-renderer';
-import { CustomThemedForm } from '../custom-themed-form';
-import { ColorCustomizer } from '../color-customizer';
-import { Button } from '../../../components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../../components/ui/dialog';
+import { FormElement, FormTheme, CustomColors } from '@/types/form-builder';
+import { ThemedFormRenderer } from '@/components/form-builder/themed-form-renderer';
+import { CustomThemedForm } from '@/components/form-builder/custom-themed-form';
+import { ColorCustomizer } from '@/components/form-builder/color-customizer';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Save, Download, Code, Mail, Clock, User } from 'lucide-react';
 import { useState, useMemo, useCallback, useEffect } from 'react';
+import { lightenColor } from '@/utils/theme-color-utils';
 
 // Extended type for preview elements that includes buttons and spacer
 type PreviewFormElement = FormElement | {
@@ -326,10 +327,95 @@ export function PreviewStep({
     );
   };
 
+  // Get background styles for page and form
+  const getBackgroundStyles = () => {
+    if (!selectedTheme.customColors) {
+      return {
+        pageStyle: {},
+        formStyle: {}
+      };
+    }
+
+    const customColors = selectedTheme.customColors;
+    
+    // Page gets the selected background color
+    const pageStyle = customColors.backgroundGradient 
+      ? { background: customColors.backgroundGradient }
+      : { backgroundColor: customColors.background };
+    
+    // Form gets a lighter shade (or semi-transparent overlay for gradients)
+    let formStyle = {};
+    if (customColors.backgroundGradient) {
+      // For gradients, use a semi-transparent white overlay
+      formStyle = { 
+        backgroundColor: 'rgba(255, 255, 255, 0.85)',
+        backdropFilter: 'blur(10px)'
+      };
+    } else {
+      // For solid colors, lighten the color
+      formStyle = { 
+        backgroundColor: lightenColor(customColors.background, 85) 
+      };
+    }
+    
+    return { pageStyle, formStyle };
+  };
+
+  const { pageStyle, formStyle } = getBackgroundStyles();
+
+  // Inject custom color CSS when theme has custom colors
+  useEffect(() => {
+    if (selectedTheme?.customColors) {
+      const customColors = selectedTheme.customColors;
+      const styleId = 'custom-theme-colors-preview';
+      let existingStyle = document.getElementById(styleId);
+      
+      if (!existingStyle) {
+        existingStyle = document.createElement('style');
+        existingStyle.id = styleId;
+        document.head.appendChild(existingStyle);
+      }
+      
+      // Define font families
+      const fontFamilies = {
+        sans: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        serif: 'Georgia, "Times New Roman", Times, serif',
+        mono: 'ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace'
+      };
+      
+      existingStyle.textContent = `
+        .custom-theme-wrapper {
+          font-family: ${fontFamilies[customColors.font]} !important;
+        }
+        .custom-theme-wrapper * {
+          font-family: inherit !important;
+        }
+        .custom-theme-wrapper h1:first-child {
+          ${customColors.headerGradient 
+            ? `background: ${customColors.headerGradient} !important; 
+               -webkit-background-clip: text !important; 
+               -webkit-text-fill-color: transparent !important; 
+               background-clip: text !important;
+               color: transparent !important;` 
+            : `color: ${customColors.header} !important;
+               background: none !important;
+               -webkit-text-fill-color: ${customColors.header} !important;`}
+        }
+      `;
+      
+      return () => {
+        // Cleanup on unmount
+        if (existingStyle && existingStyle.parentNode) {
+          existingStyle.parentNode.removeChild(existingStyle);
+        }
+      };
+    }
+  }, [selectedTheme?.customColors]);
+
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col">
       {/* Header */}
-      <div className="bg-white/95 backdrop-blur-sm border-b border-slate-200/60 px-6 py-5 shadow-sm flex-shrink-0">
+      <div className="bg-white/95 backdrop-blur-sm border-b border-slate-200/60 px-6 py-5 shadow-sm">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-slate-800 mb-2">Preview & Save</h2>
@@ -359,22 +445,12 @@ export function PreviewStep({
 
       {/* Preview */}
       <div 
-        className={`flex-1 overflow-y-auto p-6 min-h-0 ${themeStyles.background} ${selectedTheme.customColors ? 'custom-background' : ''}`}
-        style={selectedTheme.customColors ? 
-          (selectedTheme.customColors.backgroundGradient 
-            ? { background: selectedTheme.customColors.backgroundGradient }
-            : { backgroundColor: selectedTheme.customColors.background }) 
-          : {}
-        }
+        className={`flex-1 overflow-y-auto p-6 ${!selectedTheme.customColors ? themeStyles.background : ''}`}
+        style={selectedTheme.customColors ? pageStyle : {}}
       >
         <div 
-          className={`${themeStyles.container} ${selectedTheme.id === 'glassmorphism' ? 'glassmorphism-override' : ''} ${selectedTheme.customColors ? 'custom-background' : ''}`}
-          style={selectedTheme.customColors ? 
-            (selectedTheme.customColors.backgroundGradient 
-              ? { background: selectedTheme.customColors.backgroundGradient }
-              : { backgroundColor: selectedTheme.customColors.background }) 
-            : {}
-          }
+          className={`${themeStyles.container} ${selectedTheme.id === 'glassmorphism' ? 'glassmorphism-override' : ''} ${selectedTheme.customColors ? 'custom-theme-wrapper' : ''}`}
+          style={selectedTheme.customColors ? formStyle : {}}
         >
           {formSettings.showFormTitle !== false && (
             <>

@@ -1,4 +1,4 @@
-import { ComponentPaletteItem, FormElementType } from '../../types/form-builder';
+import { ComponentPaletteItem, FormElementType } from '@/types/form-builder';
 import { DraggableComponent } from './draggable-component';
 
 const paletteItems: ComponentPaletteItem[] = [

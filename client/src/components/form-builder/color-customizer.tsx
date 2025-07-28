@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Button } from '../../components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
-import { Label } from '../../components/ui/label';
-import { Input } from '../../components/ui/input';
-import { CustomColors, FormTheme } from '../../types/form-builder';
-import { Palette, RotateCcw, Pipette } from 'lucide-react';
-import { getThemeGradientPresets } from '../../utils/theme-gradient-presets';
-import { extractThemeColors } from '../../utils/theme-color-utils';
-import { cn } from '../../lib/utils';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { CustomColors, FormTheme } from '@/types/form-builder';
+import { Palette, RotateCcw, Pipette, Type, Paintbrush, Square, FileText } from 'lucide-react';
+import { getThemeGradientPresets } from '@/utils/theme-gradient-presets';
+import { extractThemeColors } from '@/utils/theme-color-utils';
+import { cn } from '@/lib/utils';
 
 interface ColorCustomizerProps {
   theme: FormTheme;
@@ -17,7 +17,7 @@ interface ColorCustomizerProps {
 
 export function ColorCustomizer({ theme, onColorsChange, onResetColors }: ColorCustomizerProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeColorType, setActiveColorType] = useState<'primary' | 'secondary' | 'background'>('primary');
+  const [activeColorType, setActiveColorType] = useState<'text' | 'background' | 'button' | 'header'>('text');
   
   // Get theme defaults as base colors
   const themeDefaults = extractThemeColors(theme);
@@ -35,21 +35,27 @@ export function ColorCustomizer({ theme, onColorsChange, onResetColors }: ColorC
     setColors(newColors);
   }, [theme]);
 
-  const handleColorChange = (colorType: keyof CustomColors, value: string) => {
+  const handleColorChange = (colorType: keyof Omit<CustomColors, 'font'>, value: string) => {
     const newColors = { ...colors, [colorType]: value };
     // Clear gradient if setting solid color
-    if (colorType === 'primary' || colorType === 'secondary' || colorType === 'background') {
+    if (colorType === 'text' || colorType === 'background' || colorType === 'button' || colorType === 'header') {
       delete newColors[`${colorType}Gradient` as keyof CustomColors];
     }
     setColors(newColors);
     onColorsChange(newColors);
   };
 
-  const handleGradientSelect = (colorType: 'primary' | 'secondary' | 'background', gradient: string) => {
+  const handleGradientSelect = (colorType: 'text' | 'background' | 'button' | 'header', gradient: string) => {
     const newColors = { 
       ...colors, 
       [`${colorType}Gradient` as keyof CustomColors]: gradient 
     };
+    setColors(newColors);
+    onColorsChange(newColors);
+  };
+
+  const handleFontChange = (font: 'sans' | 'serif' | 'mono') => {
+    const newColors = { ...colors, font };
     setColors(newColors);
     onColorsChange(newColors);
   };
@@ -62,46 +68,67 @@ export function ColorCustomizer({ theme, onColorsChange, onResetColors }: ColorC
   };
 
   const solidColors = {
-    primary: ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'],
-    secondary: ['#6B7280', '#64748B', '#374151', '#4B5563', '#71717A', '#525252'],
-    background: ['#FFFFFF', '#F9FAFB', '#F3F4F6', '#E5E7EB', '#0F172A', '#18181B']
+    text: ['#1F2937', '#374151', '#4B5563', '#6B7280', '#111827', '#000000', '#FFFFFF', '#F9FAFB'],
+    background: ['#FFFFFF', '#F9FAFB', '#F3F4F6', '#E5E7EB', '#1F2937', '#111827', '#000000', '#FEF3C7'],
+    button: ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'],
+    header: ['#1F2937', '#3B82F6', '#8B5CF6', '#EC4899', '#10B981', '#F59E0B', '#EF4444', '#6B7280']
   };
 
+  const fonts = [
+    { value: 'sans', label: 'Sans Serif', preview: 'Inter, -apple-system, sans-serif' },
+    { value: 'serif', label: 'Serif', preview: 'Georgia, Times, serif' },
+    { value: 'mono', label: 'Monospace', preview: 'ui-monospace, Consolas, monospace' }
+  ];
+
   // Get active value (gradient or solid color)
-  const getActiveValue = (colorType: 'primary' | 'secondary' | 'background') => {
+  const getActiveValue = (colorType: 'text' | 'background' | 'button' | 'header') => {
     const gradientKey = `${colorType}Gradient` as keyof CustomColors;
     return colors[gradientKey] || colors[colorType];
   };
 
   // Create preview styles
   const previewStyles = {
-    primary: colors.primaryGradient 
-      ? { background: colors.primaryGradient }
-      : { backgroundColor: colors.primary },
-    secondary: colors.secondaryGradient
-      ? { background: colors.secondaryGradient }
-      : { backgroundColor: colors.secondary },
+    text: colors.textGradient 
+      ? { background: colors.textGradient, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }
+      : { color: colors.text },
     background: colors.backgroundGradient
       ? { background: colors.backgroundGradient }
-      : { backgroundColor: colors.background }
+      : { backgroundColor: colors.background },
+    button: colors.buttonGradient
+      ? { background: colors.buttonGradient }
+      : { backgroundColor: colors.button },
+    header: colors.headerGradient
+      ? { background: colors.headerGradient, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }
+      : { color: colors.header }
   };
 
   const colorTypeConfig = {
-    primary: {
-      label: 'Primary',
-      description: 'Buttons & interactive elements',
-      icon: '🎯'
+    text: {
+      label: 'Text Color',
+      description: 'Color for all text and labels',
+      icon: <Type className="w-5 h-5" />
     },
-    secondary: {
-      label: 'Secondary', 
-      description: 'Labels & text',
-      icon: '📝'
+    header: {
+      label: 'Form Title Color',
+      description: 'Main form title only',
+      icon: <FileText className="w-5 h-5" />
     },
     background: {
-      label: 'Background',
-      description: 'Form background',
-      icon: '🎨'
+      label: 'Background Color',
+      description: 'Form background color',
+      icon: <Square className="w-5 h-5" />
+    },
+    button: {
+      label: 'Button Color',
+      description: 'Submit and action buttons',
+      icon: <Paintbrush className="w-5 h-5" />
     }
+  };
+
+  const fontStyles = {
+    sans: { fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' },
+    serif: { fontFamily: 'Georgia, "Times New Roman", Times, serif' },
+    mono: { fontFamily: 'ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace' }
   };
 
   return (
@@ -117,18 +144,19 @@ export function ColorCustomizer({ theme, onColorsChange, onResetColors }: ColorC
             <div className="w-4 h-4 rounded-full bg-gradient-to-br from-pink-500 to-orange-500" />
             <div className="w-4 h-4 rounded-full bg-gradient-to-br from-green-500 to-teal-500" />
           </div>
-          <span className="font-medium">Customize Colors</span>
+          <span className="font-medium">Customize Appearance</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
         {/* Header */}
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
-          <DialogTitle className="text-xl">Customize Colors</DialogTitle>
+          <DialogTitle className="text-xl">Customize Appearance</DialogTitle>
         </DialogHeader>
         
         <div className="flex flex-1 overflow-hidden">
-          {/* Left Panel - Color Type Selection */}
-          <div className="w-64 border-r bg-muted/30 p-4 space-y-2">
+          {/* Left Panel - Option Selection */}
+          <div className="w-64 border-r bg-muted/30 p-4 space-y-2 overflow-y-auto">
+            {/* Color Options */}
             {(Object.keys(colorTypeConfig) as Array<keyof typeof colorTypeConfig>).map((type) => (
               <button
                 key={type}
@@ -140,7 +168,7 @@ export function ColorCustomizer({ theme, onColorsChange, onResetColors }: ColorC
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{colorTypeConfig[type].icon}</span>
+                  {colorTypeConfig[type].icon}
                   <div>
                     <p className="font-medium">{colorTypeConfig[type].label}</p>
                     <p className="text-xs text-muted-foreground">
@@ -150,12 +178,42 @@ export function ColorCustomizer({ theme, onColorsChange, onResetColors }: ColorC
                 </div>
                 <div 
                   className="mt-2 h-2 rounded-full w-full"
-                  style={type === 'primary' ? previewStyles.primary : 
-                         type === 'secondary' ? previewStyles.secondary : 
-                         previewStyles.background}
+                  style={type === 'text' ? previewStyles.text : 
+                         type === 'header' ? previewStyles.header :
+                         type === 'background' ? previewStyles.background : 
+                         previewStyles.button}
                 />
               </button>
             ))}
+            
+            {/* Font Option */}
+            <div className="border-t pt-2 mt-4">
+              <div className="p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <Type className="w-5 h-5" />
+                  <div>
+                    <p className="font-medium">Font Family</p>
+                    <p className="text-xs text-muted-foreground">Typography style</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {fonts.map((font) => (
+                    <button
+                      key={font.value}
+                      onClick={() => handleFontChange(font.value as 'sans' | 'serif' | 'mono')}
+                      className={cn(
+                        "w-full text-left p-2 rounded-md transition-all text-sm",
+                        "hover:bg-accent/50",
+                        colors.font === font.value && "bg-accent shadow-sm"
+                      )}
+                      style={fontStyles[font.value as keyof typeof fontStyles]}
+                    >
+                      {font.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Right Panel - Color Options */}
@@ -211,7 +269,7 @@ export function ColorCustomizer({ theme, onColorsChange, onResetColors }: ColorC
                 {theme.name} Gradients
               </Label>
               <div className="grid grid-cols-2 gap-3">
-                {gradientPresets[activeColorType].map((preset) => (
+                {gradientPresets[activeColorType === 'text' || activeColorType === 'header' ? 'secondary' : activeColorType === 'button' ? 'primary' : 'background'].map((preset) => (
                   <button
                     key={preset.name}
                     onClick={() => handleGradientSelect(activeColorType, preset.gradient)}
@@ -236,25 +294,25 @@ export function ColorCustomizer({ theme, onColorsChange, onResetColors }: ColorC
         <div className="border-t bg-muted/30 p-6">
           <div className="max-w-md mx-auto">
             <Label className="text-sm font-medium mb-3 block">Preview</Label>
-            <div className="p-6 rounded-lg shadow-sm" style={previewStyles.background}>
-              <h3 className="text-lg font-semibold mb-4" style={previewStyles.secondary}>
+            <div className="p-6 rounded-lg shadow-sm" style={{ ...previewStyles.background, ...fontStyles[colors.font] }}>
+              <h3 className="text-lg font-semibold mb-4" style={previewStyles.header}>
                 Sample Form
               </h3>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium mb-1" style={previewStyles.secondary}>
+                  <label className="block text-sm font-medium mb-1" style={previewStyles.text}>
                     Your Name
                   </label>
                   <input 
                     type="text" 
                     placeholder="Enter your name"
                     className="w-full p-2 border rounded-md"
-                    style={{ borderColor: colors.primary }}
+                    style={{ borderColor: colors.button, ...fontStyles[colors.font] }}
                   />
                 </div>
                 <button 
                   className="w-full py-2 px-4 rounded-md text-white font-medium shadow-sm"
-                  style={previewStyles.primary}
+                  style={previewStyles.button}
                 >
                   Submit Form
                 </button>
@@ -274,7 +332,7 @@ export function ColorCustomizer({ theme, onColorsChange, onResetColors }: ColorC
             Reset to Defaults
           </Button>
           <Button onClick={() => setIsOpen(false)}>
-            Apply Colors
+            Apply Changes
           </Button>
         </div>
       </DialogContent>

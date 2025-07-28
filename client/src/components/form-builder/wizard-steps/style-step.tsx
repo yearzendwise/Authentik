@@ -1,5 +1,5 @@
-import { FormTheme } from '../../../types/form-builder';
-import { Button } from '../../../components/ui/button';
+import { FormTheme } from '@/types/form-builder';
+import { Button } from '@/components/ui/button';
 import { Check } from 'lucide-react';
 
 interface StyleStepProps {
@@ -10,15 +10,15 @@ interface StyleStepProps {
 
 export function StyleStep({ themes, selectedTheme, onSelectTheme }: StyleStepProps) {
   return (
-    <div className="flex-1 flex flex-col bg-neutral-50 overflow-hidden">
-      <div className="bg-white/95 backdrop-blur-sm border-b border-slate-200/60 px-6 py-5 shadow-sm flex-shrink-0">
+    <div className="flex-1 flex flex-col bg-neutral-50">
+      <div className="bg-white/95 backdrop-blur-sm border-b border-slate-200/60 px-6 py-5 shadow-sm">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl font-bold text-slate-800 mb-2">Choose Your Form Style</h2>
           <p className="text-slate-600">Select a visual theme that matches your brand and preferences</p>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 min-h-0">
+      <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-4xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {themes.map((theme) => (

@@ -1,4 +1,4 @@
-import { FormElement } from '../../types/form-builder';
+import { FormElement } from '@/types/form-builder';
 import { FormElementRenderer } from './form-element-renderer';
 
 interface SortableFormElementProps {

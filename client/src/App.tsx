@@ -14,6 +14,7 @@ import Dashboard from "@/pages/dashboard";
 import ProfilePage from "@/pages/profile";
 import SessionsPage from "@/pages/sessions";
 import UsersPage from "@/pages/users";
+import TableExamplePage from "@/pages/table-example";
 import CompanyPage from "@/pages/company";
 import ShopsPage from "@/pages/shops";
 import NewShopPage from "@/pages/shops/new";
@@ -85,6 +86,7 @@ function Router() {
             <Route path="/profile" component={ProfilePage} />
             <Route path="/sessions" component={SessionsPage} />
             <Route path="/users" component={UsersPage} />
+            <Route path="/table-example" component={TableExamplePage} />
             <Route path="/subscribe" component={Subscribe} />
             <Route path="/auth" component={Dashboard} />{" "}
             {/* Redirect logged-in users to dashboard */}

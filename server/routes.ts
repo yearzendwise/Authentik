@@ -2527,12 +2527,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get managers for shop assignment
   app.get("/api/shops/managers/list", authenticateToken, async (req: any, res) => {
     try {
-      // Get all users with Manager role or higher in the tenant
-      const managers = await storage.getAllUsers(req.user.tenantId, {
-        role: ["Owner", "Administrator", "Manager"],
+      console.log("📋 [Managers List] Request from user:", req.user.email, "Tenant:", req.user.tenantId);
+      
+      // Get all active users in the tenant
+      const allUsers = await storage.getAllUsers(req.user.tenantId, {
         isActive: true,
       });
-
+      
+      console.log("📋 [Managers List] Total active users found:", allUsers.length);
+      
+      // Filter to only include users with Manager role
+      const managers = allUsers.filter(user => 
+        user.role === 'Manager'
+      );
+      
+      console.log("📋 [Managers List] Managers found:", managers.length, managers.map(m => ({ email: m.email, role: m.role })));
+      
       res.json({
         managers: managers.map(user => ({
           id: user.id,
@@ -2544,6 +2554,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Get managers error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Development endpoint to create test managers
+  app.post("/api/dev/create-test-managers", async (req, res) => {
+    try {
+      // Get default tenant
+      const tenant = await storage.getTenantBySlug("default");
+      if (!tenant) {
+        return res.status(500).json({ message: "Default tenant not found" });
+      }
+
+      const hashedPassword = await bcrypt.hash("password123", 10);
+      const managersToCreate = [
+        {
+          email: "john.manager@example.com",
+          firstName: "John",
+          lastName: "Manager",
+          role: "Manager" as const,
+        },
+        {
+          email: "jane.admin@example.com",
+          firstName: "Jane", 
+          lastName: "Admin",
+          role: "Administrator" as const,
+        },
+        {
+          email: "mike.manager@example.com",
+          firstName: "Mike",
+          lastName: "Smith",
+          role: "Manager" as const,
+        }
+      ];
+
+      const created = [];
+      const skipped = [];
+
+      for (const managerData of managersToCreate) {
+        // Check if user already exists
+        const existingUser = await storage.getUserByEmail(managerData.email, tenant.id);
+        if (existingUser) {
+          skipped.push(managerData.email);
+          continue;
+        }
+
+        // Create user
+        const newUser = await storage.createUser({
+          id: crypto.randomUUID(),
+          email: managerData.email,
+          password: hashedPassword,
+          firstName: managerData.firstName,
+          lastName: managerData.lastName,
+          role: managerData.role,
+          isActive: true,
+          emailVerified: true,
+          tenantId: tenant.id,
+        });
+
+        created.push(managerData.email);
+      }
+
+      res.json({ 
+        message: "Test managers creation completed",
+        created,
+        skipped
+      });
+    } catch (error) {
+      console.error("Create test managers error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

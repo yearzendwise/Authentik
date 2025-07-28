@@ -33,6 +33,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { createShopSchema, type CreateShopData } from "@shared/schema";
+import { useReduxAuth } from "@/hooks/useReduxAuth";
 
 interface Manager {
   id: string;
@@ -64,6 +65,7 @@ const DEFAULT_OPERATING_HOURS = {
 export default function NewShopPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { user, isAuthenticated, isLoading: authLoading } = useReduxAuth();
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
 
@@ -83,14 +85,66 @@ export default function NewShopPage() {
     },
   });
 
+  // Debug authentication state
+  console.log('🔍 [Shops/New] Auth state:', {
+    isAuthenticated,
+    authLoading,
+    hasUser: !!user,
+    userRole: user?.role
+  });
+
   // Fetch managers
-  const { data: managersData, isLoading: managersLoading } = useQuery<{ managers: Manager[] }>({
+  const { data: managersData, isLoading: managersLoading, error: managersError } = useQuery<{ managers: Manager[] }>({
     queryKey: ['/api/shops/managers/list'],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/shops/managers/list');
-      return response.json();
+      console.log('🔍 Fetching managers list...');
+      try {
+        const response = await apiRequest('GET', '/api/shops/managers/list');
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ Managers API error:', response.status, errorText);
+          throw new Error(`Failed to fetch managers: ${response.status} ${errorText}`);
+        }
+        const data = await response.json();
+        console.log('🔍 Managers response:', data);
+        return data;
+      } catch (error) {
+        console.error('❌ Error in managers query:', error);
+        throw error;
+      }
     },
+    enabled: !!isAuthenticated && !authLoading,
+    retry: 2,
+    retryDelay: 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
+  
+  // Log error if any
+  if (managersError) {
+    console.error('❌ Error fetching managers:', managersError);
+  }
+
+  // Debug function to create test managers
+  const createTestManagers = async () => {
+    try {
+      const response = await apiRequest('POST', '/api/dev/create-test-managers');
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Test managers created:', result);
+        toast({
+          title: "Test Managers Created",
+          description: `Created: ${result.created.join(', ')}`,
+        });
+        // Refetch managers
+        window.location.reload();
+      } else {
+        console.error('❌ Failed to create test managers');
+      }
+    } catch (error) {
+      console.error('❌ Error creating test managers:', error);
+    }
+  };
 
   // Create shop mutation
   const createShopMutation = useMutation({
@@ -135,6 +189,24 @@ export default function NewShopPage() {
     setTags(newTags);
     setValue('tags', newTags);
   };
+
+  // Show loading state while authentication is being determined
+  if (authLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-4">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect if not authenticated
+  if (!isAuthenticated) {
+    navigate('/auth');
+    return null;
+  }
 
   return (
     <div className="p-6">
@@ -234,13 +306,49 @@ export default function NewShopPage() {
                     <SelectValue placeholder={managersLoading ? "Loading..." : "Select manager"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {managersData?.managers.map(manager => (
-                      <SelectItem key={manager.id} value={manager.id}>
-                        {manager.firstName} {manager.lastName} ({manager.email})
+                    {managersLoading ? (
+                      <SelectItem value="loading" disabled>
+                        Loading managers...
                       </SelectItem>
-                    ))}
+                    ) : managersError ? (
+                      <SelectItem value="error" disabled>
+                        Error loading managers
+                      </SelectItem>
+                    ) : managersData?.managers && managersData.managers.length > 0 ? (
+                      managersData.managers.map(manager => (
+                        <SelectItem key={manager.id} value={manager.id}>
+                          {manager.firstName || manager.lastName 
+                            ? `${manager.firstName || ''} ${manager.lastName || ''}`.trim() 
+                            : 'No name'} ({manager.email})
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-managers" disabled>
+                        No managers available
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
+                {managersError && (
+                  <p className="text-sm text-destructive">
+                    Failed to load managers. Please try refreshing the page.
+                  </p>
+                )}
+                {!managersLoading && !managersError && managersData?.managers && managersData.managers.length === 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      No managers found. Only users with "Manager" role can be assigned to shops.
+                    </p>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={createTestManagers}
+                    >
+                      Create Test Managers
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>

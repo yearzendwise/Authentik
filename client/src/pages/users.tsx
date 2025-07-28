@@ -14,11 +14,14 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Users as UsersIcon, Plus, Search, Filter, Edit, Trash2, Shield, UserCheck, UserX, Calendar, Mail, MapPin, Eye, EyeOff } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createUserSchema, updateUserSchema, userRoles, type User, type CreateUserData, type UpdateUserData, type UserRole } from "@shared/schema";
 import { useReduxAuth } from "@/hooks/useReduxAuth";
+import { DataTable, DataTableColumnHeader, DataTableRowActions } from "@/components/ui/data-table";
+import { ColumnDef } from "@tanstack/react-table";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface UserStats {
   totalUsers: number;
@@ -347,9 +350,169 @@ export default function UsersPage() {
     toggleStatusMutation.mutate({ userId, isActive });
   };
 
+  // Define columns for the data table
+  const columns: ColumnDef<User>[] = [
+    {
+      accessorKey: "user",
+      header: "USER",
+      cell: ({ row }) => {
+        const user = row.original;
+        return (
+          <div className="flex items-center space-x-3">
+            <div className="relative">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src="" />
+                <AvatarFallback className="bg-gray-100 text-gray-600 text-sm">
+                  {getUserInitials(user.firstName || undefined, user.lastName || undefined)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-green-500 border-2 border-white"></div>
+            </div>
+            <div>
+              <div className="font-medium text-gray-900">
+                {user.firstName || user.lastName ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'No name'}
+              </div>
+              <div className="text-sm text-gray-500">{user.email}</div>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "role",
+      header: "ROLE",
+      cell: ({ row }) => {
+        const role = row.getValue("role") as string;
+        const roleStyles = {
+          'Owner': 'bg-purple-100 text-purple-700',
+          'Administrator': 'bg-red-100 text-red-700',
+          'Manager': 'bg-blue-100 text-blue-700',
+          'Employee': 'bg-gray-100 text-gray-700'
+        };
+        return (
+          <Badge variant="secondary" className={`${roleStyles[role as keyof typeof roleStyles] || 'bg-gray-100 text-gray-700'} hover:bg-opacity-80 font-normal border-0`}>
+            {role}
+          </Badge>
+        );
+      },
+      filterFn: (row, id, value) => {
+        return value.includes(row.getValue(id));
+      },
+    },
+    {
+      accessorKey: "isActive",
+      header: "STATUS",
+      cell: ({ row }) => {
+        const isActive = row.getValue("isActive");
+        return isActive ? (
+          <div className="flex items-center space-x-1.5">
+            <UserCheck className="h-4 w-4 text-green-600" />
+            <span className="text-green-600 font-medium">Active</span>
+          </div>
+        ) : (
+          <div className="flex items-center space-x-1.5">
+            <UserX className="h-4 w-4 text-red-600" />
+            <span className="text-red-600 font-medium">Inactive</span>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "location",
+      header: "LOCATION",
+      cell: ({ row }) => {
+        // For now, we'll show a dash as location is not in our schema
+        return <span className="text-gray-400">—</span>;
+      },
+    },
+    {
+      accessorKey: "lastLoginAt",
+      header: "LAST LOGIN",
+      cell: ({ row }) => {
+        const lastLogin = row.getValue("lastLoginAt");
+        if (!lastLogin) return (
+          <div className="flex items-center space-x-1.5 text-gray-500">
+            <Calendar className="h-4 w-4" />
+            <span>Never</span>
+          </div>
+        );
+        return (
+          <div className="flex items-center space-x-1.5 text-gray-500">
+            <Calendar className="h-4 w-4" />
+            <span>{format(new Date(lastLogin as string), "MMM d, yyyy")}</span>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "createdAt",
+      header: "JOINED",
+      cell: ({ row }) => {
+        const createdAt = row.getValue("createdAt");
+        if (!createdAt) return null;
+        return (
+          <div className="flex items-center space-x-1.5 text-gray-500">
+            <Calendar className="h-4 w-4" />
+            <span>{format(new Date(createdAt as string), "MMM d, yyyy, h:mm a")}</span>
+          </div>
+        );
+      },
+    },
+    {
+      id: "actions",
+      header: "ACTIONS",
+      cell: ({ row }) => {
+        const user = row.original;
+        if (!isAdmin || user.id === currentUser.id) return null;
+        
+        return (
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+              onClick={() => handleEditUser(user)}
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={() => {
+                if (confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}?`)) {
+                  handleDeleteUser(user.id);
+                }
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        );
+      },
+    },
+  ];
+
+  // Filter users based on search and filters
+  const filteredUsers = useMemo(() => {
+    return users.filter((user: User) => {
+      const matchesSearch = searchTerm === "" || 
+        user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesRole = roleFilter === "" || user.role === roleFilter;
+      const matchesStatus = statusFilter === "" || 
+        (statusFilter === "active" ? user.isActive : !user.isActive);
+      const matchesInactive = showInactive || user.isActive;
+      
+      return matchesSearch && matchesRole && matchesStatus && matchesInactive;
+    });
+  }, [users, searchTerm, roleFilter, statusFilter, showInactive]);
+
   if (usersLoading) {
     return (
-      <div className="max-w-6xl mx-auto p-6">
+      <div className="max-w-7xl mx-auto p-6">
         <div className="space-y-6">
           <div className="mb-8">
             <div className="flex items-center space-x-4">
@@ -380,7 +543,7 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    <div className="max-w-7xl mx-auto p-6">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -599,7 +762,7 @@ export default function UsersPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
-              placeholder="Search users..."
+              placeholder="Search users by name or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -640,135 +803,15 @@ export default function UsersPage() {
           </div>
         </div>
 
-        {/* Users List */}
-        <div className="relative">
-          <div className="grid gap-4 relative">
-            {/* Loading overlay for search - only covers user cards */}
-            {(isSearching || isFetching) && (
-              <div className="absolute inset-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-lg">
-                <div className="flex items-center justify-center py-8">
-                  <div className="flex items-center space-x-2 text-blue-600">
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
-                    <span className="text-sm font-medium">
-                      {isSearching ? "Searching..." : "Loading..."}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-            {users.map((user: User) => (
-            <Card key={user.id} className={!user.isActive ? "opacity-60" : ""}>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src="" />
-                      <AvatarFallback className="bg-blue-100 text-blue-600">
-                        {getUserInitials(user.firstName || undefined, user.lastName || undefined)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="space-y-1">
-                      <div className="flex items-center space-x-2">
-                        <h3 className="font-semibold text-lg">
-                          {user.firstName} {user.lastName}
-                        </h3>
-                        <Badge variant={getRoleBadgeVariant(user.role)}>
-                          {user.role}
-                        </Badge>
-                        {user.isActive ? (
-                          <Badge variant="outline" className="text-green-600 border-green-600">
-                            <UserCheck className="h-3 w-3 mr-1" />
-                            Active
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-red-600 border-red-600">
-                            <UserX className="h-3 w-3 mr-1" />
-                            Inactive
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                        <span className="flex items-center">
-                          <Mail className="h-3 w-3 mr-1" />
-                          {user.email}
-                        </span>
-                        {user.lastLoginAt && (
-                          <span className="flex items-center">
-                            <Calendar className="h-3 w-3 mr-1" />
-                            Last login {formatDistanceToNow(new Date(user.lastLoginAt), { addSuffix: true })}
-                          </span>
-                        )}
-                        <span className="flex items-center">
-                          <Calendar className="h-3 w-3 mr-1" />
-                          Joined {formatDistanceToNow(new Date(user.createdAt || Date.now()), { addSuffix: true })}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  {isAdmin && user.id !== currentUser.id && (
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditUser(user)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleToggleStatus(user.id, !user.isActive)}
-                      >
-                        {user.isActive ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete User?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will permanently delete {user.firstName} {user.lastName} and all their data. 
-                              This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeleteUser(user.id)}
-                              disabled={deleteUserMutation.isPending}
-                              className="bg-red-600 hover:bg-red-700"
-                            >
-                              {deleteUserMutation.isPending ? "Deleting..." : "Delete"}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-          {users.length === 0 && !isSearching && !isFetching && (
-            <Card>
-              <CardContent className="p-12 text-center">
-                <UsersIcon className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">No users found</h3>
-                <p className="mt-2 text-gray-600 dark:text-gray-400">
-                  Try adjusting your filters or search terms.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-          </div>
+        {/* Users Table */}
+        <div className="bg-white rounded-lg shadow-sm">
+          <DataTable
+            columns={columns}
+            data={filteredUsers}
+            showPagination={true}
+            pageSize={10}
+            showColumnVisibility={false}
+          />
         </div>
 
         {/* Edit User Dialog */}

@@ -1,0 +1,94 @@
+import dotenv from "dotenv";
+dotenv.config();
+
+import { db } from "./db";
+import { users, tenants } from "@shared/schema";
+import bcrypt from "bcryptjs";
+import { eq } from "drizzle-orm";
+
+async function createTestManagers() {
+  try {
+    console.log("🔧 Creating test managers...");
+    
+    // Get default tenant
+    const [tenant] = await db
+      .select()
+      .from(tenants)
+      .where(eq(tenants.slug, "default"))
+      .limit(1);
+      
+    if (!tenant) {
+      console.error("❌ Default tenant not found!");
+      return;
+    }
+    
+    console.log("✅ Found tenant:", tenant.name);
+    
+    // Test users to create
+    const testUsers = [
+      {
+        email: "manager1@example.com",
+        firstName: "John",
+        lastName: "Manager",
+        role: "Manager" as const,
+      },
+      {
+        email: "manager2@example.com", 
+        firstName: "Jane",
+        lastName: "Smith",
+        role: "Manager" as const,
+      },
+      {
+        email: "admin@example.com",
+        firstName: "Admin",
+        lastName: "User",
+        role: "Administrator" as const,
+      },
+      {
+        email: "owner@example.com",
+        firstName: "Owner",
+        lastName: "User", 
+        role: "Owner" as const,
+      }
+    ];
+    
+    const hashedPassword = await bcrypt.hash("password123", 10);
+    
+    for (const userData of testUsers) {
+      // Check if user already exists
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, userData.email))
+        .limit(1);
+        
+      if (existingUser) {
+        console.log(`⚠️  User ${userData.email} already exists, skipping...`);
+        continue;
+      }
+      
+      // Create user
+      await db.insert(users).values({
+        id: crypto.randomUUID(),
+        email: userData.email,
+        password: hashedPassword,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        role: userData.role,
+        isActive: true,
+        emailVerified: true,
+        tenantId: tenant.id,
+      });
+      
+      console.log(`✅ Created ${userData.role}: ${userData.email}`);
+    }
+    
+    console.log("✅ Test managers created successfully!");
+    process.exit(0);
+  } catch (error) {
+    console.error("❌ Error creating test managers:", error);
+    process.exit(1);
+  }
+}
+
+createTestManagers();

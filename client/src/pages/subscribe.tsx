@@ -348,7 +348,7 @@ export default function Subscribe() {
   const [currentPlan, setCurrentPlan] = useState<string>('');
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading, hasInitialized } = useAuth();
   const { user: reduxUser } = useReduxAuth();
 
   // Check if user has Owner role - only Owners can access subscription management
@@ -378,7 +378,9 @@ export default function Subscribe() {
   // Check if user already has a subscription
   const { data: userSubscription, isLoading: subscriptionLoading } = useQuery<UserSubscriptionResponse>({
     queryKey: ['/api/my-subscription'],
-    enabled: !!user,
+    enabled: hasInitialized && !!user && !authLoading,
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 60 * 1000, // 1 minute
   });
 
   // Don't redirect subscribed users anymore - show subscription management instead
@@ -463,7 +465,8 @@ export default function Subscribe() {
     upgradeSubscriptionMutation.mutate({ planId, billingCycle });
   };
 
-  if (plansLoading || subscriptionLoading) {
+  // Show loading state while auth is initializing or data is loading
+  if (!hasInitialized || authLoading || plansLoading || subscriptionLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center min-h-[400px]">
@@ -520,6 +523,21 @@ export default function Subscribe() {
         onUpgrade={handleUpgrade}
         isUpgrading={upgradeSubscriptionMutation.isPending}
       />
+    );
+  }
+  
+  // Only show "no subscription" UI if we've confirmed the user truly has no subscription
+  // This prevents showing the wrong UI during loading states
+  if (!user) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
+          <p className="text-muted-foreground">
+            Please log in to view subscription plans.
+          </p>
+        </div>
+      </div>
     );
   }
 

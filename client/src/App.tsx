@@ -8,24 +8,23 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useReduxAuth } from "@/hooks/useReduxAuth";
 import { AppLayout } from "@/components/AppLayout";
-import { lazy, Suspense } from "react";
-import { FormsLoading } from "@/components/ui/forms-loading";
 import AuthPage from "@/pages/auth";
 import Dashboard from "@/pages/dashboard";
 import ProfilePage from "@/pages/profile";
 import SessionsPage from "@/pages/sessions";
 import UsersPage from "@/pages/users";
 import CompanyPage from "@/pages/company";
-import FormsListPage from "@/pages/forms-list";
-import Forms2Page from "@/pages/forms2";
-import Forms2AddPage from "@/pages/forms2/add";
+import ShopsPage from "@/pages/shops";
+import NewShopPage from "@/pages/shops/new";
+import ShopDetailsPage from "@/pages/shops/$id";
+import EditShopPage from "@/pages/shops/$id.edit";
+import FormsPage from "@/pages/forms";
+import FormsAddPage from "@/pages/forms/add";
 import Subscribe from "@/pages/subscribe";
 import VerifyEmailPage from "@/pages/verify-email";
 import PendingVerificationPage from "@/pages/pending-verification";
 import NotFound from "@/pages/not-found";
 
-// Lazy load only the form builder (add page)
-const FormsAddPage = lazy(() => import("@/pages/forms-add"));
 
 function Router() {
   const { isAuthenticated, isLoading, user, isInitialized } = useReduxAuth();
@@ -76,16 +75,12 @@ function Router() {
             {/* Dashboard will handle subscription redirects */}
             <Route path="/dashboard" component={Dashboard} />
             <Route path="/company" component={CompanyPage} />
-            <Route path="/forms" component={FormsListPage} />
-            <Route path="/forms/add">
-              {() => (
-                <Suspense fallback={<FormsLoading />}>
-                  <FormsAddPage />
-                </Suspense>
-              )}
-            </Route>
-            <Route path="/forms2" component={Forms2Page} />
-            <Route path="/forms2/add" component={Forms2AddPage} />
+            <Route path="/shops" component={ShopsPage} />
+            <Route path="/shops/new" component={NewShopPage} />
+            <Route path="/shops/:id" component={ShopDetailsPage} />
+            <Route path="/shops/:id/edit" component={EditShopPage} />
+            <Route path="/forms" component={FormsPage} />
+            <Route path="/forms/add" component={FormsAddPage} />
             <Route path="/profile" component={ProfilePage} />
             <Route path="/sessions" component={SessionsPage} />
             <Route path="/users" component={UsersPage} />

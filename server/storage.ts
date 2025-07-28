@@ -8,6 +8,7 @@ import {
   formResponses,
   verificationTokens,
   companies,
+  shops,
   type User, 
   type InsertUser, 
   type RefreshToken, 
@@ -35,7 +36,13 @@ import {
   type Company,
   type InsertCompany,
   type CreateCompanyData,
-  type UpdateCompanyData
+  type UpdateCompanyData,
+  type Shop,
+  type InsertShop,
+  type CreateShopData,
+  type UpdateShopData,
+  type ShopFilters,
+  type ShopWithManager
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gt, lt, desc, ne, or, ilike, count, sql } from "drizzle-orm";
@@ -129,6 +136,17 @@ export interface IStorage {
   getTenantSubscription(tenantId: string): Promise<(Subscription & { plan: SubscriptionPlan }) | undefined>;
   checkUserLimits(tenantId: string): Promise<{ canAddUser: boolean; currentUsers: number; maxUsers: number | null; planName: string }>;
   validateUserCreation(tenantId: string): Promise<void>;
+  
+  // Shop operations (tenant-aware)
+  getShop(id: string, tenantId: string): Promise<Shop | undefined>;
+  getShopWithManager(id: string, tenantId: string): Promise<ShopWithManager | undefined>;
+  getAllShops(tenantId: string, filters?: ShopFilters): Promise<ShopWithManager[]>;
+  getShopsByManager(managerId: string, tenantId: string): Promise<Shop[]>;
+  createShop(shop: CreateShopData, tenantId: string): Promise<Shop>;
+  updateShop(id: string, updates: UpdateShopData, tenantId: string): Promise<Shop | undefined>;
+  deleteShop(id: string, tenantId: string): Promise<void>;
+  toggleShopStatus(id: string, isActive: boolean, tenantId: string): Promise<Shop | undefined>;
+  getShopStats(tenantId: string): Promise<{ totalShops: number; activeShops: number; shopsByCategory: Record<string, number> }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -881,6 +899,206 @@ export class DatabaseStorage implements IStorage {
         `User limit reached. Your ${limits.planName} allows ${limits.maxUsers} users, and you currently have ${limits.currentUsers}. Please upgrade your plan to add more users.`
       );
     }
+  }
+
+  // Shop operations (tenant-aware)
+  async getShop(id: string, tenantId: string): Promise<Shop | undefined> {
+    const [shop] = await db.select().from(shops)
+      .where(and(eq(shops.id, id), eq(shops.tenantId, tenantId)));
+    return shop;
+  }
+
+  async getShopWithManager(id: string, tenantId: string): Promise<ShopWithManager | undefined> {
+    const result = await db
+      .select({
+        id: shops.id,
+        tenantId: shops.tenantId,
+        name: shops.name,
+        description: shops.description,
+        address: shops.address,
+        city: shops.city,
+        state: shops.state,
+        zipCode: shops.zipCode,
+        country: shops.country,
+        phone: shops.phone,
+        email: shops.email,
+        website: shops.website,
+        managerId: shops.managerId,
+        operatingHours: shops.operatingHours,
+        status: shops.status,
+        logoUrl: shops.logoUrl,
+        bannerUrl: shops.bannerUrl,
+        category: shops.category,
+        tags: shops.tags,
+        socialMedia: shops.socialMedia,
+        settings: shops.settings,
+        isActive: shops.isActive,
+        createdAt: shops.createdAt,
+        updatedAt: shops.updatedAt,
+        manager: {
+          id: users.id,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          role: users.role,
+        },
+      })
+      .from(shops)
+      .leftJoin(users, eq(shops.managerId, users.id))
+      .where(and(eq(shops.id, id), eq(shops.tenantId, tenantId)))
+      .limit(1);
+    
+    if (result.length === 0) return undefined;
+    
+    const row = result[0];
+    return {
+      ...row,
+      manager: row.manager?.id ? row.manager as User : undefined,
+    } as ShopWithManager;
+  }
+
+  async getAllShops(tenantId: string, filters?: ShopFilters): Promise<ShopWithManager[]> {
+    const conditions = [eq(shops.tenantId, tenantId)];
+    
+    if (filters?.status && filters.status !== 'all') {
+      conditions.push(eq(shops.status, filters.status));
+    }
+    
+    if (filters?.category) {
+      conditions.push(eq(shops.category, filters.category));
+    }
+    
+    if (filters?.managerId) {
+      conditions.push(eq(shops.managerId, filters.managerId));
+    }
+    
+    if (filters?.search) {
+      conditions.push(
+        or(
+          ilike(shops.name, `%${filters.search}%`),
+          ilike(shops.city, `%${filters.search}%`),
+          ilike(shops.email, `%${filters.search}%`),
+          ilike(shops.phone, `%${filters.search}%`)
+        ) || sql`true`
+      );
+    }
+    
+    const result = await db
+      .select({
+        id: shops.id,
+        tenantId: shops.tenantId,
+        name: shops.name,
+        description: shops.description,
+        address: shops.address,
+        city: shops.city,
+        state: shops.state,
+        zipCode: shops.zipCode,
+        country: shops.country,
+        phone: shops.phone,
+        email: shops.email,
+        website: shops.website,
+        managerId: shops.managerId,
+        operatingHours: shops.operatingHours,
+        status: shops.status,
+        logoUrl: shops.logoUrl,
+        bannerUrl: shops.bannerUrl,
+        category: shops.category,
+        tags: shops.tags,
+        socialMedia: shops.socialMedia,
+        settings: shops.settings,
+        isActive: shops.isActive,
+        createdAt: shops.createdAt,
+        updatedAt: shops.updatedAt,
+        manager: {
+          id: users.id,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          role: users.role,
+        },
+      })
+      .from(shops)
+      .leftJoin(users, eq(shops.managerId, users.id))
+      .where(and(...conditions))
+      .orderBy(desc(shops.createdAt));
+    
+    return result.map(row => ({
+      ...row,
+      manager: row.manager?.id ? row.manager as User : undefined,
+    })) as ShopWithManager[];
+  }
+
+  async getShopsByManager(managerId: string, tenantId: string): Promise<Shop[]> {
+    return db.select().from(shops)
+      .where(and(eq(shops.managerId, managerId), eq(shops.tenantId, tenantId)));
+  }
+
+  async createShop(shopData: CreateShopData, tenantId: string): Promise<Shop> {
+    const [shop] = await db
+      .insert(shops)
+      .values({
+        ...shopData,
+        tenantId,
+        updatedAt: new Date(),
+      })
+      .returning();
+    return shop;
+  }
+
+  async updateShop(id: string, updates: UpdateShopData, tenantId: string): Promise<Shop | undefined> {
+    const [shop] = await db
+      .update(shops)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(eq(shops.id, id), eq(shops.tenantId, tenantId)))
+      .returning();
+    return shop;
+  }
+
+  async deleteShop(id: string, tenantId: string): Promise<void> {
+    await db.delete(shops).where(and(eq(shops.id, id), eq(shops.tenantId, tenantId)));
+  }
+
+  async toggleShopStatus(id: string, isActive: boolean, tenantId: string): Promise<Shop | undefined> {
+    const [shop] = await db
+      .update(shops)
+      .set({ isActive, updatedAt: new Date() })
+      .where(and(eq(shops.id, id), eq(shops.tenantId, tenantId)))
+      .returning();
+    return shop;
+  }
+
+  async getShopStats(tenantId: string): Promise<{ totalShops: number; activeShops: number; shopsByCategory: Record<string, number> }> {
+    const [totalResult] = await db
+      .select({ count: count() })
+      .from(shops)
+      .where(eq(shops.tenantId, tenantId));
+    
+    const [activeResult] = await db
+      .select({ count: count() })
+      .from(shops)
+      .where(and(eq(shops.tenantId, tenantId), eq(shops.isActive, true)));
+    
+    const categoryResult = await db
+      .select({
+        category: shops.category,
+        count: count(),
+      })
+      .from(shops)
+      .where(eq(shops.tenantId, tenantId))
+      .groupBy(shops.category);
+    
+    const shopsByCategory: Record<string, number> = {};
+    categoryResult.forEach(row => {
+      if (row.category) {
+        shopsByCategory[row.category] = row.count;
+      }
+    });
+    
+    return {
+      totalShops: totalResult.count,
+      activeShops: activeResult.count,
+      shopsByCategory,
+    };
   }
 
 }

@@ -8,10 +8,10 @@ export default function Forms2() {
   const [forms, setForms] = useState<any[]>([]);
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="p-6">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Forms</h1>
-        <Link to="/forms2/add">
+        <Link href="/forms/add">
           <Button>
             <Plus className="mr-2 h-4 w-4" />
             Add Form
@@ -23,7 +23,7 @@ export default function Forms2() {
         <Card>
           <CardContent className="text-center py-12">
             <p className="text-gray-500 mb-4">No forms created yet</p>
-            <Link to="/forms2/add">
+            <Link href="/forms/add">
               <Button>Create your first form</Button>
             </Link>
           </CardContent>

@@ -384,6 +384,12 @@ export function useUpdateMenuPreference() {
 
   return useMutation({
     mutationFn: async (data: { menuExpanded: boolean }) => {
+      // Check if user is authenticated before making the request
+      if (!authManager.getAccessToken()) {
+        console.log("No access token available, skipping menu preference update");
+        return null;
+      }
+      
       const response = await authManager.makeAuthenticatedRequest(
         "PATCH",
         "/api/auth/menu-preference",
@@ -397,6 +403,9 @@ export function useUpdateMenuPreference() {
       return result;
     },
     onSuccess: (data, variables) => {
+      // Skip if no data returned (unauthenticated)
+      if (!data) return;
+      
       // Update Redux state immediately
       dispatch(updateMenuPreference(variables.menuExpanded));
       

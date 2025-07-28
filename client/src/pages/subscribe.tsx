@@ -386,8 +386,37 @@ export default function Subscribe() {
   // Don't redirect subscribed users anymore - show subscription management instead
 
   // Fetch subscription plans
-  const { data: plans, isLoading: plansLoading } = useQuery<SubscriptionPlan[]>({
+  const { data: plans, isLoading: plansLoading, error: plansError, refetch: refetchPlans } = useQuery<SubscriptionPlan[]>({
     queryKey: ['/api/subscription-plans'],
+    queryFn: async () => {
+      // Use direct fetch for subscription plans since it doesn't require auth
+      try {
+        const response = await fetch('/api/subscription-plans');
+        if (!response.ok) {
+          throw new Error(`Failed to fetch subscription plans: ${response.statusText}`);
+        }
+        const data = await response.json();
+        
+        // If we get an empty array on first load, it might be initialization race condition
+        // Retry once after a short delay
+        if (Array.isArray(data) && data.length === 0) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          const retryResponse = await fetch('/api/subscription-plans');
+          if (retryResponse.ok) {
+            const retryData = await retryResponse.json();
+            return retryData;
+          }
+        }
+        
+        return data;
+      } catch (error) {
+        throw error;
+      }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   // Create subscription mutation (for new users)
@@ -477,14 +506,34 @@ export default function Subscribe() {
     );
   }
 
-  if (!plans || plans.length === 0) {
+  // Handle plans error state
+  if (plansError) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold mb-4">Unable to Load Plans</h1>
+          <p className="text-muted-foreground mb-4">
+            We're having trouble loading subscription plans. Please try again.
+          </p>
+          <Button onClick={() => refetchPlans()} variant="outline">
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!plansLoading && (!plans || plans.length === 0)) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
           <h1 className="text-3xl font-bold mb-4">No Plans Available</h1>
-          <p className="text-muted-foreground">
-            Subscription plans are currently not available. Please try again later.
+          <p className="text-muted-foreground mb-4">
+            Subscription plans are currently not available. Please check back later.
           </p>
+          <Button onClick={() => refetchPlans()} variant="outline">
+            Refresh
+          </Button>
         </div>
       </div>
     );

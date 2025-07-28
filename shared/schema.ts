@@ -80,6 +80,34 @@ export const stores = pgTable("stores", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Shops table for enhanced multi-tenant shop management
+export const shops = pgTable("shops", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  name: text("name").notNull(),
+  description: text("description"),
+  address: text("address").notNull(),
+  city: text("city").notNull(),
+  state: text("state"),
+  zipCode: text("zip_code"),
+  country: text("country").notNull().default('United States'),
+  phone: text("phone").notNull(),
+  email: text("email").notNull(),
+  website: text("website"),
+  managerId: varchar("manager_id").references(() => users.id, { onDelete: 'set null' }),
+  operatingHours: text("operating_hours"), // JSON string
+  status: text("status").default('active'), // active, inactive, maintenance
+  logoUrl: text("logo_url"),
+  bannerUrl: text("banner_url"),
+  category: text("category"), // retail, restaurant, service, etc.
+  tags: text("tags").array(), // Array of tags
+  socialMedia: text("social_media"), // JSON string of social media links
+  settings: text("settings"), // JSON string of custom settings
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Subscription plans table
 export const subscriptionPlans = pgTable("subscription_plans", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -180,6 +208,7 @@ export const formResponses = pgTable("form_responses", {
 export const tenantRelations = relations(tenants, ({ many }) => ({
   users: many(users),
   stores: many(stores),
+  shops: many(shops),
   forms: many(forms),
   refreshTokens: many(refreshTokens),
   verificationTokens: many(verificationTokens),
@@ -276,6 +305,17 @@ export const storeRelations = relations(stores, ({ one }) => ({
   tenant: one(tenants, {
     fields: [stores.tenantId],
     references: [tenants.id],
+  }),
+}));
+
+export const shopRelations = relations(shops, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [shops.tenantId],
+    references: [tenants.id],
+  }),
+  manager: one(users, {
+    fields: [shops.managerId],
+    references: [users.id],
   }),
 }));
 
@@ -601,4 +641,69 @@ export interface RefreshTokenInfo {
   hours: number;
   minutes: number;
   isExpired: boolean;
+}
+
+// Shop schemas
+export const insertShopSchema = createInsertSchema(shops).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const createShopSchema = z.object({
+  name: z.string().min(1, "Shop name is required"),
+  description: z.string().optional(),
+  address: z.string().min(1, "Address is required"),
+  city: z.string().min(1, "City is required"),
+  state: z.string().optional(),
+  zipCode: z.string().optional(),
+  country: z.string().default('United States'),
+  phone: z.string().min(1, "Phone is required"),
+  email: z.string().email("Please enter a valid email address"),
+  website: z.string().url("Please enter a valid website URL").optional().or(z.literal("")),
+  managerId: z.string().optional(),
+  operatingHours: z.string().optional(),
+  status: z.enum(['active', 'inactive', 'maintenance']).default('active'),
+  category: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  socialMedia: z.string().optional(),
+  settings: z.string().optional(),
+});
+
+export const updateShopSchema = z.object({
+  name: z.string().min(1, "Shop name is required"),
+  description: z.string().optional(),
+  address: z.string().min(1, "Address is required"),
+  city: z.string().min(1, "City is required"),
+  state: z.string().optional(),
+  zipCode: z.string().optional(),
+  country: z.string(),
+  phone: z.string().min(1, "Phone is required"),
+  email: z.string().email("Please enter a valid email address"),
+  website: z.string().url("Please enter a valid website URL").optional().or(z.literal("")),
+  managerId: z.string().optional(),
+  operatingHours: z.string().optional(),
+  status: z.enum(['active', 'inactive', 'maintenance']),
+  category: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  socialMedia: z.string().optional(),
+  settings: z.string().optional(),
+  isActive: z.boolean(),
+});
+
+// Shop types
+export type Shop = typeof shops.$inferSelect;
+export type InsertShop = z.infer<typeof insertShopSchema>;
+export type CreateShopData = z.infer<typeof createShopSchema>;
+export type UpdateShopData = z.infer<typeof updateShopSchema>;
+
+export interface ShopWithManager extends Shop {
+  manager?: User;
+}
+
+export interface ShopFilters {
+  search?: string;
+  status?: 'active' | 'inactive' | 'maintenance' | 'all';
+  category?: string;
+  managerId?: string;
 }

@@ -1,0 +1,415 @@
+import { useState } from "react";
+import { useLocation } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { 
+  Store, 
+  ArrowLeft,
+  Save,
+  MapPin,
+  Phone,
+  Mail,
+  Globe,
+  Clock,
+  User,
+  Building,
+  Tag
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { createShopSchema, type CreateShopData } from "@shared/schema";
+
+interface Manager {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  role: string;
+}
+
+const SHOP_CATEGORIES = [
+  { value: 'retail', label: 'Retail Store' },
+  { value: 'restaurant', label: 'Restaurant' },
+  { value: 'service', label: 'Service Center' },
+  { value: 'warehouse', label: 'Warehouse' },
+  { value: 'office', label: 'Office' },
+  { value: 'other', label: 'Other' },
+];
+
+const DEFAULT_OPERATING_HOURS = {
+  monday: { open: '09:00', close: '18:00' },
+  tuesday: { open: '09:00', close: '18:00' },
+  wednesday: { open: '09:00', close: '18:00' },
+  thursday: { open: '09:00', close: '18:00' },
+  friday: { open: '09:00', close: '18:00' },
+  saturday: { open: '10:00', close: '16:00' },
+  sunday: { closed: true },
+};
+
+export default function NewShopPage() {
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateShopData>({
+    resolver: zodResolver(createShopSchema),
+    defaultValues: {
+      status: 'active',
+      country: 'United States',
+      operatingHours: JSON.stringify(DEFAULT_OPERATING_HOURS),
+      tags: [],
+    },
+  });
+
+  // Fetch managers
+  const { data: managersData, isLoading: managersLoading } = useQuery<{ managers: Manager[] }>({
+    queryKey: ['/api/shops/managers/list'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/shops/managers/list');
+      return response.json();
+    },
+  });
+
+  // Create shop mutation
+  const createShopMutation = useMutation({
+    mutationFn: async (data: CreateShopData) => {
+      const response = await apiRequest('POST', '/api/shops', data);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Shop created successfully",
+      });
+      navigate('/shops');
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create shop",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: CreateShopData) => {
+    createShopMutation.mutate({
+      ...data,
+      tags: tags.length > 0 ? tags : undefined,
+    });
+  };
+
+  const handleAddTag = () => {
+    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
+      const newTags = [...tags, tagInput.trim()];
+      setTags(newTags);
+      setValue('tags', newTags);
+      setTagInput("");
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    const newTags = tags.filter(tag => tag !== tagToRemove);
+    setTags(newTags);
+    setValue('tags', newTags);
+  };
+
+  return (
+    <div className="p-6">
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate('/shops')}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Add New Shop</h1>
+          <p className="text-muted-foreground">Create a new shop location</p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Basic Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Basic Information</CardTitle>
+            <CardDescription>General details about the shop</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="name">Shop Name *</Label>
+                <Input
+                  id="name"
+                  {...register('name')}
+                  placeholder="Enter shop name"
+                />
+                {errors.name && (
+                  <p className="text-sm text-destructive">{errors.name.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <Select 
+                  value={watch('category')} 
+                  onValueChange={(value) => setValue('category', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SHOP_CATEGORIES.map(category => (
+                      <SelectItem key={category.value} value={category.value}>
+                        {category.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                {...register('description')}
+                placeholder="Enter shop description"
+                rows={3}
+              />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select 
+                  value={watch('status')} 
+                  onValueChange={(value) => setValue('status', value as any)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="maintenance">Maintenance</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="managerId">Manager</Label>
+                <Select 
+                  value={watch('managerId')} 
+                  onValueChange={(value) => setValue('managerId', value)}
+                  disabled={managersLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={managersLoading ? "Loading..." : "Select manager"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {managersData?.managers.map(manager => (
+                      <SelectItem key={manager.id} value={manager.id}>
+                        {manager.firstName} {manager.lastName} ({manager.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Location Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Location Details</CardTitle>
+            <CardDescription>Physical location and address information</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="address">Street Address *</Label>
+              <Input
+                id="address"
+                {...register('address')}
+                placeholder="123 Main Street"
+              />
+              {errors.address && (
+                <p className="text-sm text-destructive">{errors.address.message}</p>
+              )}
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="city">City *</Label>
+                <Input
+                  id="city"
+                  {...register('city')}
+                  placeholder="New York"
+                />
+                {errors.city && (
+                  <p className="text-sm text-destructive">{errors.city.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="state">State/Province</Label>
+                <Input
+                  id="state"
+                  {...register('state')}
+                  placeholder="NY"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="zipCode">ZIP/Postal Code</Label>
+                <Input
+                  id="zipCode"
+                  {...register('zipCode')}
+                  placeholder="10001"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="country">Country</Label>
+              <Input
+                id="country"
+                {...register('country')}
+                placeholder="United States"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Contact Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Contact Information</CardTitle>
+            <CardDescription>How customers can reach this shop</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number *</Label>
+                <Input
+                  id="phone"
+                  {...register('phone')}
+                  placeholder="(555) 123-4567"
+                />
+                {errors.phone && (
+                  <p className="text-sm text-destructive">{errors.phone.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  {...register('email')}
+                  placeholder="shop@example.com"
+                />
+                {errors.email && (
+                  <p className="text-sm text-destructive">{errors.email.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="website">Website</Label>
+              <Input
+                id="website"
+                {...register('website')}
+                placeholder="https://example.com"
+              />
+              {errors.website && (
+                <p className="text-sm text-destructive">{errors.website.message}</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tags */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Tags</CardTitle>
+            <CardDescription>Add tags to help categorize this shop</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  placeholder="Add a tag..."
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                />
+                <Button type="button" onClick={handleAddTag} variant="secondary">
+                  <Tag className="h-4 w-4 mr-2" />
+                  Add
+                </Button>
+              </div>
+              {tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {tags.map(tag => (
+                    <Badge 
+                      key={tag} 
+                      variant="secondary"
+                      className="cursor-pointer"
+                      onClick={() => handleRemoveTag(tag)}
+                    >
+                      {tag} ×
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Actions */}
+        <div className="flex gap-4 justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate('/shops')}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            <Save className="mr-2 h-4 w-4" />
+            Create Shop
+          </Button>
+        </div>
+      </form>
+      </div>
+    </div>
+  );
+}

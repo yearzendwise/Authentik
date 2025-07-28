@@ -22,6 +22,9 @@ import {
   createCompanySchema,
   updateCompanySchema,
   type UserRole,
+  type ShopFilters,
+  createShopSchema,
+  updateShopSchema,
 } from "@shared/schema";
 import Stripe from "stripe";
 import { randomBytes } from "crypto";
@@ -2342,6 +2345,167 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       console.error("Update company error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Shops API Routes
+  
+  // Get all shops for the tenant
+  app.get("/api/shops", authenticateToken, async (req: any, res) => {
+    try {
+      const filters: ShopFilters = {
+        search: req.query.search as string,
+        status: req.query.status as 'active' | 'inactive' | 'maintenance' | 'all',
+        category: req.query.category as string,
+        managerId: req.query.managerId as string,
+      };
+
+      const shops = await storage.getAllShops(req.user.tenantId, filters);
+      const stats = await storage.getShopStats(req.user.tenantId);
+
+      res.json({ shops, stats });
+    } catch (error) {
+      console.error("Get shops error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get single shop
+  app.get("/api/shops/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const shop = await storage.getShopWithManager(id, req.user.tenantId);
+
+      if (!shop) {
+        return res.status(404).json({ message: "Shop not found" });
+      }
+
+      res.json({ shop });
+    } catch (error) {
+      console.error("Get shop error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Create new shop
+  app.post("/api/shops", authenticateToken, requireRole(["Owner", "Administrator", "Manager"]), async (req: any, res) => {
+    try {
+      const shopData = createShopSchema.parse(req.body);
+      const shop = await storage.createShop(shopData, req.user.tenantId);
+
+      res.status(201).json({
+        message: "Shop created successfully",
+        shop,
+      });
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({
+          message: "Validation error",
+          errors: error.errors,
+        });
+      }
+      console.error("Create shop error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Update shop
+  app.put("/api/shops/:id", authenticateToken, requireRole(["Owner", "Administrator", "Manager"]), async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const shopData = updateShopSchema.parse(req.body);
+
+      // Check if shop exists and belongs to tenant
+      const existingShop = await storage.getShop(id, req.user.tenantId);
+      if (!existingShop) {
+        return res.status(404).json({ message: "Shop not found" });
+      }
+
+      const shop = await storage.updateShop(id, shopData, req.user.tenantId);
+
+      res.json({
+        message: "Shop updated successfully",
+        shop,
+      });
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({
+          message: "Validation error",
+          errors: error.errors,
+        });
+      }
+      console.error("Update shop error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Toggle shop status (active/inactive)
+  app.patch("/api/shops/:id/toggle-status", authenticateToken, requireRole(["Owner", "Administrator", "Manager"]), async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { isActive } = req.body;
+
+      if (typeof isActive !== 'boolean') {
+        return res.status(400).json({ message: "isActive must be a boolean" });
+      }
+
+      const shop = await storage.toggleShopStatus(id, isActive, req.user.tenantId);
+
+      if (!shop) {
+        return res.status(404).json({ message: "Shop not found" });
+      }
+
+      res.json({
+        message: `Shop ${isActive ? 'activated' : 'deactivated'} successfully`,
+        shop,
+      });
+    } catch (error) {
+      console.error("Toggle shop status error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Delete shop
+  app.delete("/api/shops/:id", authenticateToken, requireRole(["Owner", "Administrator"]), async (req: any, res) => {
+    try {
+      const { id } = req.params;
+
+      // Check if shop exists
+      const existingShop = await storage.getShop(id, req.user.tenantId);
+      if (!existingShop) {
+        return res.status(404).json({ message: "Shop not found" });
+      }
+
+      await storage.deleteShop(id, req.user.tenantId);
+
+      res.json({ message: "Shop deleted successfully" });
+    } catch (error) {
+      console.error("Delete shop error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get managers for shop assignment
+  app.get("/api/shops/managers/list", authenticateToken, async (req: any, res) => {
+    try {
+      // Get all users with Manager role or higher in the tenant
+      const managers = await storage.getAllUsers(req.user.tenantId, {
+        role: ["Owner", "Administrator", "Manager"],
+        isActive: true,
+      });
+
+      res.json({
+        managers: managers.map(user => ({
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+        })),
+      });
+    } catch (error) {
+      console.error("Get managers error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

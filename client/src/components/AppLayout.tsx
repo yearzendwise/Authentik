@@ -138,11 +138,12 @@ export function AppLayout({ children }: AppLayoutProps) {
       >
         {/* Header */}
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          {!isCollapsed && (
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
-              SaaS Auth
-            </h1>
-          )}
+          <h1 className={cn(
+            "text-xl font-semibold text-gray-900 dark:text-white",
+            isCollapsed && "text-center"
+          )}>
+            {isCollapsed ? "SA" : "SaaS Auth"}
+          </h1>
         </div>
 
         {/* Navigation */}

@@ -114,3 +114,11 @@ Key tables:
 - React components use a mix of Radix UI and Headless UI
 - Tailwind CSS for styling with custom animations
 - Form validation with Zod schemas
+
+### UI/UX Guidelines
+
+#### Menu Collapse Behavior
+- The sidebar menu collapse is ONLY controlled through the user profile page settings
+- There is NO burger menu or collapse button in the dashboard sidebar
+- Menu preference is stored in both localStorage and synced with backend user preferences
+- The menu state persists across sessions and is user-specific

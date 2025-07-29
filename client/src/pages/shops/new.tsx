@@ -150,6 +150,10 @@ export default function NewShopPage() {
   const createShopMutation = useMutation({
     mutationFn: async (data: CreateShopData) => {
       const response = await apiRequest('POST', '/api/shops', data);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create shop');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -160,11 +164,20 @@ export default function NewShopPage() {
       navigate('/shops');
     },
     onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create shop",
-        variant: "destructive",
-      });
+      // Handle shop limit errors specifically
+      if (error.message && error.message.includes("Shop limit reached")) {
+        toast({
+          title: "Shop Limit Reached",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to create shop",
+          variant: "destructive",
+        });
+      }
     },
   });
 
@@ -362,7 +375,7 @@ export default function NewShopPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="address">Street Address *</Label>
+              <Label htmlFor="address">Street Address</Label>
               <Input
                 id="address"
                 {...register('address')}
@@ -375,7 +388,7 @@ export default function NewShopPage() {
 
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
-                <Label htmlFor="city">City *</Label>
+                <Label htmlFor="city">City</Label>
                 <Input
                   id="city"
                   {...register('city')}

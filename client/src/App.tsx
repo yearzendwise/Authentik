@@ -26,6 +26,7 @@ import Subscribe from "@/pages/subscribe";
 import VerifyEmailPage from "@/pages/verify-email";
 import PendingVerificationPage from "@/pages/pending-verification";
 import NotFound from "@/pages/not-found";
+import { CampaignsPage } from "@/pages/campaigns";
 
 
 function Router() {
@@ -77,6 +78,7 @@ function Router() {
             {/* Dashboard will handle subscription redirects */}
             <Route path="/dashboard" component={Dashboard} />
             <Route path="/company" component={CompanyPage} />
+            <Route path="/campaigns" component={CampaignsPage} />
             <Route path="/shops" component={ShopsPage} />
             <Route path="/shops/new" component={NewShopPage} />
             <Route path="/shops/:id" component={ShopDetailsPage} />

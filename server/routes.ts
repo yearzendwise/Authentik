@@ -2401,8 +2401,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const shops = await storage.getAllShops(req.user.tenantId, filters);
       const stats = await storage.getShopStats(req.user.tenantId);
+      const limits = await storage.checkShopLimits(req.user.tenantId);
 
-      res.json({ shops, stats });
+      console.log('Shop limits for tenant', req.user.tenantId, ':', limits);
+
+      res.json({ 
+        shops, 
+        stats,
+        limits: {
+          currentShops: limits.currentShops,
+          maxShops: limits.maxShops,
+          canAddShop: limits.canAddShop,
+          planName: limits.planName
+        }
+      });
     } catch (error) {
       console.error("Get shops error:", error);
       res.status(500).json({ message: "Internal server error" });
@@ -2443,6 +2455,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           errors: error.errors,
         });
       }
+      
+      // Handle shop limit errors specifically
+      if (error.message && error.message.includes("Shop limit reached")) {
+        return res.status(403).json({
+          message: error.message,
+          error: "SHOP_LIMIT_REACHED"
+        });
+      }
+      
       console.error("Create shop error:", error);
       res.status(500).json({ message: "Internal server error" });
     }

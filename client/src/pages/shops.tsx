@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   Store, 
   Plus, 
@@ -23,7 +24,11 @@ import {
   Power,
   Filter,
   Download,
-  Building
+  Building,
+  Calendar,
+  CheckCircle,
+  XCircle,
+  AlertCircle
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -45,6 +50,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { cn } from "@/lib/utils";
+import { DataTable } from "@/components/ui/data-table";
+import { ColumnDef } from "@tanstack/react-table";
+import { format } from "date-fns";
 import type { ShopWithManager, ShopFilters } from "@shared/schema";
 
 interface ShopStats {
@@ -53,14 +62,69 @@ interface ShopStats {
   shopsByCategory: Record<string, number>;
 }
 
+interface ShopLimits {
+  currentShops: number;
+  maxShops: number | null;
+  canAddShop: boolean;
+  planName: string;
+}
+
 interface ShopsResponse {
   shops: ShopWithManager[];
   stats: ShopStats;
+  limits: ShopLimits;
+}
+
+function getShopCategoryIcon(category?: string) {
+  switch (category?.toLowerCase()) {
+    case 'restaurant':
+      return <Store className="h-4 w-4" />;
+    case 'retail':
+      return <Building className="h-4 w-4" />;
+    case 'service':
+      return <Globe className="h-4 w-4" />;
+    default:
+      return <Store className="h-4 w-4" />;
+  }
+}
+
+function getStatusBadge(status: string) {
+  switch (status) {
+    case 'active':
+      return (
+        <div className="flex items-center space-x-1.5">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <span className="text-green-600 font-medium">Active</span>
+        </div>
+      );
+    case 'inactive':
+      return (
+        <div className="flex items-center space-x-1.5">
+          <XCircle className="h-4 w-4 text-red-600" />
+          <span className="text-red-600 font-medium">Inactive</span>
+        </div>
+      );
+    case 'maintenance':
+      return (
+        <div className="flex items-center space-x-1.5">
+          <AlertCircle className="h-4 w-4 text-orange-600" />
+          <span className="text-orange-600 font-medium">Maintenance</span>
+        </div>
+      );
+    default:
+      return (
+        <div className="flex items-center space-x-1.5">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <span className="text-green-600 font-medium">Active</span>
+        </div>
+      );
+  }
 }
 
 export default function ShopsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'maintenance'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [deleteShopId, setDeleteShopId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -77,7 +141,10 @@ export default function ShopsPage() {
       if (!response.ok) {
         throw new Error('Failed to fetch shops');
       }
-      return response.json();
+      const result = await response.json();
+      console.log('Shops API Response:', result);
+      console.log('Limits:', result.limits);
+      return result;
     },
   });
 
@@ -111,11 +178,11 @@ export default function ShopsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/shops'] });
+      setDeleteShopId(null);
       toast({
         title: "Success",
         description: "Shop deleted successfully",
       });
-      setDeleteShopId(null);
     },
     onError: () => {
       toast({
@@ -126,98 +193,318 @@ export default function ShopsPage() {
     },
   });
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      active: { label: 'Active', variant: 'default' as const },
-      inactive: { label: 'Inactive', variant: 'secondary' as const },
-      maintenance: { label: 'Maintenance', variant: 'outline' as const },
-    };
+  // Define columns for the data table
+  const columns: ColumnDef<ShopWithManager>[] = [
+    {
+      accessorKey: "shop",
+      header: "SHOP",
+      cell: ({ row }) => {
+          const shop = row.original;
+          return (
+            <div className="flex items-center space-x-3">
+               <div className="relative">
+                 <Avatar className="h-10 w-10">
+                    <AvatarImage src={shop.logoUrl ?? undefined} />
+                    <AvatarFallback className="bg-gray-100 text-gray-600 text-sm">
+                      {getShopCategoryIcon(shop.category)}
+                    </AvatarFallback>
+                  </Avatar>
+               </div>
+               <div>
+                 <div className="font-medium text-gray-900">{shop.name}</div>
+                 <div className="text-sm text-gray-500">{shop.category || 'Uncategorized'}</div>
+               </div>
+             </div>
+          );
+        },
+    },
+    {
+      accessorKey: "status",
+      header: "STATUS",
+      cell: ({ row }) => {
+        const status = row.getValue("status") as string || 'active';
+        return getStatusBadge(status);
+      },
+    },
+    {
+      accessorKey: "manager",
+      header: "MANAGER",
+      cell: ({ row }) => {
+        const shop = row.original;
+        if (!shop.manager) {
+          return <span className="text-gray-400">No manager assigned</span>;
+        }
+        return (
+          <div className="flex items-center space-x-2">
+            <User className="h-4 w-4 text-gray-400" />
+            <span className="text-gray-900">
+              {shop.manager.firstName || shop.manager.lastName 
+                ? `${shop.manager.firstName || ''} ${shop.manager.lastName || ''}`.trim()
+                : shop.manager.email}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "location",
+      header: "LOCATION",
+      cell: ({ row }) => {
+        const shop = row.original;
+        const location = [shop.city, shop.state, shop.country].filter(Boolean).join(', ');
+        return (
+          <div className="flex items-center space-x-2">
+            <MapPin className="h-4 w-4 text-gray-400" />
+            <span className="text-gray-900">{location || 'No location'}</span>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "contact",
+      header: "CONTACT",
+      cell: ({ row }) => {
+        const shop = row.original;
+        return (
+          <div className="space-y-1">
+            {shop.phone && (
+              <div className="flex items-center space-x-2 text-sm">
+                <Phone className="h-3 w-3 text-gray-400" />
+                <span className="text-gray-600">{shop.phone}</span>
+              </div>
+            )}
+            {shop.email && (
+              <div className="flex items-center space-x-2 text-sm">
+                <Mail className="h-3 w-3 text-gray-400" />
+                <span className="text-gray-600">{shop.email}</span>
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "createdAt",
+      header: "CREATED",
+      cell: ({ row }) => {
+        const createdAt = row.getValue("createdAt");
+        if (!createdAt) return null;
+        return (
+          <div className="flex items-center space-x-1.5 text-gray-500">
+            <Calendar className="h-4 w-4" />
+            <span>{format(new Date(createdAt as string), "MMM d, yyyy")}</span>
+          </div>
+        );
+      },
+    },
+    {
+      id: "actions",
+      header: "ACTIONS",
+      cell: ({ row }) => {
+        const shop = row.original;
+        
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem asChild>
+                <Link href={`/shops/${shop.id}`}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Details
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={`/shops/${shop.id}/edit`}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit Shop
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => toggleStatusMutation.mutate({ 
+                  shopId: shop.id, 
+                  isActive: !shop.isActive 
+                })}
+              >
+                <Power className="mr-2 h-4 w-4" />
+                {shop.isActive ? 'Deactivate' : 'Activate'}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-red-600"
+                onClick={() => setDeleteShopId(shop.id)}
+              >
+                <Trash className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+    },
+  ];
 
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.active;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-  };
+  // Filter shops based on search and filters
+  const filteredShops = useMemo(() => {
+    return (data?.shops || []).filter((shop: ShopWithManager) => {
+      const matchesSearch = searchTerm === "" || 
+        shop.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        shop.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        shop.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        shop.phone?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesStatus = statusFilter === 'all' || shop.status === statusFilter;
+      const matchesCategory = categoryFilter === "all" || shop.category === categoryFilter;
+      
+      return matchesSearch && matchesStatus && matchesCategory;
+    });
+  }, [data?.shops, searchTerm, statusFilter, categoryFilter]);
 
-  const getShopCategoryIcon = (category?: string) => {
-    switch (category) {
-      case 'retail':
-        return <Store className="h-4 w-4" />;
-      case 'restaurant':
-        return <Building className="h-4 w-4" />;
-      case 'service':
-        return <Clock className="h-4 w-4" />;
-      default:
-        return <Store className="h-4 w-4" />;
-    }
-  };
-
-  const formatOperatingHours = (hours?: string) => {
-    if (!hours) return 'Not specified';
-    try {
-      const parsed = JSON.parse(hours);
-      if (typeof parsed === 'string') return parsed;
-      // Handle more complex operating hours format if needed
-      return parsed.default || 'Not specified';
-    } catch {
-      return hours;
-    }
-  };
+  // Get unique categories for filter
+  const categories = useMemo(() => {
+    const cats = new Set((data?.shops || []).map(shop => shop.category).filter(Boolean));
+    return Array.from(cats);
+  }, [data?.shops]);
 
   return (
-    <div className="p-6">
+    <div className="max-w-7xl mx-auto p-6">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Shops</h1>
-          <p className="text-muted-foreground">Manage your shop locations and details</p>
+          <div className="mb-8">
+            <div className="flex items-center space-x-4">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <Store className="text-white w-6 h-6" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Shops</h1>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Manage your shop locations and details
+                </p>
+              </div>
+            </div>
+          </div>
+          <Link href="/shops/new">
+            <Button disabled={data?.limits && !data.limits.canAddShop}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Shop
+            </Button>
+          </Link>
         </div>
-        <Link href="/shops/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Shop
-          </Button>
-        </Link>
-      </div>
 
       {/* Stats Cards */}
       {data?.stats && (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Shops</CardTitle>
-              <Store className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{data.stats.totalShops}</div>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-blue-600">Total Shops</p>
+                  <p className="text-2xl font-bold text-blue-900">{data.stats.totalShops}</p>
+                </div>
+                <Store className="text-blue-500 w-8 h-8" />
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">Across all locations</p>
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Shops</CardTitle>
-              <Power className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{data.stats.activeShops}</div>
-              <p className="text-xs text-muted-foreground">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-green-600">Active Shops</p>
+                  <p className="text-2xl font-bold text-green-900">{data.stats.activeShops}</p>
+                </div>
+                <CheckCircle className="text-green-500 w-8 h-8" />
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
                 {data.stats.totalShops > 0 
-                  ? `${Math.round((data.stats.activeShops / data.stats.totalShops) * 100)}% of total`
-                  : '0% of total'}
+                  ? `${Math.round((data.stats.activeShops / data.stats.totalShops) * 100)}% of total shops`
+                  : '0% of total shops'}
               </p>
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Categories</CardTitle>
-              <Building className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {Object.keys(data.stats.shopsByCategory).length || 0}
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-purple-600">Categories</p>
+                  <p className="text-2xl font-bold text-purple-900">
+                    {Object.keys(data.stats.shopsByCategory).length || 0}
+                  </p>
+                </div>
+                <Building className="text-purple-500 w-8 h-8" />
               </div>
-              <p className="text-xs text-muted-foreground">Unique categories</p>
+              <p className="text-xs text-muted-foreground mt-2">Different shop types</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-orange-600">Shop Slots</p>
+                  <p className="text-2xl font-bold text-orange-900">
+                    {data.limits?.currentShops || 0}{data.limits?.maxShops ? `/${data.limits.maxShops}` : ''}
+                  </p>
+                </div>
+                <Store className="text-orange-500 w-8 h-8" />
+              </div>
+              <div className="mt-2 space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  {data.limits?.planName} {data.limits?.maxShops ? `(${data.limits.maxShops - data.limits.currentShops} remaining)` : '(Unlimited)'}
+                </p>
+                {data.limits?.maxShops && (
+                  <div className="mt-3">
+                    <div className="grid grid-cols-10 gap-1">
+                      {Array.from({ length: Math.min(data.limits.maxShops, 50) }).map((_, index) => (
+                        <div
+                          key={index}
+                          className={cn(
+                            "w-2 h-2 rounded-sm",
+                            index < data.limits.currentShops
+                              ? "bg-orange-600 dark:bg-orange-500"
+                              : "bg-gray-200 dark:bg-gray-700"
+                          )}
+                          title={index < data.limits.currentShops ? "Used" : "Available"}
+                        />
+                      ))}
+                    </div>
+                    {data.limits.maxShops > 50 && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Showing first 50 of {data.limits.maxShops} slots
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Shop Limit Warning */}
+      {data?.limits && !data.limits.canAddShop && (
+        <Card className="border-orange-200 bg-orange-50 dark:bg-orange-950 dark:border-orange-800">
+          <CardContent className="pt-6">
+            <div className="flex">
+              <AlertCircle className="h-5 w-5 text-orange-600 dark:text-orange-400 mr-3 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-semibold text-orange-900 dark:text-orange-100">
+                  Shop limit reached
+                </h3>
+                <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
+                  Your {data.limits.planName} plan allows up to {data.limits.maxShops} shops. 
+                  Please upgrade your plan to add more shops.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Filters */}
@@ -231,17 +518,37 @@ export default function ShopsPage() {
             className="pl-8"
           />
         </div>
-        <Tabs value={statusFilter} onValueChange={(value) => setStatusFilter(value as any)}>
-          <TabsList>
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="active">Active</TabsTrigger>
-            <TabsTrigger value="inactive">Inactive</TabsTrigger>
-            <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex gap-2">
+          <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as any)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+              <SelectItem value="maintenance">Maintenance</SelectItem>
+            </SelectContent>
+          </Select>
+          {categories.length > 0 && (
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="All categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category} value={category || 'uncategorized'}>
+                    {category || 'Uncategorized'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
       </div>
 
-      {/* Shops List */}
+      {/* Shops Table */}
       {isLoading ? (
         <div className="flex items-center justify-center py-8">
           <div className="text-center">
@@ -255,18 +562,18 @@ export default function ShopsPage() {
             <p className="text-center text-muted-foreground">Failed to load shops. Please try again.</p>
           </CardContent>
         </Card>
-      ) : data?.shops.length === 0 ? (
+      ) : filteredShops.length === 0 ? (
         <Card>
           <CardContent className="py-8">
             <div className="text-center">
               <Store className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">No shops found</h3>
               <p className="text-muted-foreground mb-4">
-                {searchTerm || statusFilter !== 'all' 
+                {searchTerm || statusFilter !== 'all' || categoryFilter
                   ? "Try adjusting your filters" 
                   : "Get started by adding your first shop"}
               </p>
-              {!searchTerm && statusFilter === 'all' && (
+              {!searchTerm && statusFilter === 'all' && !categoryFilter && (
                 <Link href="/shops/new">
                   <Button>
                     <Plus className="mr-2 h-4 w-4" />
@@ -278,118 +585,11 @@ export default function ShopsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {data?.shops.map((shop) => (
-            <Card key={shop.id} className="overflow-hidden">
-              <CardHeader className="pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="flex items-center gap-2">
-                      {getShopCategoryIcon(shop.category)}
-                      {shop.name}
-                    </CardTitle>
-                    <CardDescription>{shop.category || 'Uncategorized'}</CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {getStatusBadge(shop.status || 'active')}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <Link href={`/shops/${shop.id}`}>
-                          <DropdownMenuItem>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Details
-                          </DropdownMenuItem>
-                        </Link>
-                        <Link href={`/shops/${shop.id}/edit`}>
-                          <DropdownMenuItem>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit Shop
-                          </DropdownMenuItem>
-                        </Link>
-                        <DropdownMenuItem 
-                          onClick={() => toggleStatusMutation.mutate({ 
-                            shopId: shop.id, 
-                            isActive: !shop.isActive 
-                          })}
-                        >
-                          <Power className="mr-2 h-4 w-4" />
-                          {shop.isActive ? 'Deactivate' : 'Activate'}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          className="text-destructive"
-                          onClick={() => setDeleteShopId(shop.id)}
-                        >
-                          <Trash className="mr-2 h-4 w-4" />
-                          Delete Shop
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {shop.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-2">{shop.description}</p>
-                )}
-                
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <MapPin className="h-4 w-4" />
-                    <span className="line-clamp-1">
-                      {shop.address}, {shop.city}{shop.state ? `, ${shop.state}` : ''} {shop.zipCode}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Phone className="h-4 w-4" />
-                    <span>{shop.phone}</span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Mail className="h-4 w-4" />
-                    <span className="truncate">{shop.email}</span>
-                  </div>
-                  
-                  {shop.website && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Globe className="h-4 w-4" />
-                      <a 
-                        href={shop.website} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="truncate hover:text-primary"
-                      >
-                        {shop.website.replace(/^https?:\/\//, '')}
-                      </a>
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    <span>{formatOperatingHours(shop.operatingHours)}</span>
-                  </div>
-                  
-                  {shop.manager && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <User className="h-4 w-4" />
-                      <span>
-                        {shop.manager.firstName} {shop.manager.lastName} ({shop.manager.role})
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Card>
+          <CardContent className="p-0">
+            <DataTable columns={columns} data={filteredShops} showColumnVisibility={false} />
+          </CardContent>
+        </Card>
       )}
 
       {/* Delete Confirmation Dialog */}

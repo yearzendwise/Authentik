@@ -87,8 +87,8 @@ export const shops = pgTable("shops", {
   tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   name: text("name").notNull(),
   description: text("description"),
-  address: text("address").notNull(),
-  city: text("city").notNull(),
+  address: text("address"),
+  city: text("city"),
   state: text("state"),
   zipCode: text("zip_code"),
   country: text("country").notNull().default('United States'),
@@ -122,6 +122,7 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   features: text("features").array().notNull(), // Array of feature descriptions
   maxUsers: integer("max_users"), // null = unlimited
   maxProjects: integer("max_projects"), // null = unlimited
+  maxShops: integer("max_shops"), // null = unlimited
   storageLimit: integer("storage_limit"), // in GB, null = unlimited
   supportLevel: text("support_level").default('email'), // email, priority, dedicated
   trialDays: integer("trial_days").default(14),
@@ -655,15 +656,15 @@ export const insertShopSchema = createInsertSchema(shops).omit({
 export const createShopSchema = z.object({
   name: z.string().min(1, "Shop name is required"),
   description: z.string().optional(),
-  address: z.string().min(1, "Address is required"),
-  city: z.string().min(1, "City is required"),
+  address: z.string().optional(),
+  city: z.string().optional(),
   state: z.string().optional(),
   zipCode: z.string().optional(),
   country: z.string().default('United States'),
   phone: z.string().min(1, "Phone is required"),
   email: z.string().email("Please enter a valid email address"),
   website: z.string().url("Please enter a valid website URL").optional().or(z.literal("")),
-  managerId: z.string().optional(),
+  managerId: z.string().optional().nullable(),
   operatingHours: z.string().optional(),
   status: z.enum(['active', 'inactive', 'maintenance']).default('active'),
   category: z.string().optional(),
@@ -675,15 +676,15 @@ export const createShopSchema = z.object({
 export const updateShopSchema = z.object({
   name: z.string().min(1, "Shop name is required"),
   description: z.string().optional(),
-  address: z.string().min(1, "Address is required"),
-  city: z.string().min(1, "City is required"),
+  address: z.string().optional(),
+  city: z.string().optional(),
   state: z.string().optional(),
   zipCode: z.string().optional(),
   country: z.string(),
   phone: z.string().min(1, "Phone is required"),
   email: z.string().email("Please enter a valid email address"),
   website: z.string().url("Please enter a valid website URL").optional().or(z.literal("")),
-  managerId: z.string().optional(),
+  managerId: z.string().optional().nullable(),
   operatingHours: z.string().optional(),
   status: z.enum(['active', 'inactive', 'maintenance']),
   category: z.string().optional(),

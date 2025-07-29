@@ -12,6 +12,7 @@ import {
   Store,
   Moon,
   Sun,
+  Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ const getNavigation = (userRole?: string) => {
   const baseNavigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Company", href: "/company", icon: Building2 },
+    { name: "Campaigns", href: "/campaigns", icon: Target },
     { name: "Shops", href: "/shops", icon: Store },
     { name: "Forms", href: "/forms", icon: ClipboardList },
     { name: "Profile", href: "/profile", icon: User },
@@ -180,11 +182,14 @@ export function AppLayout({ children }: AppLayoutProps) {
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2">
-          {navigation.map((item) => {
+          {navigation.map((item, index) => {
             const isActive =
               location === item.href ||
               (item.href === "/dashboard" && location === "/");
             const Icon = item.icon;
+
+            // Add separator before Profile
+            const showSeparator = item.name === "Profile" && index > 0;
 
             const navButton = (
               <Button
@@ -204,16 +209,23 @@ export function AppLayout({ children }: AppLayoutProps) {
               </Button>
             );
 
-            if (isCollapsed) {
-              return (
-                <Tooltip key={item.name}>
-                  <TooltipTrigger asChild>{navButton}</TooltipTrigger>
-                  <TooltipContent side="right">{item.name}</TooltipContent>
-                </Tooltip>
-              );
-            }
+            const buttonElement = isCollapsed ? (
+              <Tooltip key={item.name}>
+                <TooltipTrigger asChild>{navButton}</TooltipTrigger>
+                <TooltipContent side="right">{item.name}</TooltipContent>
+              </Tooltip>
+            ) : (
+              navButton
+            );
 
-            return navButton;
+            return (
+              <div key={`nav-${item.name}`}>
+                {showSeparator && (
+                  <div className="my-2 mx-2 border-t border-gray-200 dark:border-gray-700" />
+                )}
+                {buttonElement}
+              </div>
+            );
           })}
         </nav>
 

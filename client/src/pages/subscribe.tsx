@@ -322,6 +322,7 @@ const SubscriptionManagement = ({ subscription, plans, onUpgrade, isUpgrading }:
                     <div className="mt-4 pt-4 border-t text-xs text-muted-foreground">
                       <div className="space-y-1">
                         {plan.maxUsers && <div>Up to {plan.maxUsers} users</div>}
+                        {plan.maxShops && <div>Up to {plan.maxShops} shops</div>}
                         {plan.maxProjects && <div>Up to {plan.maxProjects} projects</div>}
                         {plan.storageLimit && <div>{plan.storageLimit}GB storage</div>}
                         <div className="capitalize">{plan.supportLevel} support</div>
@@ -672,6 +673,7 @@ export default function Subscribe() {
               <div className="mt-6 pt-4 border-t text-xs text-muted-foreground">
                 <div className="space-y-1">
                   {plan.maxUsers && <div>Up to {plan.maxUsers} users</div>}
+                  {plan.maxShops && <div>Up to {plan.maxShops} shops</div>}
                   {plan.maxProjects && <div>Up to {plan.maxProjects} projects</div>}
                   {plan.storageLimit && <div>{plan.storageLimit}GB storage</div>}
                   <div className="capitalize">{plan.supportLevel} support</div>

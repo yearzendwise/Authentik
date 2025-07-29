@@ -136,6 +136,8 @@ export interface IStorage {
   getTenantSubscription(tenantId: string): Promise<(Subscription & { plan: SubscriptionPlan }) | undefined>;
   checkUserLimits(tenantId: string): Promise<{ canAddUser: boolean; currentUsers: number; maxUsers: number | null; planName: string }>;
   validateUserCreation(tenantId: string): Promise<void>;
+  checkShopLimits(tenantId: string): Promise<{ canAddShop: boolean; currentShops: number; maxShops: number | null; planName: string }>;
+  validateShopCreation(tenantId: string): Promise<void>;
   
   // Shop operations (tenant-aware)
   getShop(id: string, tenantId: string): Promise<Shop | undefined>;
@@ -819,6 +821,7 @@ export class DatabaseStorage implements IStorage {
           features: subscriptionPlans.features,
           maxUsers: subscriptionPlans.maxUsers,
           maxProjects: subscriptionPlans.maxProjects,
+          maxShops: subscriptionPlans.maxShops,
           storageLimit: subscriptionPlans.storageLimit,
           supportLevel: subscriptionPlans.supportLevel,
           trialDays: subscriptionPlans.trialDays,
@@ -897,6 +900,61 @@ export class DatabaseStorage implements IStorage {
       
       throw new Error(
         `User limit reached. Your ${limits.planName} allows ${limits.maxUsers} users, and you currently have ${limits.currentUsers}. Please upgrade your plan to add more users.`
+      );
+    }
+  }
+
+  async checkShopLimits(tenantId: string): Promise<{ canAddShop: boolean; currentShops: number; maxShops: number | null; planName: string }> {
+    // Get current shop count
+    const shopsResult = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(shops)
+      .where(eq(shops.tenantId, tenantId));
+    
+    const currentShops = shopsResult[0]?.count || 0;
+    
+    // Get tenant subscription
+    const subscription = await this.getTenantSubscription(tenantId);
+    
+    if (!subscription) {
+      // No subscription found - use basic plan limits as default
+      const basicPlan = await db
+        .select()
+        .from(subscriptionPlans)
+        .where(eq(subscriptionPlans.name, 'basic'))
+        .limit(1);
+      
+      const maxShops = basicPlan[0]?.maxShops || 10; // Default to 10 if basic plan not found
+      return {
+        canAddShop: currentShops < maxShops,
+        currentShops,
+        maxShops,
+        planName: basicPlan[0]?.displayName || 'Basic Plan',
+      };
+    }
+
+    const maxShops = subscription.plan.maxShops;
+    const planName = subscription.plan.displayName;
+
+    return {
+      canAddShop: maxShops === null || currentShops < maxShops, // null means unlimited
+      currentShops,
+      maxShops,
+      planName,
+    };
+  }
+
+  async validateShopCreation(tenantId: string): Promise<void> {
+    const limits = await this.checkShopLimits(tenantId);
+    
+    if (!limits.canAddShop) {
+      if (limits.maxShops === null) {
+        // This shouldn't happen, but just in case
+        throw new Error('Unable to validate shop limits');
+      }
+      
+      throw new Error(
+        `Shop limit reached. Your ${limits.planName} allows ${limits.maxShops} shops, and you currently have ${limits.currentShops}. Please upgrade your plan to add more shops.`
       );
     }
   }
@@ -1034,6 +1092,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createShop(shopData: CreateShopData, tenantId: string): Promise<Shop> {
+    // Validate shop limits before creating
+    await this.validateShopCreation(tenantId);
+    
     const [shop] = await db
       .insert(shops)
       .values({

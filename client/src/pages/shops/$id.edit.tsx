@@ -128,7 +128,7 @@ export default function EditShopPage() {
         phone: shop.phone,
         email: shop.email,
         website: shop.website || '',
-        managerId: shop.managerId || '',
+        managerId: shop.managerId || 'no-manager',
         operatingHours: shop.operatingHours || '',
         status: shop.status as any || 'active',
         category: shop.category || '',
@@ -142,10 +142,14 @@ export default function EditShopPage() {
   }, [shopData, reset]);
 
   const onSubmit = (data: UpdateShopData) => {
-    updateShopMutation.mutate({
+    // Convert "no-manager" to null for the API
+    const submitData = {
       ...data,
+      managerId: data.managerId === 'no-manager' ? null : data.managerId,
       tags: tags.length > 0 ? tags : undefined,
-    });
+    };
+    
+    updateShopMutation.mutate(submitData);
   };
 
   const handleAddTag = () => {
@@ -299,7 +303,7 @@ export default function EditShopPage() {
                     <SelectValue placeholder={managersLoading ? "Loading..." : "Select manager"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No Manager</SelectItem>
+                    <SelectItem value="no-manager">No Manager</SelectItem>
                     {managersData?.managers.map(manager => (
                       <SelectItem key={manager.id} value={manager.id}>
                         {manager.firstName} {manager.lastName} ({manager.email})
@@ -320,7 +324,7 @@ export default function EditShopPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="address">Street Address *</Label>
+              <Label htmlFor="address">Street Address</Label>
               <Input
                 id="address"
                 {...register('address')}
@@ -334,7 +338,7 @@ export default function EditShopPage() {
 
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
-                <Label htmlFor="city">City *</Label>
+                <Label htmlFor="city">City</Label>
                 <Input
                   id="city"
                   {...register('city')}

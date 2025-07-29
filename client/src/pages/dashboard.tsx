@@ -16,7 +16,6 @@ export default function Dashboard() {
   const logoutMutation = useLogout();
   const [tokenExpiry, setTokenExpiry] = useState<string>("--");
   const [refreshTokenExpiry, setRefreshTokenExpiry] = useState<string>("--");
-  const [sessionCount] = useState(3);
   const [apiRequests] = useState(1247);
 
   // Fetch user's subscription
@@ -24,6 +23,22 @@ export default function Dashboard() {
     queryKey: ['/api/my-subscription'],
     enabled: !!user,
   });
+
+  // Fetch user's sessions
+  const { data: sessionsData } = useQuery({
+    queryKey: ['/api/auth/sessions'],
+    queryFn: async () => {
+      const response = await authManager.makeAuthenticatedRequest('GET', '/api/auth/sessions');
+      if (!response.ok) {
+        throw new Error('Failed to fetch sessions');
+      }
+      return response.json();
+    },
+    enabled: !!user,
+    staleTime: 30000, // 30 seconds
+  });
+
+  const sessionCount = (sessionsData as any)?.sessions?.length || 0;
 
   // DISABLED: Mandatory subscription redirect
   // If user doesn't have subscription, show subscription prompt instead of hard redirect

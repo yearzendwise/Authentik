@@ -48,8 +48,9 @@ async function initializeDatabase() {
           yearlyPrice: "199.99",
           stripePriceId: "price_1RowinFJFJPRMbUMov3E6jzj",
           stripeYearlyPriceId: "price_basic_yearly",
-          features: ["Up to 10 users", "Basic forms", "Email support"],
+          features: ["Up to 10 users", "Up to 10 shops", "Basic forms", "Email support"],
           maxUsers: 10,
+          maxShops: 10,
           maxProjects: 5,
           storageLimit: 5,
           supportLevel: "email",
@@ -66,8 +67,9 @@ async function initializeDatabase() {
           yearlyPrice: "299.99",
           stripePriceId: "price_pro_monthly",
           stripeYearlyPriceId: "price_pro_yearly",
-          features: ["Up to 50 users", "Advanced forms", "Priority support", "Custom branding"],
+          features: ["Up to 50 users", "Up to 25 shops", "Advanced forms", "Priority support", "Custom branding"],
           maxUsers: 50,
+          maxShops: 25,
           maxProjects: 25,
           storageLimit: 25,
           supportLevel: "priority",
@@ -84,8 +86,9 @@ async function initializeDatabase() {
           yearlyPrice: "999.99",
           stripePriceId: "price_enterprise_monthly",
           stripeYearlyPriceId: "price_enterprise_yearly",
-          features: ["Unlimited users", "Unlimited forms", "Dedicated support", "Custom integrations", "Advanced analytics"],
+          features: ["Unlimited users", "Unlimited shops", "Unlimited forms", "Dedicated support", "Custom integrations", "Advanced analytics"],
           maxUsers: null, // Unlimited
+          maxShops: null, // Unlimited
           maxProjects: null, // Unlimited
           storageLimit: null, // Unlimited
           supportLevel: "dedicated",

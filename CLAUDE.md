@@ -114,6 +114,7 @@ Key tables:
 - React components use a mix of Radix UI and Headless UI
 - Tailwind CSS for styling with custom animations
 - Form validation with Zod schemas
+- PM2 process management: DO NOT restart the Authentik process during development as file watching is enabled
 
 ### UI/UX Guidelines
 

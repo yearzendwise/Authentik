@@ -164,69 +164,30 @@ export default function Dashboard() {
 
   return (
     <div className="p-6">
-      {/* Page Header */}
+      {/* Page Header with Free Trial Panel */}
       <div className="mb-8">
-        <div className="flex items-center space-x-4">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Shield className="text-white w-6 h-6" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <Shield className="text-white w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+              <p className="text-gray-600 dark:text-gray-400">
+                Welcome back, {user.firstName} {user.lastName}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              Welcome back, {user.firstName} {user.lastName}
-            </p>
-          </div>
+          {/* Free Trial Panel */}
+          {subscription?.subscription && subscription.subscription.status === 'trialing' && subscription.subscription.trialEnd && new Date(subscription.subscription.trialEnd) > new Date() && (
+            <div className="ml-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                <strong>🎉 Free Trial Active:</strong> Your 14-day trial ends on {new Date(subscription.subscription.trialEnd).toLocaleDateString()}. Enjoy full access to all features!
+              </p>
+            </div>
+          )}
         </div>
       </div>
-        {/* Subscription Status */}
-        {subscription?.subscription && (
-          <Card className="mb-8 border-l-4 border-l-blue-600">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <CreditCard className="mr-2 h-5 w-5" />
-                Subscription Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Plan</p>
-                  <p className="text-lg font-bold text-gray-900 dark:text-white">{subscription.subscription.plan?.displayName}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Status</p>
-                  <Badge variant={subscription.subscription.status === 'active' ? 'default' : 'secondary'}>
-                    {subscription.subscription.status === 'trialing' ? 'Free Trial' : subscription.subscription.status}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Billing</p>
-                  <p className="text-sm text-gray-900 dark:text-white">{subscription.subscription.isYearly ? 'Yearly' : 'Monthly'}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    {subscription.subscription.status === 'trialing' ? 'Trial Ends' : 'Next Payment'}
-                  </p>
-                  <p className="text-sm text-gray-900 dark:text-white flex items-center">
-                    <Calendar className="mr-1 h-3 w-3" />
-                    {subscription.subscription.status === 'trialing' && subscription.subscription.trialEnd 
-                      ? new Date(subscription.subscription.trialEnd).toLocaleDateString()
-                      : subscription.subscription.currentPeriodEnd 
-                      ? new Date(subscription.subscription.currentPeriodEnd).toLocaleDateString() 
-                      : 'N/A'}
-                  </p>
-                </div>
-              </div>
-              {subscription.subscription.status === 'trialing' && subscription.subscription.trialEnd && new Date(subscription.subscription.trialEnd) > new Date() && (
-                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <p className="text-sm text-blue-800 dark:text-blue-200">
-                    <strong>🎉 Free Trial Active:</strong> Your 14-day trial ends on {new Date(subscription.subscription.trialEnd).toLocaleDateString()}. Enjoy full access to all features!
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
 
         {/* Subscription Info for Non-Owners */}
         {!subscription?.subscription && user?.role !== "Owner" && (

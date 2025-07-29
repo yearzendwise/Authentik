@@ -43,6 +43,10 @@ import {
   clearRateLimit,
   getClientIP,
 } from "./utils/sanitization";
+import { authRateLimiter, apiRateLimiter } from "./middleware/security";
+import { avatarUpload, handleUploadError } from "./middleware/upload";
+import { R2_CONFIG, uploadToR2, deleteFromR2 } from "./config/r2";
+import sharp from "sharp";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key";
 const REFRESH_TOKEN_SECRET =
@@ -125,6 +129,7 @@ const authenticateToken = async (req: any, res: any, next: any) => {
       emailVerified: user.emailVerified,
       menuExpanded: user.menuExpanded,
       theme: user.theme,
+      avatarUrl: user.avatarUrl,
     };
     next();
   } catch (error: any) {
@@ -560,6 +565,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           twoFactorEnabled: user.twoFactorEnabled,
           emailVerified: user.emailVerified,
           theme: user.theme || 'light',
+          avatarUrl: user.avatarUrl || null,
         },
         emailVerificationRequired,
       });
@@ -879,6 +885,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           emailVerified: user.emailVerified,
           menuExpanded: user.menuExpanded || false,
           theme: user.theme || 'light',
+          avatarUrl: user.avatarUrl || null,
         },
       });
     } catch (error: any) {
@@ -989,6 +996,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         emailVerified: req.user.emailVerified,
         menuExpanded: req.user.menuExpanded || false,
         theme: req.user.theme || 'light',
+        avatarUrl: req.user.avatarUrl || null,
       },
     });
   });
@@ -1143,6 +1151,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.error("Profile update error:", error);
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Upload avatar endpoint
+  app.post("/api/auth/avatar", authenticateToken, (req: any, res) => {
+    avatarUpload(req, res, async (err) => {
+      if (err) {
+        console.error("Avatar upload error:", err);
+        return res.status(400).json({ 
+          message: handleUploadError(err) 
+        });
+      }
+
+      try {
+        const file = req.file;
+        if (!file) {
+          return res.status(400).json({ message: "No file uploaded" });
+        }
+
+        // Check if R2 is configured
+        if (!R2_CONFIG.isConfigured) {
+          return res.status(503).json({ 
+            message: "Avatar upload service is not configured. Please contact support." 
+          });
+        }
+
+        // Process image with sharp (resize, optimize)
+        const processedImage = await sharp(file.buffer)
+          .resize(400, 400, { 
+            fit: 'cover',
+            position: 'center'
+          })
+          .jpeg({ quality: 90 })
+          .toBuffer();
+
+        // Generate unique filename
+        const timestamp = Date.now();
+        const filename = `avatars/${req.user.tenantId}/${req.user.id}/${timestamp}.jpg`;
+
+        // Upload to R2
+        const avatarUrl = await uploadToR2(filename, processedImage, 'image/jpeg');
+
+        // Delete old avatar if exists
+        if (req.user.avatarUrl) {
+          try {
+            const oldKey = req.user.avatarUrl.replace(R2_CONFIG.publicUrl + '/', '');
+            await deleteFromR2(oldKey);
+          } catch (deleteError) {
+            console.error("Failed to delete old avatar:", deleteError);
+            // Continue anyway
+          }
+        }
+
+        // Update user record
+        const updatedUser = await storage.updateUser(
+          req.user.id,
+          { avatarUrl },
+          req.user.tenantId
+        );
+
+        if (!updatedUser) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        res.json({
+          success: true,
+          url: avatarUrl,
+          message: "Avatar uploaded successfully"
+        });
+      } catch (error) {
+        console.error("Avatar processing error:", error);
+        res.status(500).json({ 
+          message: "Failed to process avatar. Please try again." 
+        });
+      }
+    });
+  });
+
+  // Delete avatar endpoint
+  app.delete("/api/auth/avatar", authenticateToken, async (req: any, res) => {
+    try {
+      // Check if user has an avatar
+      if (!req.user.avatarUrl) {
+        return res.status(400).json({ 
+          message: "No avatar to delete" 
+        });
+      }
+
+      // Check if R2 is configured
+      if (!R2_CONFIG.isConfigured) {
+        return res.status(503).json({ 
+          message: "Avatar service is not configured. Please contact support." 
+        });
+      }
+
+      // Delete from R2
+      try {
+        const key = req.user.avatarUrl.replace(R2_CONFIG.publicUrl + '/', '');
+        await deleteFromR2(key);
+      } catch (deleteError) {
+        console.error("Failed to delete avatar from R2:", deleteError);
+        // Continue anyway to clear the database record
+      }
+
+      // Update user record
+      const updatedUser = await storage.updateUser(
+        req.user.id,
+        { avatarUrl: null },
+        req.user.tenantId
+      );
+
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({
+        success: true,
+        message: "Avatar deleted successfully"
+      });
+    } catch (error) {
+      console.error("Avatar deletion error:", error);
+      res.status(500).json({ 
+        message: "Failed to delete avatar. Please try again." 
+      });
     }
   });
 

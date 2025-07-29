@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar as CustomAvatar } from "@/components/Avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -165,10 +165,6 @@ export function AppLayout({ children }: AppLayoutProps) {
     return <>{children}</>;
   }
 
-  const userInitials =
-    user.firstName && user.lastName
-      ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
-      : user.email[0].toUpperCase();
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
@@ -249,11 +245,11 @@ export function AppLayout({ children }: AppLayoutProps) {
                   isCollapsed && "px-2 justify-center",
                 )}
               >
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="text-sm">
-                    {userInitials}
-                  </AvatarFallback>
-                </Avatar>
+                <CustomAvatar 
+                  user={user}
+                  size="sm"
+                  className="flex-shrink-0"
+                />
                 {!isCollapsed && (
                   <div className="ml-3 text-left">
                     <p className="text-sm font-medium text-gray-900 dark:text-white">

@@ -209,6 +209,11 @@ const authSlice = createSlice({
         state.user.menuExpanded = action.payload;
       }
     },
+    updateUser: (state, action: PayloadAction<Partial<AuthUser>>) => {
+      if (state.user) {
+        state.user = { ...state.user, ...action.payload };
+      }
+    },
     initializeFromAuthManager: (state) => {
       // Get token from authManager if it exists
       const token = authManager.getAccessToken();
@@ -296,6 +301,7 @@ export const {
   clearError,
   setInitialized,
   updateMenuPreference,
+  updateUser,
   initializeFromAuthManager,
 } = authSlice.actions;
 export default authSlice.reducer;

@@ -14,6 +14,7 @@ export interface AuthUser {
   emailVerified?: boolean;
   menuExpanded?: boolean;
   theme?: 'light' | 'dark';
+  avatarUrl?: string | null;
 }
 
 export interface AuthResponse {

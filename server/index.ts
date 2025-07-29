@@ -5,10 +5,27 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeDatabase } from "./init-db";
+import { 
+  helmetMiddleware, 
+  generalRateLimiter, 
+  mongoSanitizer,
+  sanitizeMiddleware,
+  requestSizeLimiter 
+} from "./middleware/security";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+
+// Security middleware
+app.use(helmetMiddleware);
+app.use(generalRateLimiter);
+app.use(mongoSanitizer);
+
+// Body parsing with size limits
+app.use(express.json(requestSizeLimiter.json));
+app.use(express.urlencoded(requestSizeLimiter.urlencoded));
+
+// Input sanitization
+app.use(sanitizeMiddleware);
 
 app.use((req, res, next) => {
   const start = Date.now();

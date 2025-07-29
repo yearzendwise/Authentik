@@ -13,6 +13,7 @@ import { useReduxAuth } from "@/hooks/useReduxAuth";
 import { updateProfileSchema, changePasswordSchema } from "@shared/schema";
 import type { UpdateProfileData, ChangePasswordData } from "@shared/schema";
 import { calculatePasswordStrength, getPasswordStrengthText, getPasswordStrengthColor } from "@/lib/authUtils";
+import { AvatarUpload } from "@/components/AvatarUpload";
 import { 
   User, 
   Lock, 
@@ -27,7 +28,8 @@ import {
   AlertTriangle,
   Smartphone,
   Settings,
-  Menu
+  Menu,
+  Camera
 } from "lucide-react";
 import { useLocation, Link } from "wouter";
 
@@ -218,8 +220,19 @@ export default function ProfilePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <form onSubmit={profileForm.handleSubmit(onUpdateProfile)} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-6">
+                  {/* Avatar Section */}
+                  <div className="flex flex-col items-center space-y-4 pb-6 border-b border-gray-200 dark:border-gray-700">
+                    <AvatarUpload
+                      currentAvatarUrl={user?.avatarUrl}
+                      userEmail={user?.email}
+                      size="lg"
+                    />
+                  </div>
+
+                  {/* Profile Form */}
+                  <form onSubmit={profileForm.handleSubmit(onUpdateProfile)} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="firstName">First Name</Label>
                       <Input
@@ -289,6 +302,7 @@ export default function ProfilePage() {
                     </Button>
                   </div>
                 </form>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

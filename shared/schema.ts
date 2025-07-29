@@ -39,6 +39,7 @@ export const users = pgTable("users", {
   lastLoginAt: timestamp("last_login_at"), // Track last login for user management
   menuExpanded: boolean("menu_expanded").default(false), // New field for menu preference
   theme: text("theme").default('light'), // Theme preference: 'light' or 'dark'
+  avatarUrl: text("avatar_url"), // User avatar URL from Cloudflare R2
   // Stripe fields for subscription management
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),

@@ -298,7 +298,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
+          role: user.role,
+          twoFactorEnabled: user.twoFactorEnabled,
           emailVerified: false,
+          menuExpanded: user.menuExpanded || false,
+          theme: user.theme || 'light',
+          avatarUrl: user.avatarUrl || null,
         },
         developmentNote: "Check server console for verification URL",
       });
@@ -424,7 +429,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           firstName: owner.firstName,
           lastName: owner.lastName,
           role: owner.role,
+          twoFactorEnabled: owner.twoFactorEnabled,
           emailVerified: false,
+          menuExpanded: owner.menuExpanded || false,
+          theme: owner.theme || 'light',
+          avatarUrl: owner.avatarUrl || null,
         },
         organization: {
           id: tenant.id,
@@ -644,6 +653,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           twoFactorEnabled: user.twoFactorEnabled,
           emailVerified: true, // Now verified
           theme: user.theme || 'light',
+          avatarUrl: user.avatarUrl || null,
         },
       });
     } catch (error: any) {
@@ -1140,6 +1150,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: updatedUser.email,
           firstName: updatedUser.firstName,
           lastName: updatedUser.lastName,
+          role: updatedUser.role,
+          twoFactorEnabled: updatedUser.twoFactorEnabled,
+          emailVerified: updatedUser.emailVerified,
+          menuExpanded: updatedUser.menuExpanded || false,
+          theme: updatedUser.theme || 'light',
+          avatarUrl: updatedUser.avatarUrl || null,
         },
       });
     } catch (error: any) {

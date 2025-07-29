@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -129,36 +129,63 @@ export default function ShopsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch shops data
-  const { data, isLoading, error } = useQuery<ShopsResponse>({
-    queryKey: ['/api/shops', searchTerm, statusFilter],
+  // Create a ref to hold the current search params
+  const searchParamsRef = useRef({
+    search: searchTerm,
+    status: statusFilter,
+    category: categoryFilter,
+  });
+
+  // Update the ref whenever search params change
+  searchParamsRef.current = {
+    search: searchTerm,
+    status: statusFilter,
+    category: categoryFilter,
+  };
+
+  // Fetch shops data with stable query key
+  const { data, isLoading, error, isFetching, refetch } = useQuery<ShopsResponse>({
+    queryKey: ['/api/shops'],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (searchTerm) params.append('search', searchTerm);
-      if (statusFilter !== 'all') params.append('status', statusFilter);
+      const currentParams = searchParamsRef.current;
+      
+      if (currentParams.search) params.append('search', currentParams.search);
+      if (currentParams.status !== 'all') params.append('status', currentParams.status);
+      if (currentParams.category !== 'all') params.append('category', currentParams.category);
       
       const response = await apiRequest('GET', `/api/shops?${params}`);
       if (!response.ok) {
         throw new Error('Failed to fetch shops');
       }
-      const result = await response.json();
-      console.log('Shops API Response:', result);
-      console.log('Limits:', result.limits);
-      return result;
+      return response.json();
     },
   });
+
+  // Debounce search and filter changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      refetch();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, statusFilter, categoryFilter, refetch]);
 
   // Toggle shop status mutation
   const toggleStatusMutation = useMutation({
     mutationFn: async ({ shopId, isActive }: { shopId: string; isActive: boolean }) => {
       const response = await apiRequest('PATCH', `/api/shops/${shopId}/toggle-status`, { isActive });
+      if (!response.ok) {
+        throw new Error('Failed to update shop status');
+      }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Invalidate all queries that start with '/api/shops'
       queryClient.invalidateQueries({ queryKey: ['/api/shops'] });
       toast({
         title: "Success",
-        description: "Shop status updated successfully",
+        description: data.message || "Shop status updated successfully",
       });
     },
     onError: () => {
@@ -329,11 +356,11 @@ export default function ShopsPage() {
               <DropdownMenuItem
                 onClick={() => toggleStatusMutation.mutate({ 
                   shopId: shop.id, 
-                  isActive: !shop.isActive 
+                  isActive: shop.status !== 'active' 
                 })}
               >
                 <Power className="mr-2 h-4 w-4" />
-                {shop.isActive ? 'Deactivate' : 'Activate'}
+                {shop.status === 'active' ? 'Deactivate' : 'Activate'}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -562,34 +589,43 @@ export default function ShopsPage() {
             <p className="text-center text-muted-foreground">Failed to load shops. Please try again.</p>
           </CardContent>
         </Card>
-      ) : filteredShops.length === 0 ? (
-        <Card>
-          <CardContent className="py-8">
-            <div className="text-center">
-              <Store className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No shops found</h3>
-              <p className="text-muted-foreground mb-4">
-                {searchTerm || statusFilter !== 'all' || categoryFilter
-                  ? "Try adjusting your filters" 
-                  : "Get started by adding your first shop"}
-              </p>
-              {!searchTerm && statusFilter === 'all' && !categoryFilter && (
-                <Link href="/shops/new">
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Your First Shop
-                  </Button>
-                </Link>
-              )}
-            </div>
-          </CardContent>
-        </Card>
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <DataTable columns={columns} data={filteredShops} showColumnVisibility={false} />
-          </CardContent>
-        </Card>
+        <div className={cn("relative transition-opacity duration-200", isFetching && "opacity-50")}>
+          {isFetching && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          )}
+          {filteredShops.length === 0 ? (
+            <Card>
+              <CardContent className="py-8">
+                <div className="text-center">
+                  <Store className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No shops found</h3>
+                  <p className="text-muted-foreground mb-4">
+                    {searchTerm || statusFilter !== 'all' || categoryFilter !== 'all'
+                      ? "Try adjusting your filters" 
+                      : "Get started by adding your first shop"}
+                  </p>
+                  {!searchTerm && statusFilter === 'all' && categoryFilter === 'all' && (
+                    <Link href="/shops/new">
+                      <Button>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Your First Shop
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <DataTable columns={columns} data={filteredShops} showColumnVisibility={false} />
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
 
       {/* Delete Confirmation Dialog */}

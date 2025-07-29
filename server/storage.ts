@@ -1122,7 +1122,11 @@ export class DatabaseStorage implements IStorage {
   async toggleShopStatus(id: string, isActive: boolean, tenantId: string): Promise<Shop | undefined> {
     const [shop] = await db
       .update(shops)
-      .set({ isActive, updatedAt: new Date() })
+      .set({ 
+        isActive, 
+        status: isActive ? 'active' : 'inactive',
+        updatedAt: new Date() 
+      })
       .where(and(eq(shops.id, id), eq(shops.tenantId, tenantId)))
       .returning();
     return shop;

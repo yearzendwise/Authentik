@@ -2403,8 +2403,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const stats = await storage.getShopStats(req.user.tenantId);
       const limits = await storage.checkShopLimits(req.user.tenantId);
 
-      console.log('Shop limits for tenant', req.user.tenantId, ':', limits);
-
       res.json({ 
         shops, 
         stats,

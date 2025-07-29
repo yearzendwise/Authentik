@@ -13,6 +13,11 @@ import {
   Moon,
   Sun,
   Target,
+  Mail,
+  FileText,
+  UserCheck,
+  BarChart3,
+  PenTool,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -40,7 +45,11 @@ const getNavigation = (userRole?: string) => {
   const baseNavigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Company", href: "/company", icon: Building2 },
-    { name: "Campaigns", href: "/campaigns", icon: Target },
+    { name: "Email Campaigns", href: "/email-campaigns", icon: Mail },
+    { name: "Templates", href: "/email-templates", icon: FileText },
+    { name: "Contacts", href: "/email-contacts", icon: UserCheck },
+    { name: "Analytics", href: "/email-analytics", icon: BarChart3 },
+    { name: "Compose", href: "/email-compose", icon: PenTool },
     { name: "Shops", href: "/shops", icon: Store },
     { name: "Forms", href: "/forms", icon: ClipboardList },
     { name: "Profile", href: "/profile", icon: User },
@@ -49,7 +58,7 @@ const getNavigation = (userRole?: string) => {
 
   // Add subscription menu only for Owner role
   if (userRole === "Owner") {
-    baseNavigation.splice(3, 0, { name: "Subscription", href: "/subscribe", icon: CreditCard });
+    baseNavigation.splice(8, 0, { name: "Subscription", href: "/subscribe", icon: CreditCard });
   }
 
   // Add Users management for Owner, Admin and Manager roles

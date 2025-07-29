@@ -7,7 +7,7 @@ import { useLogout } from "@/hooks/useAuth";
 import { useReduxAuth } from "@/hooks/useReduxAuth";
 import type { UserSubscriptionResponse, RefreshTokenInfo } from "@shared/schema";
 import { authManager } from "@/lib/auth";
-import { Shield, Users, Clock, TrendingUp, LogOut, RefreshCw, Settings, CreditCard, Calendar } from "lucide-react";
+import { Shield, Users, Clock, TrendingUp, LogOut, RefreshCw, Settings, CreditCard, Calendar, Mail, Send, Eye, MousePointer, FileText } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function Dashboard() {
@@ -17,6 +17,13 @@ export default function Dashboard() {
   const [tokenExpiry, setTokenExpiry] = useState<string>("--");
   const [refreshTokenExpiry, setRefreshTokenExpiry] = useState<string>("--");
   const [apiRequests] = useState(1247);
+  const [emailStats] = useState({
+    totalSent: 23847,
+    totalOpened: 13894,
+    totalClicked: 5182,
+    avgOpenRate: 58.3,
+    avgClickRate: 21.7
+  });
 
   // Fetch user's subscription
   const { data: subscription, isLoading: subscriptionLoading } = useQuery<UserSubscriptionResponse>({
@@ -169,10 +176,10 @@ export default function Dashboard() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Shield className="text-white w-6 h-6" />
+              <Mail className="text-white w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Email Marketing Dashboard</h1>
               <p className="text-gray-600 dark:text-gray-400">
                 Welcome back, {user.firstName} {user.lastName}
               </p>
@@ -209,16 +216,17 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Email Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-blue-600">Active Sessions</p>
-                  <p className="text-2xl font-bold text-blue-900">{sessionCount}</p>
+                  <p className="text-sm font-medium text-blue-600">Emails Sent</p>
+                  <p className="text-2xl font-bold text-gray-900">{emailStats.totalSent.toLocaleString()}</p>
+                  <p className="text-xs text-gray-500 mt-1">Last 30 days</p>
                 </div>
-                <Users className="text-blue-500 w-8 h-8" />
+                <Send className="text-blue-500 w-8 h-8" />
               </div>
             </CardContent>
           </Card>
@@ -227,10 +235,11 @@ export default function Dashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-green-600">Token Expires In</p>
-                  <p className="text-2xl font-bold text-green-900">{tokenExpiry}</p>
+                  <p className="text-sm font-medium text-green-600">Open Rate</p>
+                  <p className="text-2xl font-bold text-gray-900">{emailStats.avgOpenRate}%</p>
+                  <p className="text-xs text-green-600 mt-1">↑ 3.2% vs last month</p>
                 </div>
-                <Clock className="text-green-500 w-8 h-8" />
+                <Eye className="text-green-500 w-8 h-8" />
               </div>
             </CardContent>
           </Card>
@@ -239,14 +248,51 @@ export default function Dashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-purple-600">API Requests</p>
-                  <p className="text-2xl font-bold text-purple-900">{apiRequests.toLocaleString()}</p>
+                  <p className="text-sm font-medium text-purple-600">Click Rate</p>
+                  <p className="text-2xl font-bold text-gray-900">{emailStats.avgClickRate}%</p>
+                  <p className="text-xs text-red-600 mt-1">↓ 1.8% vs last month</p>
                 </div>
-                <TrendingUp className="text-purple-500 w-8 h-8" />
+                <MousePointer className="text-purple-500 w-8 h-8" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-orange-600">Active Campaigns</p>
+                  <p className="text-2xl font-bold text-gray-900">7</p>
+                  <p className="text-xs text-gray-500 mt-1">2 scheduled</p>
+                </div>
+                <Mail className="text-orange-500 w-8 h-8" />
               </div>
             </CardContent>
           </Card>
         </div>
+
+        {/* Quick Actions */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Button variant="outline" className="h-20 flex flex-col items-center justify-center" onClick={() => setLocation('/email-compose')}>
+                <Mail className="w-6 h-6 mb-2" />
+                <span>Create Campaign</span>
+              </Button>
+              <Button variant="outline" className="h-20 flex flex-col items-center justify-center" onClick={() => setLocation('/email-templates')}>
+                <FileText className="w-6 h-6 mb-2" />
+                <span>Design Template</span>
+              </Button>
+              <Button variant="outline" className="h-20 flex flex-col items-center justify-center" onClick={() => setLocation('/email-contacts')}>
+                <Users className="w-6 h-6 mb-2" />
+                <span>Import Contacts</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Token Management Section */}
         <Card>

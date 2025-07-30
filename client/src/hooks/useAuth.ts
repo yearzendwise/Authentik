@@ -161,26 +161,31 @@ export function useLogin() {
         return loginResult;
       }
 
-      // After successful login, check for subscription
-      try {
-        const subscriptionResponse = await authManager.makeAuthenticatedRequest(
-          "GET",
-          "/api/my-subscription",
-        );
-        const subscriptionData = await subscriptionResponse.json();
-
-        return {
-          ...loginResult,
-          hasSubscription: !!subscriptionData.subscription,
-        };
-      } catch (error) {
-        // If subscription check fails, continue with normal login flow
-        console.warn("Failed to check subscription status:", error);
-        return {
-          ...loginResult,
-          hasSubscription: false,
-        };
+      // After successful login, check for subscription (only for Owners)
+      if (loginResult.user && loginResult.user.role === 'Owner') {
+        try {
+          const subscriptionResponse = await authManager.makeAuthenticatedRequest(
+            "GET",
+            "/api/my-subscription",
+          );
+          
+          if (subscriptionResponse.ok) {
+            const subscriptionData = await subscriptionResponse.json();
+            return {
+              ...loginResult,
+              hasSubscription: !!subscriptionData.subscription,
+            };
+          }
+        } catch (error) {
+          // If subscription check fails, continue with normal login flow
+          console.warn("Failed to check subscription status:", error);
+        }
       }
+
+      return {
+        ...loginResult,
+        hasSubscription: false,
+      };
     },
     onSuccess: (data) => {
       if ("requires2FA" in data) {

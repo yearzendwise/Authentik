@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import type { AuthUser } from "@/lib/auth";
 import { authManager } from "@/lib/auth";
+import { setUpdatingFromRedux } from "@/lib/authStoreSync";
 
 export interface AuthState {
   user: AuthUser | null;
@@ -193,7 +194,9 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.error = null;
       // Also clear tokens from authManager
+      setUpdatingFromRedux(true);
       authManager.clearTokens();
+      setUpdatingFromRedux(false);
     },
     setError: (state, action: PayloadAction<string>) => {
       state.error = action.payload;
@@ -239,7 +242,9 @@ const authSlice = createSlice({
         
         // Also store token in authManager for proper token management system
         if (action.payload.accessToken) {
+          setUpdatingFromRedux(true);
           authManager.setAccessToken(action.payload.accessToken);
+          setUpdatingFromRedux(false);
         }
       })
       .addCase(checkAuthStatus.rejected, (state, action) => {
@@ -266,7 +271,9 @@ const authSlice = createSlice({
         
         // Also store token in authManager for proper token management system
         if (action.payload.accessToken) {
+          setUpdatingFromRedux(true);
           authManager.setAccessToken(action.payload.accessToken);
+          setUpdatingFromRedux(false);
         }
       })
       .addCase(loginUser.rejected, (state, action) => {
@@ -284,7 +291,9 @@ const authSlice = createSlice({
         state.error = null;
         
         // Also clear token from authManager
+        setUpdatingFromRedux(true);
         authManager.clearTokens();
+        setUpdatingFromRedux(false);
       })
 
       // Update profile

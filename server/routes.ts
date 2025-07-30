@@ -492,6 +492,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = userResult;
       const tenant = userResult.tenant;
 
+
       // Verify password
       const isValidPassword = await bcrypt.compare(
         sanitizedPassword,
@@ -562,7 +563,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         maxAge: tokenExpiryDays * 24 * 60 * 60 * 1000, // 7 or 30 days based on rememberMe
       });
 
-      res.json({
+      const responseData = {
         message: "Login successful",
         accessToken,
         user: {
@@ -577,7 +578,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           avatarUrl: user.avatarUrl || null,
         },
         emailVerificationRequired,
-      });
+      };
+
+
+      res.json(responseData);
     } catch (error: any) {
       if (error.name === "ZodError") {
         return res.status(400).json({
@@ -1293,6 +1297,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
 
   // Change password endpoint with input sanitization
   app.put(

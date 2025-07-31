@@ -153,6 +153,15 @@ The architecture supports both development and production environments with hot 
   • Added theme override to pending verification page (pending-verification.tsx)
   • Theme automatically restores to user preference when leaving auth pages
 
+✓ **Enhanced Dark Mode Support**:
+  • Added missing CSS variables for chart and sidebar components
+  • Implemented smooth theme transitions with proper color-scheme support
+  • Fixed input and form element styling in dark mode
+  • Enhanced scrollbar styling for dark theme
+  • Added comprehensive support for Recharts components in dark mode
+  • Fixed dropdown menus and popovers with proper dark backgrounds
+  • Added overrides for any hardcoded white/black colors that don't respect theme
+
 ## Recent Changes (July 27, 2025)
 
 ✓ **User Search Performance Optimization**: 

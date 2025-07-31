@@ -564,6 +564,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           role: user.role,
           twoFactorEnabled: user.twoFactorEnabled,
           emailVerified: user.emailVerified,
+          menuExpanded: user.menuExpanded ?? false,
           theme: user.theme || 'light',
           avatarUrl: user.avatarUrl || null,
         },
@@ -883,7 +884,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           role: user.role,
           twoFactorEnabled: user.twoFactorEnabled,
           emailVerified: user.emailVerified,
-          menuExpanded: user.menuExpanded || false,
+          menuExpanded: user.menuExpanded ?? false,
           theme: user.theme || 'light',
           avatarUrl: user.avatarUrl || null,
         },
@@ -994,7 +995,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: req.user.role,
         twoFactorEnabled: req.user.twoFactorEnabled,
         emailVerified: req.user.emailVerified,
-        menuExpanded: req.user.menuExpanded || false,
+        menuExpanded: req.user.menuExpanded ?? false,
         theme: req.user.theme || 'light',
         avatarUrl: req.user.avatarUrl || null,
       },
@@ -1051,7 +1052,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update menu preference endpoint
-  // Note: Temporarily using localStorage-only approach due to database schema mismatch
   app.patch(
     "/api/auth/menu-preference",
     authenticateToken,
@@ -1065,13 +1065,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .json({ message: "Menu preference must be a boolean value" });
         }
 
-        // TODO: Store in database once schema is migrated
-        // For now, we'll just acknowledge the request and rely on localStorage
         console.log(`Menu preference update for user ${req.user.id}: ${menuExpanded}`);
+
+        // Update the menu preference in the database
+        const updatedUser = await storage.updateUser(
+          req.user.id,
+          { menuExpanded },
+          req.user.tenantId,
+        );
+
+        if (!updatedUser) {
+          return res.status(404).json({ message: "User not found" });
+        }
 
         res.json({
           message: "Menu preference updated successfully",
-          menuExpanded,
+          menuExpanded: updatedUser.menuExpanded,
         });
       } catch (error) {
         console.error("Update menu preference error:", error);
@@ -1088,6 +1097,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Logged out from all devices" });
     } catch (error) {
       console.error("Logout all error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Update theme preference endpoint
+  app.patch("/api/auth/theme", authenticateToken, async (req: any, res) => {
+    try {
+      const { theme } = req.body;
+
+      if (!theme || !['light', 'dark'].includes(theme)) {
+        return res.status(400).json({ 
+          message: "Invalid theme. Must be 'light' or 'dark'" 
+        });
+      }
+
+      const updatedUser = await storage.updateUser(
+        req.user.id,
+        { theme },
+        req.user.tenantId,
+      );
+
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({
+        message: "Theme updated successfully",
+        theme: updatedUser.theme,
+      });
+    } catch (error) {
+      console.error("Update theme error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

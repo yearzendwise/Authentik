@@ -39,6 +39,7 @@ import {
   useReduxLogout,
   useReduxUpdateProfile,
 } from "@/hooks/useReduxAuth";
+import { useUpdateTheme } from "@/hooks/useAuth";
 import { useTheme } from "@/contexts/ThemeContext";
 
 const getNavigation = (userRole?: string) => {
@@ -75,39 +76,54 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const [location, setLocation] = useLocation();
-  const { user } = useReduxAuth();
+  const { user, isInitialized } = useReduxAuth();
   const { logout } = useReduxLogout();
   const { theme, toggleTheme, setUserTheme } = useTheme();
   const navigation = getNavigation(user?.role);
   const { updateProfile } = useReduxUpdateProfile();
-  // Load initial menu state from localStorage or user preference
-  const getInitialMenuState = () => {
-    const localPref = localStorage.getItem("menuExpanded");
-    if (localPref !== null) {
-      return !JSON.parse(localPref); // inverted because isCollapsed is opposite of expanded
+  const updateThemeMutation = useUpdateTheme();
+  const [isThemeChanging, setIsThemeChanging] = useState(false);
+  
+  // Initialize menu state
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    // Only use localStorage as initial state if auth is not initialized yet
+    if (!isInitialized) {
+      const localPref = localStorage.getItem("menuExpanded");
+      if (localPref !== null) {
+        return !JSON.parse(localPref);
+      }
     }
-    // Default to expanded (false for isCollapsed) if no preference is set
-    return user?.menuExpanded !== undefined ? !user.menuExpanded : false;
-  };
+    // Default to expanded
+    return false;
+  });
 
-  const [isCollapsed, setIsCollapsed] = useState(getInitialMenuState);
-
-  // Sync menu state when user data changes or localStorage changes
+  // Sync menu state when user data loads or changes
   useEffect(() => {
-    const localPref = localStorage.getItem("menuExpanded");
-    if (localPref !== null) {
-      setIsCollapsed(!JSON.parse(localPref));
-    } else if (user?.menuExpanded !== undefined) {
-      setIsCollapsed(!user.menuExpanded);
+    // Only update menu state after auth is initialized
+    if (isInitialized && user) {
+      // Use backend preference as source of truth
+      const backendCollapsed = user.menuExpanded === false;
+      setIsCollapsed(backendCollapsed);
+      // Sync localStorage with backend preference
+      localStorage.setItem("menuExpanded", JSON.stringify(user.menuExpanded ?? true));
     }
-  }, [user?.menuExpanded]);
+  }, [isInitialized, user, user?.menuExpanded]);
 
-  // Sync theme when user data changes
+  // Sync theme from backend only on initial load
+  const [hasInitializedTheme, setHasInitializedTheme] = useState(false);
+  
   useEffect(() => {
-    if (user?.theme) {
-      setUserTheme(user.theme);
+    // Reset initialization flag when user changes (logout/login)
+    if (!user) {
+      setHasInitializedTheme(false);
+    } else if (user && !hasInitializedTheme && !isThemeChanging) {
+      // Always set theme from backend when user logs in, even if undefined
+      const backendTheme = user.theme || 'light';
+
+      setUserTheme(backendTheme);
+      setHasInitializedTheme(true);
     }
-  }, [user?.theme, setUserTheme]);
+  }, [user, setUserTheme, hasInitializedTheme, isThemeChanging]);
 
   // Listen for localStorage changes from other tabs and immediate changes
   useEffect(() => {
@@ -144,20 +160,19 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   const handleThemeToggle = async () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
+    setIsThemeChanging(true);
     toggleTheme();
     
-    // If user is authenticated, sync with backend
+    // Sync with backend using dedicated theme endpoint
     if (user) {
-      try {
-        await updateProfile({
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          theme: newTheme,
-        });
-      } catch (error) {
-        console.error('Failed to update theme preference on backend:', error);
-      }
+      updateThemeMutation.mutate({ theme: newTheme }, {
+        onSettled: () => {
+          // Allow theme sync again after mutation completes
+          setTimeout(() => setIsThemeChanging(false), 1000);
+        }
+      });
+    } else {
+      setIsThemeChanging(false);
     }
   };
 
@@ -263,22 +278,19 @@ export function AppLayout({ children }: AppLayoutProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem asChild>
-                <Link href="/profile" className="cursor-pointer">
-                  <User className="mr-2 h-5 w-5" />
-                  Profile
-                </Link>
+              <DropdownMenuItem onClick={() => setLocation('/profile')} className="cursor-pointer">
+                <User className="mr-2 h-5 w-5" />
+                Profile
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/sessions" className="cursor-pointer">
-                  <Activity className="mr-2 h-5 w-5" />
-                  Sessions
-                </Link>
+              <DropdownMenuItem onClick={() => setLocation('/sessions')} className="cursor-pointer">
+                <Activity className="mr-2 h-5 w-5" />
+                Sessions
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
+              <div
                 onClick={handleThemeToggle}
-                className="cursor-pointer"
+                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                role="menuitem"
               >
                 {theme === 'light' ? (
                   <>
@@ -291,7 +303,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     Light mode
                   </>
                 )}
-              </DropdownMenuItem>
+              </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={handleLogout}

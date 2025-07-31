@@ -43,10 +43,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
   };
 
-  // Method to set theme from user preference
+  // Method to set theme from user preference (forces update from backend)
   const setUserTheme = (userTheme: Theme | undefined) => {
-    if (userTheme && userTheme !== theme) {
+    if (userTheme) {
       setTheme(userTheme);
+      // Also update localStorage to ensure consistency
+      localStorage.setItem('theme', userTheme);
     }
   };
 

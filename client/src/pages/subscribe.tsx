@@ -8,17 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Check, Star, Loader2, CreditCard, Calendar, Users, Settings, TrendingUp, Shield, UserPlus } from "lucide-react";
+import { Check, Star, Loader2, CreditCard, Calendar, Users, Settings, TrendingUp, Shield } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useReduxAuth } from "@/hooks/useReduxAuth";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import type { SubscriptionPlan, UserSubscriptionResponse } from "@shared/schema";
 
 // Make sure to call `loadStripe` outside of a component's render to avoid

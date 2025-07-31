@@ -60,8 +60,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       setLocation('/auth');
       return null;
     }
-  } else if (isEmailVerified === false) {
-    // Allow certain routes for unverified users
+  } else if (isAuthenticated && isEmailVerified === false) {
+    // Allow certain routes for unverified users (strict false check only)
     if (!['/pending-verification', '/verify-email'].includes(location)) {
       setLocation('/pending-verification');
       return null;
@@ -73,6 +73,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       return null;
     }
   }
+  
+  // If isEmailVerified is undefined/null (loading state), don't redirect
+  // This prevents premature redirects during authentication initialization
   
   return <>{children}</>;
 }

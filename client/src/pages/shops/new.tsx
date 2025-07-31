@@ -311,7 +311,7 @@ export default function NewShopPage() {
               <div className="space-y-2">
                 <Label htmlFor="managerId">Manager</Label>
                 <Select 
-                  value={watch('managerId')} 
+                  value={watch('managerId') || undefined}
                   onValueChange={(value) => setValue('managerId', value)}
                   disabled={managersLoading}
                 >
@@ -350,7 +350,7 @@ export default function NewShopPage() {
                 {!managersLoading && !managersError && managersData?.managers && managersData.managers.length === 0 && (
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">
-                      No managers found. Only users with "Manager" role can be assigned to shops.
+                      No managers found. Only users with "Manager" or "Owner" role can be assigned to shops.
                     </p>
                     <Button 
                       type="button" 

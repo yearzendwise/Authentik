@@ -120,8 +120,8 @@ export default function EditShopPage() {
       reset({
         name: shop.name,
         description: shop.description || '',
-        address: shop.address,
-        city: shop.city,
+        address: shop.address || '',
+        city: shop.city || '',
         state: shop.state || '',
         zipCode: shop.zipCode || '',
         country: shop.country,
@@ -135,7 +135,7 @@ export default function EditShopPage() {
         tags: shop.tags || [],
         socialMedia: shop.socialMedia || '',
         settings: shop.settings || '',
-        isActive: shop.isActive,
+        isActive: shop.isActive ?? undefined,
       });
       setTags(shop.tags || []);
     }
@@ -295,7 +295,7 @@ export default function EditShopPage() {
               <div className="space-y-2">
                 <Label htmlFor="managerId">Manager</Label>
                 <Select 
-                  value={watch('managerId')} 
+                  value={watch('managerId') || undefined}
                   onValueChange={(value) => setValue('managerId', value)}
                   disabled={managersLoading}
                 >
@@ -434,7 +434,7 @@ export default function EditShopPage() {
         <Card>
           <CardHeader>
             <CardTitle>Tags</CardTitle>
-            <CardDescription>Add tags to help categorize this shop</CardDescription>
+            <CardDescription>Add tags to help segment campaigns by shop</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">

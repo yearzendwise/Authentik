@@ -56,6 +56,7 @@ export const checkAuthStatus = createAsyncThunk(
 
       const refreshData = await refreshResponse.json();
       console.log("🔐 [Redux] Token refreshed successfully");
+      console.log(">>>>> Data received from backend on avatar:", refreshData.user?.avatarUrl);
 
       return {
         user: refreshData.user,
@@ -93,6 +94,7 @@ export const loginUser = createAsyncThunk(
 
       const data = await response.json();
       console.log("🔐 [Redux] Login successful");
+      console.log(">>>>> Data received from backend on avatar:", data.user?.avatarUrl);
 
       // Handle 2FA requirement
       if (data.requires2FA) {
@@ -137,10 +139,17 @@ export const logoutUser = createAsyncThunk(
       }
 
       console.log("🔐 [Redux] Logout successful");
+      
+      // Clear tokens from authManager (this will trigger auth sync)
+      authManager.clearTokens();
+      
       return null;
     } catch (error: any) {
       console.log("🔐 [Redux] Logout error:", error.message);
+      
       // Even if logout fails on server, clear local state
+      authManager.clearTokens();
+      
       return null;
     }
   },
@@ -192,8 +201,8 @@ const authSlice = createSlice({
       state.accessToken = null;
       state.isAuthenticated = false;
       state.error = null;
-      // Also clear tokens from authManager
-      authManager.clearTokens();
+      // Note: authManager.clearTokens() is called externally to avoid circular dependency
+      // with the auth state sync listener
     },
     setError: (state, action: PayloadAction<string>) => {
       state.error = action.payload;
@@ -283,8 +292,8 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.error = null;
         
-        // Also clear token from authManager
-        authManager.clearTokens();
+        // Note: authManager.clearTokens() is called by the logout thunk action creator
+        // to avoid circular dependency with the auth state sync listener
       })
 
       // Update profile

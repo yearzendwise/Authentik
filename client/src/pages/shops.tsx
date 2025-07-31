@@ -233,7 +233,7 @@ export default function ShopsPage() {
                  <Avatar className="h-10 w-10">
                     <AvatarImage src={shop.logoUrl ?? undefined} />
                     <AvatarFallback className="bg-gray-100 text-gray-600 text-sm">
-                      {getShopCategoryIcon(shop.category)}
+                      {getShopCategoryIcon(shop.category || undefined)}
                     </AvatarFallback>
                   </Avatar>
                </div>

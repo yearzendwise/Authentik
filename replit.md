@@ -33,6 +33,14 @@ The application adopts a monorepo architecture, separating client, server, and s
 -   **User Management**: Provides administrators with full CRUD operations for users, including role-based access control (Owner, Administrator, Manager, Employee).
 -   **Subscription Management**: Interface for managing subscription plans with upgrade/downgrade options and Stripe integration.
 
+## Security Features
+
+### Token Invalidation for "Logout All Devices"
+-   **Implementation**: Uses `tokenValidAfter` timestamp in the users table to track when all tokens should be invalidated.
+-   **How it works**: When a user clicks "Log Out All Other Devices", the system updates `tokenValidAfter` to the current timestamp. Any JWT token issued before this timestamp is immediately rejected by the authentication middleware.
+-   **Security benefit**: Provides immediate token invalidation across all devices, eliminating the security vulnerability where tokens could remain valid for up to 15 minutes after logout.
+-   **User experience**: Users can confidently secure their account by instantly revoking access from all other devices/browsers.
+
 ## External Dependencies
 
 -   **@neondatabase/serverless**: PostgreSQL database connection.

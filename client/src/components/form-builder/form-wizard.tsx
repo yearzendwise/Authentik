@@ -3,9 +3,33 @@ import { BuildStep } from './wizard-steps/build-step';
 import { StyleStep } from './wizard-steps/style-step';
 import { PreviewStep } from './wizard-steps/preview-step';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
+import { useReduxAuth } from '@/hooks/useReduxAuth';
+import { useAuth } from '@/hooks/useAuth';
+import { useLocation } from 'wouter';
 
 export function FormWizard() {
+  const { isAuthenticated, isLoading: authLoading } = useReduxAuth();
+  const { hasInitialized } = useAuth();
+  const [, setLocation] = useLocation();
+
+  // Redirect unauthenticated users immediately
+  if (hasInitialized && !isAuthenticated) {
+    setLocation('/auth');
+    return null;
+  }
+
+  // Show loading while authentication is being determined
+  if (!hasInitialized || authLoading) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-neutral-50 dark:bg-neutral-900">
+        <div className="flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-4">Authenticating...</span>
+        </div>
+      </div>
+    );
+  }
   const {
     wizardState,
     themes,

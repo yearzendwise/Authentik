@@ -56,7 +56,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   // Redirect logic based on authentication state
   if (!isAuthenticated) {
     // Allow certain routes for unauthenticated users
-    if (!['/auth', '/subscribe', '/verify-email'].includes(location)) {
+    if (!['/auth', '/verify-email'].includes(location)) {
       setLocation('/auth');
       return null;
     }

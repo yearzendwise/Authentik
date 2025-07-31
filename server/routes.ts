@@ -115,6 +115,17 @@ const authenticateToken = async (req: any, res: any, next: any) => {
       return res.status(401).json({ message: "User not found or inactive" });
     }
 
+    // Check if token was issued after tokenValidAfter
+    if (user.tokenValidAfter && decoded.iat) {
+      const tokenIssuedAt = decoded.iat * 1000; // Convert to milliseconds
+      const tokenValidAfter = new Date(user.tokenValidAfter).getTime();
+      
+      if (tokenIssuedAt < tokenValidAfter) {
+        console.log("🔐 [Auth Middleware] Token issued before tokenValidAfter - invalidating");
+        return res.status(401).json({ message: "Token has been invalidated. Please login again." });
+      }
+    }
+
     console.log("🔐 [Auth Middleware] User authenticated successfully:", user.email);
     req.user = {
       id: user.id,
@@ -1849,6 +1860,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "No refresh token cookie found, deleting all user sessions",
         );
         await storage.deleteAllUserSessions(userId, req.user.tenantId);
+        
+        // Update tokenValidAfter to invalidate all existing access tokens
+        await storage.updateUser(
+          userId,
+          { tokenValidAfter: new Date() },
+          req.user.tenantId
+        );
+        
         return res.json({ message: "All sessions logged out successfully" });
       }
 
@@ -1860,6 +1879,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "Refresh token not found in database, deleting all user sessions",
         );
         await storage.deleteAllUserSessions(userId, req.user.tenantId);
+        
+        // Update tokenValidAfter to invalidate all existing access tokens
+        await storage.updateUser(
+          userId,
+          { tokenValidAfter: new Date() },
+          req.user.tenantId
+        );
+        
         return res.json({ message: "All sessions logged out successfully" });
       }
 
@@ -1869,6 +1896,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId,
         currentRefreshToken,
         req.user.tenantId,
+      );
+
+      // Update tokenValidAfter to invalidate all existing access tokens
+      console.log("Updating tokenValidAfter to invalidate all tokens");
+      await storage.updateUser(
+        userId,
+        { tokenValidAfter: new Date() },
+        req.user.tenantId
       );
 
       res.json({ message: "All other sessions logged out successfully" });

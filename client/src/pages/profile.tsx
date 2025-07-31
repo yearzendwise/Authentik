@@ -37,24 +37,8 @@ export default function ProfilePage() {
   const [, setLocation] = useLocation();
   const { user, isLoading: authLoading, isAuthenticated } = useReduxAuth();
   const { hasInitialized } = useAuth();
-
-  // Redirect unauthenticated users immediately
-  if (hasInitialized && !isAuthenticated) {
-    setLocation('/auth');
-    return null;
-  }
-
-  // Show loading while authentication is being determined
-  if (!hasInitialized || authLoading) {
-    return (
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <span className="ml-4">Authenticating...</span>
-        </div>
-      </div>
-    );
-  }
+  
+  // All hooks must be called before any conditional returns
   const updateProfileMutation = useUpdateProfile();
   const changePasswordMutation = useChangePassword();
   const deleteAccountMutation = useDeleteAccount();
@@ -102,6 +86,24 @@ export default function ProfilePage() {
       setPasswordStrength(calculatePasswordStrength(watchNewPassword));
     }
   }, [watchNewPassword]);
+
+  // Redirect unauthenticated users immediately
+  if (hasInitialized && !isAuthenticated) {
+    setLocation('/auth');
+    return null;
+  }
+
+  // Show loading while authentication is being determined
+  if (!hasInitialized || authLoading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-4">Authenticating...</span>
+        </div>
+      </div>
+    );
+  }
 
   const onUpdateProfile = async (data: UpdateProfileData) => {
     await updateProfileMutation.mutateAsync(data);

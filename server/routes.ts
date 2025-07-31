@@ -551,6 +551,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax", // Changed from "strict" to "lax" for better cross-site behavior
         maxAge: tokenExpiryDays * 24 * 60 * 60 * 1000, // 7 or 30 days based on rememberMe
+        path: "/", // Explicit path
+      });
+      
+      console.log("🔄 [Server] Refresh token cookie set successfully:", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: tokenExpiryDays * 24 * 60 * 60 * 1000,
+        expiresAt: refreshTokenExpiry
       });
 
       res.json({
@@ -619,7 +628,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+        path: "/", // Explicit path
       });
+      
+      console.log("🔄 [Server] Email verification refresh token cookie set successfully");
 
       // Send welcome email
       try {
@@ -799,24 +811,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("🔄 [Server] Refresh token found, verifying...");
 
       // Verify refresh token
-      const decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET) as any;
-      console.log("🔄 [Server] Token decoded successfully:", {
-        userId: decoded.userId,
-        tenantId: decoded.tenantId,
-      });
+      let decoded: any;
+      try {
+        decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET) as any;
+        console.log("🔄 [Server] Token decoded successfully:", {
+          userId: decoded.userId,
+          tenantId: decoded.tenantId,
+        });
+      } catch (jwtError) {
+        console.log("🔄 [Server] JWT verification failed:", jwtError);
+        // Clear invalid cookie
+        res.clearCookie("refreshToken", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+        });
+        if (jwtError instanceof jwt.TokenExpiredError) {
+          return res.status(401).json({ message: "Refresh token expired" });
+        }
+        return res.status(401).json({ message: "Invalid refresh token format" });
+      }
 
       // Check if refresh token exists in database and is not expired
       const storedToken = await storage.getRefreshToken(refreshToken);
       if (!storedToken) {
         console.log("🔄 [Server] Refresh token not found in database");
+        // Clear invalid cookie
+        res.clearCookie("refreshToken", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+        });
         return res.status(401).json({ message: "Invalid refresh token" });
       }
       console.log("🔄 [Server] Refresh token found in database");
+
+      // Check if token has expired
+      if (storedToken.expiresAt.getTime() < Date.now()) {
+        console.log("🔄 [Server] Refresh token has expired in database");
+        // Delete expired token
+        await storage.deleteRefreshToken(refreshToken);
+        // Clear expired cookie
+        res.clearCookie("refreshToken", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+        });
+        return res.status(401).json({ message: "Refresh token expired" });
+      }
 
       // Get user with tenant context
       const user = await storage.getUser(decoded.userId, decoded.tenantId);
       if (!user || !user.isActive) {
         console.log("🔄 [Server] User not found or inactive");
+        // Delete token for inactive user
+        await storage.deleteRefreshToken(refreshToken);
+        // Clear cookie
+        res.clearCookie("refreshToken", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+        });
         return res.status(401).json({ message: "User not found or inactive" });
       }
       console.log("🔄 [Server] User found and active");
@@ -870,6 +929,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax", // Changed from "strict" to "lax"
         maxAge: cookieMaxAge,
+        path: "/", // Explicit path
+      });
+      
+      console.log("🔄 [Server] New refresh token cookie set successfully:", {
+        maxAge: cookieMaxAge,
+        expiresAt: refreshTokenExpiry
       });
 
       console.log("🔄 [Server] Sending successful refresh response");
@@ -890,10 +955,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       });
     } catch (error: any) {
-      if (error instanceof jwt.TokenExpiredError) {
-        return res.status(401).json({ message: "Refresh token expired" });
-      }
       console.error("Token refresh error:", error);
+      // Clear potentially invalid cookie on any error
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+      });
       res.status(401).json({ message: "Invalid refresh token" });
     }
   });
@@ -938,7 +1007,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
+        path: "/",
       });
+      
+      console.log("🔐 [Server] Refresh token cookie cleared successfully");
 
       console.log("🔐 [Server] Logout successful");
       res.json({ message: "Logout successful" });
@@ -969,6 +1041,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const storedToken = await storage.getRefreshToken(refreshToken);
         if (!storedToken) {
           console.log("🔍 [Server] Refresh token not found in database");
+          // Clear invalid cookie
+          res.clearCookie("refreshToken", {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+          });
+          return res.json({ hasAuth: false });
+        }
+
+        // Check if token is expired
+        if (storedToken.expiresAt.getTime() < Date.now()) {
+          console.log("🔍 [Server] Refresh token has expired");
+          // Delete expired token from database
+          await storage.deleteRefreshToken(refreshToken);
+          // Clear expired cookie
+          res.clearCookie("refreshToken", {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+          });
           return res.json({ hasAuth: false });
         }
 
@@ -976,6 +1068,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ hasAuth: true });
       } catch (error) {
         console.log("🔍 [Server] Invalid refresh token:", error);
+        // Clear invalid cookie
+        res.clearCookie("refreshToken", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production", 
+          sameSite: "lax",
+        });
         return res.json({ hasAuth: false });
       }
     } catch (error) {
@@ -1000,6 +1098,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
         avatarUrl: req.user.avatarUrl || null,
       },
     });
+  });
+
+  // Session restoration endpoint - tries to restore user session using refresh token
+  app.post("/api/auth/restore-session", async (req, res) => {
+    try {
+      console.log("🔄 [Server] Session restoration request received");
+      const refreshToken = req.cookies.refreshToken;
+
+      if (!refreshToken) {
+        console.log("🔄 [Server] No refresh token found for session restoration");
+        return res.status(401).json({ 
+          message: "No active session found",
+          hasAuth: false 
+        });
+      }
+
+      // Verify refresh token
+      let decoded: any;
+      try {
+        decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET) as any;
+        console.log("🔄 [Server] Session restoration token decoded:", {
+          userId: decoded.userId,
+          tenantId: decoded.tenantId,
+        });
+      } catch (jwtError) {
+        console.log("🔄 [Server] Session restoration JWT verification failed:", jwtError);
+        // Clear invalid cookie
+        res.clearCookie("refreshToken", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+        });
+        return res.status(401).json({ 
+          message: "Invalid session token",
+          hasAuth: false 
+        });
+      }
+
+      // Check if refresh token exists in database
+      const storedToken = await storage.getRefreshToken(refreshToken);
+      if (!storedToken) {
+        console.log("🔄 [Server] Session restoration token not found in database");
+        res.clearCookie("refreshToken", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+        });
+        return res.status(401).json({ 
+          message: "Session not found",
+          hasAuth: false 
+        });
+      }
+
+      // Check if token has expired
+      if (storedToken.expiresAt.getTime() < Date.now()) {
+        console.log("🔄 [Server] Session restoration token has expired");
+        await storage.deleteRefreshToken(refreshToken);
+        res.clearCookie("refreshToken", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+        });
+        return res.status(401).json({ 
+          message: "Session expired",
+          hasAuth: false 
+        });
+      }
+
+      // Get user
+      const user = await storage.getUser(decoded.userId, decoded.tenantId);
+      if (!user || !user.isActive) {
+        console.log("🔄 [Server] Session restoration user not found or inactive");
+        await storage.deleteRefreshToken(refreshToken);
+        res.clearCookie("refreshToken", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+        });
+        return res.status(401).json({ 
+          message: "User account not found or inactive",
+          hasAuth: false 
+        });
+      }
+
+      // Generate new access token only (keep existing refresh token)
+      const { accessToken } = generateTokens(user.id, user.tenantId);
+      
+      // Update session last used time
+      await storage.updateSessionLastUsed(refreshToken);
+
+      console.log("🔄 [Server] Session restored successfully for user:", user.email);
+      res.json({
+        message: "Session restored successfully",
+        accessToken,
+        hasAuth: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          twoFactorEnabled: user.twoFactorEnabled,
+          emailVerified: user.emailVerified,
+          menuExpanded: user.menuExpanded ?? false,
+          theme: user.theme || 'light',
+          avatarUrl: user.avatarUrl || null,
+        },
+      });
+    } catch (error: any) {
+      console.error("Session restoration error:", error);
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+      });
+      res.status(401).json({ 
+        message: "Session restoration failed",
+        hasAuth: false 
+      });
+    }
   });
 
   // Get refresh token info endpoint

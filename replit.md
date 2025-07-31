@@ -18,7 +18,7 @@ The application adopts a monorepo architecture, separating client, server, and s
 -   **Database**: PostgreSQL with Drizzle ORM.
 -   **Styling**: Tailwind CSS with shadcn/ui.
 -   **State Management**: TanStack Query.
--   **Authentication**: JWT-based with access and refresh tokens.
+-   **Authentication**: JWT-based with access and refresh tokens, with token invalidation support for logout all devices.
 
 ### Key Architectural Decisions
 -   **Monorepo Structure**: Facilitates shared types and schemas between frontend and backend.

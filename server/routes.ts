@@ -116,9 +116,22 @@ const authenticateToken = async (req: any, res: any, next: any) => {
     }
 
     // Check if token was issued after tokenValidAfter
+    console.log("🔐 [Auth Middleware] Checking token validity timestamp:", {
+      tokenValidAfter: user.tokenValidAfter,
+      tokenIat: decoded.iat,
+      tokenIssuedAt: decoded.iat ? new Date(decoded.iat * 1000).toISOString() : 'NO IAT',
+      userTokenValidAfter: user.tokenValidAfter ? new Date(user.tokenValidAfter).toISOString() : 'NO VALID AFTER'
+    });
+    
     if (user.tokenValidAfter && decoded.iat) {
       const tokenIssuedAt = decoded.iat * 1000; // Convert to milliseconds
       const tokenValidAfter = new Date(user.tokenValidAfter).getTime();
+      
+      console.log("🔐 [Auth Middleware] Token timestamp comparison:", {
+        tokenIssuedAt,
+        tokenValidAfter,
+        isTokenOlder: tokenIssuedAt < tokenValidAfter
+      });
       
       if (tokenIssuedAt < tokenValidAfter) {
         console.log("🔐 [Auth Middleware] Token issued before tokenValidAfter - invalidating");
@@ -185,11 +198,12 @@ const requireAdmin = requireRole(["Owner", "Administrator"]);
 const requireManagerOrAdmin = requireRole(["Owner", "Administrator", "Manager"]);
 
 const generateTokens = (userId: string, tenantId: string) => {
-  const accessToken = jwt.sign({ userId, tenantId }, JWT_SECRET, {
+  const now = Math.floor(Date.now() / 1000); // Current time in seconds
+  const accessToken = jwt.sign({ userId, tenantId, iat: now }, JWT_SECRET, {
     expiresIn: ACCESS_TOKEN_EXPIRES,
   });
   const refreshToken = jwt.sign(
-    { userId, tenantId, tokenId: randomBytes(16).toString("hex") },
+    { userId, tenantId, tokenId: randomBytes(16).toString("hex"), iat: now },
     REFRESH_TOKEN_SECRET,
     { expiresIn: REFRESH_TOKEN_EXPIRES },
   );
@@ -1109,6 +1123,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         avatarUrl: req.user.avatarUrl || null,
       },
     });
+  });
+
+  // Debug endpoint to check token validation
+  app.get("/api/auth/debug-token", authenticateToken, async (req: any, res) => {
+    const authHeader = req.headers["authorization"];
+    const token = authHeader && authHeader.split(" ")[1];
+    
+    if (token) {
+      const decoded = jwt.decode(token) as any;
+      const user = await storage.getUser(req.user.id, req.user.tenantId);
+      
+      res.json({
+        tokenInfo: {
+          iat: decoded.iat,
+          issuedAt: decoded.iat ? new Date(decoded.iat * 1000).toISOString() : null,
+          exp: decoded.exp,
+          expiresAt: decoded.exp ? new Date(decoded.exp * 1000).toISOString() : null,
+        },
+        userInfo: {
+          tokenValidAfter: user?.tokenValidAfter,
+          tokenValidAfterISO: user?.tokenValidAfter ? new Date(user.tokenValidAfter).toISOString() : null,
+        },
+        validation: {
+          tokenIssuedAtMs: decoded.iat ? decoded.iat * 1000 : 0,
+          tokenValidAfterMs: user?.tokenValidAfter ? new Date(user.tokenValidAfter).getTime() : 0,
+          isTokenValid: decoded.iat && user?.tokenValidAfter ? 
+            (decoded.iat * 1000) >= new Date(user.tokenValidAfter).getTime() : true
+        }
+      });
+    } else {
+      res.status(400).json({ message: "No token provided" });
+    }
   });
 
   // Session restoration endpoint - tries to restore user session using refresh token

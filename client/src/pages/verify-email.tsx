@@ -21,6 +21,22 @@ export default function VerifyEmailPage() {
   const [error, setError] = useState("");
   const [isResending, setIsResending] = useState(false);
 
+  // Force light theme on email verification page regardless of user preference
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove('dark');
+    root.classList.add('light');
+    
+    // Cleanup: restore previous theme when leaving
+    const originalTheme = localStorage.getItem('theme');
+    return () => {
+      if (originalTheme === 'dark') {
+        root.classList.remove('light');
+        root.classList.add('dark');
+      }
+    };
+  }, []);
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get("token");

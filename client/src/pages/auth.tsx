@@ -20,6 +20,22 @@ export default function AuthPage() {
   const [, setLocation] = useLocation();
   const [currentView, setCurrentView] = useState<AuthView>("login");
 
+  // Force light theme on auth page regardless of user preference
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove('dark');
+    root.classList.add('light');
+    
+    // Cleanup: restore previous theme when leaving
+    const originalTheme = localStorage.getItem('theme');
+    return () => {
+      if (originalTheme === 'dark') {
+        root.classList.remove('light');
+        root.classList.add('dark');
+      }
+    };
+  }, []);
+
   // Removed free trial URL parameter logic for simplified flow
   const [showPassword, setShowPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);

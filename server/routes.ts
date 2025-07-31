@@ -2914,6 +2914,366 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Email Contacts API Routes
+  
+  // Get all email contacts
+  app.get("/api/email-contacts", authenticateToken, async (req: any, res) => {
+    try {
+      const filters: ContactFilters = {
+        search: req.query.search as string,
+        status: req.query.status as 'active' | 'unsubscribed' | 'bounced' | 'pending' | 'all',
+        listId: req.query.listId as string,
+        tagId: req.query.tagId as string,
+      };
+
+      const contacts = await storage.getAllEmailContacts(req.user.tenantId, filters);
+      const stats = await storage.getEmailContactStats(req.user.tenantId);
+
+      res.json({ 
+        contacts, 
+        stats
+      });
+    } catch (error) {
+      console.error("Get email contacts error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get single email contact
+  app.get("/api/email-contacts/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const contact = await storage.getEmailContactWithDetails(id, req.user.tenantId);
+
+      if (!contact) {
+        return res.status(404).json({ message: "Contact not found" });
+      }
+
+      res.json({ contact });
+    } catch (error) {
+      console.error("Get email contact error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Create new email contact
+  app.post("/api/email-contacts", authenticateToken, async (req: any, res) => {
+    try {
+      const contactData = req.body; // Use the schema from shared/schema.ts
+      const contact = await storage.createEmailContact(contactData, req.user.tenantId);
+
+      res.status(201).json({
+        message: "Email contact created successfully",
+        contact,
+      });
+    } catch (error: any) {
+      console.error("Create email contact error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Update email contact
+  app.put("/api/email-contacts/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const contactData = req.body;
+
+      // Check if contact exists and belongs to tenant
+      const existingContact = await storage.getEmailContact(id, req.user.tenantId);
+      if (!existingContact) {
+        return res.status(404).json({ message: "Contact not found" });
+      }
+
+      const contact = await storage.updateEmailContact(id, contactData, req.user.tenantId);
+
+      res.json({
+        message: "Email contact updated successfully",
+        contact,
+      });
+    } catch (error: any) {
+      console.error("Update email contact error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Delete email contact
+  app.delete("/api/email-contacts/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+
+      // Check if contact exists
+      const existingContact = await storage.getEmailContact(id, req.user.tenantId);
+      if (!existingContact) {
+        return res.status(404).json({ message: "Contact not found" });
+      }
+
+      await storage.deleteEmailContact(id, req.user.tenantId);
+
+      res.json({ message: "Email contact deleted successfully" });
+    } catch (error) {
+      console.error("Delete email contact error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Bulk delete email contacts
+  app.delete("/api/email-contacts", authenticateToken, async (req: any, res) => {
+    try {
+      const { ids } = req.body;
+
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ message: "Contact IDs array is required" });
+      }
+
+      await storage.bulkDeleteEmailContacts(ids, req.user.tenantId);
+
+      res.json({ message: `${ids.length} email contacts deleted successfully` });
+    } catch (error) {
+      console.error("Bulk delete email contacts error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Email Lists API Routes
+  
+  // Get all email lists
+  app.get("/api/email-lists", authenticateToken, async (req: any, res) => {
+    try {
+      const lists = await storage.getAllEmailLists(req.user.tenantId);
+      res.json({ lists });
+    } catch (error) {
+      console.error("Get email lists error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Create new email list
+  app.post("/api/email-lists", authenticateToken, async (req: any, res) => {
+    try {
+      const listData = req.body;
+      const list = await storage.createEmailList(listData, req.user.tenantId);
+
+      res.status(201).json({
+        message: "Email list created successfully",
+        list,
+      });
+    } catch (error: any) {
+      console.error("Create email list error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Update email list
+  app.put("/api/email-lists/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { name, description } = req.body;
+
+      const list = await storage.updateEmailList(id, name, description, req.user.tenantId);
+
+      if (!list) {
+        return res.status(404).json({ message: "Email list not found" });
+      }
+
+      res.json({
+        message: "Email list updated successfully",
+        list,
+      });
+    } catch (error: any) {
+      console.error("Update email list error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Delete email list
+  app.delete("/api/email-lists/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+
+      // Check if list exists
+      const existingList = await storage.getEmailList(id, req.user.tenantId);
+      if (!existingList) {
+        return res.status(404).json({ message: "Email list not found" });
+      }
+
+      await storage.deleteEmailList(id, req.user.tenantId);
+
+      res.json({ message: "Email list deleted successfully" });
+    } catch (error) {
+      console.error("Delete email list error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Contact Tags API Routes
+  
+  // Get all contact tags
+  app.get("/api/contact-tags", authenticateToken, async (req: any, res) => {
+    try {
+      const tags = await storage.getAllContactTags(req.user.tenantId);
+      res.json({ tags });
+    } catch (error) {
+      console.error("Get contact tags error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Create new contact tag
+  app.post("/api/contact-tags", authenticateToken, async (req: any, res) => {
+    try {
+      const tagData = req.body;
+      const tag = await storage.createContactTag(tagData, req.user.tenantId);
+
+      res.status(201).json({
+        message: "Contact tag created successfully",
+        tag,
+      });
+    } catch (error: any) {
+      console.error("Create contact tag error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Update contact tag
+  app.put("/api/contact-tags/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { name, color } = req.body;
+
+      const tag = await storage.updateContactTag(id, name, color, req.user.tenantId);
+
+      if (!tag) {
+        return res.status(404).json({ message: "Contact tag not found" });
+      }
+
+      res.json({
+        message: "Contact tag updated successfully",
+        tag,
+      });
+    } catch (error: any) {
+      console.error("Update contact tag error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Delete contact tag
+  app.delete("/api/contact-tags/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+
+      // Check if tag exists
+      const existingTag = await storage.getContactTag(id, req.user.tenantId);
+      if (!existingTag) {
+        return res.status(404).json({ message: "Contact tag not found" });
+      }
+
+      await storage.deleteContactTag(id, req.user.tenantId);
+
+      res.json({ message: "Contact tag deleted successfully" });
+    } catch (error) {
+      console.error("Delete contact tag error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Contact List Membership Operations
+  
+  // Add contact to list
+  app.post("/api/email-contacts/:contactId/lists/:listId", authenticateToken, async (req: any, res) => {
+    try {
+      const { contactId, listId } = req.params;
+
+      await storage.addContactToList(contactId, listId, req.user.tenantId);
+
+      res.json({ message: "Contact added to list successfully" });
+    } catch (error) {
+      console.error("Add contact to list error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Remove contact from list
+  app.delete("/api/email-contacts/:contactId/lists/:listId", authenticateToken, async (req: any, res) => {
+    try {
+      const { contactId, listId } = req.params;
+
+      await storage.removeContactFromList(contactId, listId, req.user.tenantId);
+
+      res.json({ message: "Contact removed from list successfully" });
+    } catch (error) {
+      console.error("Remove contact from list error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Bulk add contacts to list
+  app.post("/api/email-lists/:listId/contacts", authenticateToken, async (req: any, res) => {
+    try {
+      const { listId } = req.params;
+      const { contactIds } = req.body;
+
+      if (!Array.isArray(contactIds) || contactIds.length === 0) {
+        return res.status(400).json({ message: "Contact IDs array is required" });
+      }
+
+      await storage.bulkAddContactsToList(contactIds, listId, req.user.tenantId);
+
+      res.json({ message: `${contactIds.length} contacts added to list successfully` });
+    } catch (error) {
+      console.error("Bulk add contacts to list error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Contact Tag Assignment Operations
+  
+  // Add tag to contact
+  app.post("/api/email-contacts/:contactId/tags/:tagId", authenticateToken, async (req: any, res) => {
+    try {
+      const { contactId, tagId } = req.params;
+
+      await storage.addTagToContact(contactId, tagId, req.user.tenantId);
+
+      res.json({ message: "Tag added to contact successfully" });
+    } catch (error) {
+      console.error("Add tag to contact error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Remove tag from contact
+  app.delete("/api/email-contacts/:contactId/tags/:tagId", authenticateToken, async (req: any, res) => {
+    try {
+      const { contactId, tagId } = req.params;
+
+      await storage.removeTagFromContact(contactId, tagId, req.user.tenantId);
+
+      res.json({ message: "Tag removed from contact successfully" });
+    } catch (error) {
+      console.error("Remove tag from contact error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Bulk add tag to contacts
+  app.post("/api/contact-tags/:tagId/contacts", authenticateToken, async (req: any, res) => {
+    try {
+      const { tagId } = req.params;
+      const { contactIds } = req.body;
+
+      if (!Array.isArray(contactIds) || contactIds.length === 0) {
+        return res.status(400).json({ message: "Contact IDs array is required" });
+      }
+
+      await storage.bulkAddTagToContacts(contactIds, tagId, req.user.tenantId);
+
+      res.json({ message: `Tag added to ${contactIds.length} contacts successfully` });
+    } catch (error) {
+      console.error("Bulk add tag to contacts error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

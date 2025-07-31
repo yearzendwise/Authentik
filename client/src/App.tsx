@@ -27,6 +27,7 @@ import VerifyEmailPage from "@/pages/verify-email";
 import PendingVerificationPage from "@/pages/pending-verification";
 import NotFound from "@/pages/not-found";
 import { CampaignsPage } from "@/pages/campaigns";
+import EmailContactsPage from "@/pages/email-contacts";
 
 
 function Router() {
@@ -79,6 +80,7 @@ function Router() {
             <Route path="/dashboard" component={Dashboard} />
             <Route path="/company" component={CompanyPage} />
             <Route path="/campaigns" component={CampaignsPage} />
+            <Route path="/email-contacts" component={EmailContactsPage} />
             <Route path="/shops" component={ShopsPage} />
             <Route path="/shops/new" component={NewShopPage} />
             <Route path="/shops/:id" component={ShopDetailsPage} />

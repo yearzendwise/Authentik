@@ -9,6 +9,11 @@ import {
   verificationTokens,
   companies,
   shops,
+  emailContacts,
+  emailLists,
+  contactTags,
+  contactListMemberships,
+  contactTagAssignments,
   type User, 
   type InsertUser, 
   type RefreshToken, 
@@ -42,7 +47,20 @@ import {
   type CreateShopData,
   type UpdateShopData,
   type ShopFilters,
-  type ShopWithManager
+  type ShopWithManager,
+  type EmailContact,
+  type InsertEmailContact,
+  type CreateEmailContactData,
+  type UpdateEmailContactData,
+  type EmailList,
+  type InsertEmailList,
+  type CreateEmailListData,
+  type ContactTag,
+  type InsertContactTag,
+  type CreateContactTagData,
+  type EmailContactWithDetails,
+  type EmailListWithCount,
+  type ContactFilters
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gt, lt, desc, ne, or, ilike, count, sql } from "drizzle-orm";
@@ -148,6 +166,52 @@ export interface IStorage {
   updateShop(id: string, updates: UpdateShopData, tenantId: string): Promise<Shop | undefined>;
   deleteShop(id: string, tenantId: string): Promise<void>;
   toggleShopStatus(id: string, isActive: boolean, tenantId: string): Promise<Shop | undefined>;
+  
+  // Email contact operations (tenant-aware)
+  getEmailContact(id: string, tenantId: string): Promise<EmailContact | undefined>;
+  getEmailContactWithDetails(id: string, tenantId: string): Promise<EmailContactWithDetails | undefined>;
+  getAllEmailContacts(tenantId: string, filters?: ContactFilters): Promise<EmailContactWithDetails[]>;
+  createEmailContact(contact: CreateEmailContactData, tenantId: string): Promise<EmailContact>;
+  updateEmailContact(id: string, updates: UpdateEmailContactData, tenantId: string): Promise<EmailContact | undefined>;
+  deleteEmailContact(id: string, tenantId: string): Promise<void>;
+  bulkDeleteEmailContacts(ids: string[], tenantId: string): Promise<void>;
+  
+  // Email list operations (tenant-aware)
+  getEmailList(id: string, tenantId: string): Promise<EmailList | undefined>;
+  getAllEmailLists(tenantId: string): Promise<EmailListWithCount[]>;
+  createEmailList(list: CreateEmailListData, tenantId: string): Promise<EmailList>;
+  updateEmailList(id: string, name: string, description: string | undefined, tenantId: string): Promise<EmailList | undefined>;
+  deleteEmailList(id: string, tenantId: string): Promise<void>;
+  
+  // Contact tag operations (tenant-aware)
+  getContactTag(id: string, tenantId: string): Promise<ContactTag | undefined>;
+  getAllContactTags(tenantId: string): Promise<ContactTag[]>;
+  createContactTag(tag: CreateContactTagData, tenantId: string): Promise<ContactTag>;
+  updateContactTag(id: string, name: string, color: string, tenantId: string): Promise<ContactTag | undefined>;
+  deleteContactTag(id: string, tenantId: string): Promise<void>;
+  
+  // Contact list membership operations (tenant-aware)
+  addContactToList(contactId: string, listId: string, tenantId: string): Promise<void>;
+  removeContactFromList(contactId: string, listId: string, tenantId: string): Promise<void>;
+  getContactLists(contactId: string, tenantId: string): Promise<EmailList[]>;
+  bulkAddContactsToList(contactIds: string[], listId: string, tenantId: string): Promise<void>;
+  
+  // Contact tag assignment operations (tenant-aware)
+  addTagToContact(contactId: string, tagId: string, tenantId: string): Promise<void>;
+  removeTagFromContact(contactId: string, tagId: string, tenantId: string): Promise<void>;
+  getContactTags(contactId: string, tenantId: string): Promise<ContactTag[]>;
+  bulkAddTagToContacts(contactIds: string[], tagId: string, tenantId: string): Promise<void>;
+  
+  // Email contact statistics (tenant-aware)
+  getEmailContactStats(tenantId: string): Promise<{
+    totalContacts: number;
+    activeContacts: number;
+    unsubscribedContacts: number;
+    bouncedContacts: number;
+    pendingContacts: number;
+    totalLists: number;
+    averageEngagementRate: number;
+  }>;
   getShopStats(tenantId: string): Promise<{ totalShops: number; activeShops: number; shopsByCategory: Record<string, number> }>;
 }
 
@@ -1148,6 +1212,427 @@ export class DatabaseStorage implements IStorage {
       totalShops: totalResult.count,
       activeShops: activeResult.count,
       shopsByCategory,
+    };
+  }
+
+  // Email contact operations
+  async getEmailContact(id: string, tenantId: string): Promise<EmailContact | undefined> {
+    const [contact] = await db
+      .select()
+      .from(emailContacts)
+      .where(and(eq(emailContacts.id, id), eq(emailContacts.tenantId, tenantId)));
+    return contact;
+  }
+
+  async getEmailContactWithDetails(id: string, tenantId: string): Promise<EmailContactWithDetails | undefined> {
+    const contact = await this.getEmailContact(id, tenantId);
+    if (!contact) return undefined;
+
+    const tags = await this.getContactTags(id, tenantId);
+    const lists = await this.getContactLists(id, tenantId);
+
+    return {
+      ...contact,
+      tags,
+      lists,
+    };
+  }
+
+  async getAllEmailContacts(tenantId: string, filters?: ContactFilters): Promise<EmailContactWithDetails[]> {
+    let query = db
+      .select()
+      .from(emailContacts)
+      .where(eq(emailContacts.tenantId, tenantId));
+
+    if (filters) {
+      const conditions = [eq(emailContacts.tenantId, tenantId)];
+      
+      if (filters.search) {
+        conditions.push(
+          or(
+            ilike(emailContacts.email, `%${filters.search}%`),
+            ilike(emailContacts.firstName, `%${filters.search}%`),
+            ilike(emailContacts.lastName, `%${filters.search}%`)
+          )!
+        );
+      }
+      
+      if (filters.status && filters.status !== 'all') {
+        conditions.push(eq(emailContacts.status, filters.status));
+      }
+      
+      query = query.where(and(...conditions));
+    }
+
+    const contacts = await query.orderBy(desc(emailContacts.createdAt));
+
+    // Add tags and lists for each contact
+    const contactsWithDetails = await Promise.all(
+      contacts.map(async (contact) => {
+        const tags = await this.getContactTags(contact.id, tenantId);
+        const lists = await this.getContactLists(contact.id, tenantId);
+        return {
+          ...contact,
+          tags,
+          lists,
+        };
+      })
+    );
+
+    return contactsWithDetails;
+  }
+
+  async createEmailContact(contactData: CreateEmailContactData, tenantId: string): Promise<EmailContact> {
+    const [contact] = await db
+      .insert(emailContacts)
+      .values({
+        ...contactData,
+        tenantId,
+      })
+      .returning();
+
+    // Add to lists if specified
+    if (contactData.lists && contactData.lists.length > 0) {
+      await Promise.all(
+        contactData.lists.map(listId => 
+          this.addContactToList(contact.id, listId, tenantId)
+        )
+      );
+    }
+
+    // Add tags if specified
+    if (contactData.tags && contactData.tags.length > 0) {
+      await Promise.all(
+        contactData.tags.map(tagId => 
+          this.addTagToContact(contact.id, tagId, tenantId)
+        )
+      );
+    }
+
+    return contact;
+  }
+
+  async updateEmailContact(id: string, updates: UpdateEmailContactData, tenantId: string): Promise<EmailContact | undefined> {
+    const [contact] = await db
+      .update(emailContacts)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(emailContacts.id, id), eq(emailContacts.tenantId, tenantId)))
+      .returning();
+    return contact;
+  }
+
+  async deleteEmailContact(id: string, tenantId: string): Promise<void> {
+    await db
+      .delete(emailContacts)
+      .where(and(eq(emailContacts.id, id), eq(emailContacts.tenantId, tenantId)));
+  }
+
+  async bulkDeleteEmailContacts(ids: string[], tenantId: string): Promise<void> {
+    await db
+      .delete(emailContacts)
+      .where(and(
+        eq(emailContacts.tenantId, tenantId),
+        sql`${emailContacts.id} = ANY(${ids})`
+      ));
+  }
+
+  // Email list operations
+  async getEmailList(id: string, tenantId: string): Promise<EmailList | undefined> {
+    const [list] = await db
+      .select()
+      .from(emailLists)
+      .where(and(eq(emailLists.id, id), eq(emailLists.tenantId, tenantId)));
+    return list;
+  }
+
+  async getAllEmailLists(tenantId: string): Promise<EmailListWithCount[]> {
+    const lists = await db
+      .select()
+      .from(emailLists)
+      .where(eq(emailLists.tenantId, tenantId))
+      .orderBy(emailLists.name);
+
+    const listsWithCount = await Promise.all(
+      lists.map(async (list) => {
+        const [countResult] = await db
+          .select({ count: count() })
+          .from(contactListMemberships)
+          .where(and(
+            eq(contactListMemberships.listId, list.id),
+            eq(contactListMemberships.tenantId, tenantId)
+          ));
+
+        return {
+          ...list,
+          count: countResult.count,
+        };
+      })
+    );
+
+    return listsWithCount;
+  }
+
+  async createEmailList(listData: CreateEmailListData, tenantId: string): Promise<EmailList> {
+    const [list] = await db
+      .insert(emailLists)
+      .values({
+        ...listData,
+        tenantId,
+      })
+      .returning();
+    return list;
+  }
+
+  async updateEmailList(id: string, name: string, description: string | undefined, tenantId: string): Promise<EmailList | undefined> {
+    const [list] = await db
+      .update(emailLists)
+      .set({
+        name,
+        description,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(emailLists.id, id), eq(emailLists.tenantId, tenantId)))
+      .returning();
+    return list;
+  }
+
+  async deleteEmailList(id: string, tenantId: string): Promise<void> {
+    await db
+      .delete(emailLists)
+      .where(and(eq(emailLists.id, id), eq(emailLists.tenantId, tenantId)));
+  }
+
+  // Contact tag operations
+  async getContactTag(id: string, tenantId: string): Promise<ContactTag | undefined> {
+    const [tag] = await db
+      .select()
+      .from(contactTags)
+      .where(and(eq(contactTags.id, id), eq(contactTags.tenantId, tenantId)));
+    return tag;
+  }
+
+  async getAllContactTags(tenantId: string): Promise<ContactTag[]> {
+    return await db
+      .select()
+      .from(contactTags)
+      .where(eq(contactTags.tenantId, tenantId))
+      .orderBy(contactTags.name);
+  }
+
+  async createContactTag(tagData: CreateContactTagData, tenantId: string): Promise<ContactTag> {
+    const [tag] = await db
+      .insert(contactTags)
+      .values({
+        ...tagData,
+        tenantId,
+      })
+      .returning();
+    return tag;
+  }
+
+  async updateContactTag(id: string, name: string, color: string, tenantId: string): Promise<ContactTag | undefined> {
+    const [tag] = await db
+      .update(contactTags)
+      .set({
+        name,
+        color,
+      })
+      .where(and(eq(contactTags.id, id), eq(contactTags.tenantId, tenantId)))
+      .returning();
+    return tag;
+  }
+
+  async deleteContactTag(id: string, tenantId: string): Promise<void> {
+    await db
+      .delete(contactTags)
+      .where(and(eq(contactTags.id, id), eq(contactTags.tenantId, tenantId)));
+  }
+
+  // Contact list membership operations
+  async addContactToList(contactId: string, listId: string, tenantId: string): Promise<void> {
+    await db
+      .insert(contactListMemberships)
+      .values({
+        contactId,
+        listId,
+        tenantId,
+      })
+      .onConflictDoNothing();
+  }
+
+  async removeContactFromList(contactId: string, listId: string, tenantId: string): Promise<void> {
+    await db
+      .delete(contactListMemberships)
+      .where(and(
+        eq(contactListMemberships.contactId, contactId),
+        eq(contactListMemberships.listId, listId),
+        eq(contactListMemberships.tenantId, tenantId)
+      ));
+  }
+
+  async getContactLists(contactId: string, tenantId: string): Promise<EmailList[]> {
+    const result = await db
+      .select({
+        id: emailLists.id,
+        tenantId: emailLists.tenantId,
+        name: emailLists.name,
+        description: emailLists.description,
+        createdAt: emailLists.createdAt,
+        updatedAt: emailLists.updatedAt,
+      })
+      .from(contactListMemberships)
+      .innerJoin(emailLists, eq(contactListMemberships.listId, emailLists.id))
+      .where(and(
+        eq(contactListMemberships.contactId, contactId),
+        eq(contactListMemberships.tenantId, tenantId)
+      ));
+    
+    return result;
+  }
+
+  async bulkAddContactsToList(contactIds: string[], listId: string, tenantId: string): Promise<void> {
+    const values = contactIds.map(contactId => ({
+      contactId,
+      listId,
+      tenantId,
+    }));
+
+    await db
+      .insert(contactListMemberships)
+      .values(values)
+      .onConflictDoNothing();
+  }
+
+  // Contact tag assignment operations
+  async addTagToContact(contactId: string, tagId: string, tenantId: string): Promise<void> {
+    await db
+      .insert(contactTagAssignments)
+      .values({
+        contactId,
+        tagId,
+        tenantId,
+      })
+      .onConflictDoNothing();
+  }
+
+  async removeTagFromContact(contactId: string, tagId: string, tenantId: string): Promise<void> {
+    await db
+      .delete(contactTagAssignments)
+      .where(and(
+        eq(contactTagAssignments.contactId, contactId),
+        eq(contactTagAssignments.tagId, tagId),
+        eq(contactTagAssignments.tenantId, tenantId)
+      ));
+  }
+
+  async getContactTags(contactId: string, tenantId: string): Promise<ContactTag[]> {
+    const result = await db
+      .select({
+        id: contactTags.id,
+        tenantId: contactTags.tenantId,
+        name: contactTags.name,
+        color: contactTags.color,
+        createdAt: contactTags.createdAt,
+      })
+      .from(contactTagAssignments)
+      .innerJoin(contactTags, eq(contactTagAssignments.tagId, contactTags.id))
+      .where(and(
+        eq(contactTagAssignments.contactId, contactId),
+        eq(contactTagAssignments.tenantId, tenantId)
+      ));
+    
+    return result;
+  }
+
+  async bulkAddTagToContacts(contactIds: string[], tagId: string, tenantId: string): Promise<void> {
+    const values = contactIds.map(contactId => ({
+      contactId,
+      tagId,
+      tenantId,
+    }));
+
+    await db
+      .insert(contactTagAssignments)
+      .values(values)
+      .onConflictDoNothing();
+  }
+
+  // Email contact statistics
+  async getEmailContactStats(tenantId: string): Promise<{
+    totalContacts: number;
+    activeContacts: number;
+    unsubscribedContacts: number;
+    bouncedContacts: number;
+    pendingContacts: number;
+    totalLists: number;
+    averageEngagementRate: number;
+  }> {
+    const [totalResult] = await db
+      .select({ count: count() })
+      .from(emailContacts)
+      .where(eq(emailContacts.tenantId, tenantId));
+
+    const [activeResult] = await db
+      .select({ count: count() })
+      .from(emailContacts)
+      .where(and(
+        eq(emailContacts.tenantId, tenantId),
+        eq(emailContacts.status, 'active')
+      ));
+
+    const [unsubscribedResult] = await db
+      .select({ count: count() })
+      .from(emailContacts)
+      .where(and(
+        eq(emailContacts.tenantId, tenantId),
+        eq(emailContacts.status, 'unsubscribed')
+      ));
+
+    const [bouncedResult] = await db
+      .select({ count: count() })
+      .from(emailContacts)
+      .where(and(
+        eq(emailContacts.tenantId, tenantId),
+        eq(emailContacts.status, 'bounced')
+      ));
+
+    const [pendingResult] = await db
+      .select({ count: count() })
+      .from(emailContacts)
+      .where(and(
+        eq(emailContacts.tenantId, tenantId),
+        eq(emailContacts.status, 'pending')
+      ));
+
+    const [listsResult] = await db
+      .select({ count: count() })
+      .from(emailLists)
+      .where(eq(emailLists.tenantId, tenantId));
+
+    // Calculate average engagement rate
+    const [engagementResult] = await db
+      .select({
+        totalSent: sql<number>`COALESCE(SUM(${emailContacts.emailsSent}), 0)`,
+        totalOpened: sql<number>`COALESCE(SUM(${emailContacts.emailsOpened}), 0)`,
+      })
+      .from(emailContacts)
+      .where(eq(emailContacts.tenantId, tenantId));
+
+    const averageEngagementRate = engagementResult.totalSent > 0 
+      ? Math.round((engagementResult.totalOpened / engagementResult.totalSent) * 100) 
+      : 0;
+
+    return {
+      totalContacts: totalResult.count,
+      activeContacts: activeResult.count,
+      unsubscribedContacts: unsubscribedResult.count,
+      bouncedContacts: bouncedResult.count,
+      pendingContacts: pendingResult.count,
+      totalLists: listsResult.count,
+      averageEngagementRate,
     };
   }
 

@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -38,6 +38,44 @@ const PageLoader = () => (
   </div>
 );
 
+// Content loader for pages within AppLayout
+const ContentLoader = () => (
+  <div className="flex items-center justify-center py-12">
+    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+  </div>
+);
+
+
+// Component to handle route protection and redirection
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, user } = useReduxAuth();
+  const [location, setLocation] = useLocation();
+  
+  const isEmailVerified = user ? user.emailVerified : undefined;
+  
+  // Redirect logic based on authentication state
+  if (!isAuthenticated) {
+    // Allow certain routes for unauthenticated users
+    if (!['/auth', '/subscribe', '/verify-email'].includes(location)) {
+      setLocation('/auth');
+      return null;
+    }
+  } else if (isEmailVerified === false) {
+    // Allow certain routes for unverified users
+    if (!['/pending-verification', '/verify-email'].includes(location)) {
+      setLocation('/pending-verification');
+      return null;
+    }
+  } else if (isAuthenticated && isEmailVerified === true) {
+    // Redirect auth page to dashboard for verified users
+    if (['/auth', '/pending-verification'].includes(location)) {
+      setLocation('/dashboard');
+      return null;
+    }
+  }
+  
+  return <>{children}</>;
+}
 
 function Router() {
   const { isAuthenticated, isLoading, user, isInitialized } = useReduxAuth();
@@ -66,7 +104,6 @@ function Router() {
 
   console.log("🚀 [Redux] Authentication check complete, determining route");
 
-  // Only determine email verification status if we have a user object
   const isEmailVerified = user ? user.emailVerified : undefined;
 
   console.log("🔍 [Router] Route determination:", {
@@ -80,65 +117,47 @@ function Router() {
   console.log("🚀 [Router] Rendering routes for authenticated:", isAuthenticated, "emailVerified:", isEmailVerified);
 
   return (
-    <Suspense fallback={<PageLoader />}>
+    <ProtectedRoute>
       <Switch>
+        {/* Routes that should be wrapped in AppLayout */}
         {isAuthenticated && isEmailVerified === true ? (
           <AppLayout>
-            <Switch>
-              <Route path="/" component={Dashboard} />{" "}
-              {/* Dashboard will handle subscription redirects */}
-              <Route path="/dashboard" component={Dashboard} />
-              <Route path="/company" component={CompanyPage} />
-              <Route path="/campaigns" component={CampaignsPage} />
-              <Route path="/shops" component={ShopsPage} />
-              <Route path="/shops/new" component={NewShopPage} />
-              <Route path="/shops/:id" component={ShopDetailsPage} />
-              <Route path="/shops/:id/edit" component={EditShopPage} />
-              <Route path="/forms" component={FormsPage} />
-              <Route path="/forms/add" component={FormsAddPage} />
-              <Route path="/profile" component={ProfilePage} />
-              <Route path="/sessions" component={SessionsPage} />
-              <Route path="/users" component={UsersPage} />
-              <Route path="/table-example" component={TableExamplePage} />
-              <Route path="/subscribe" component={Subscribe} />
-              <Route path="/auth" component={Dashboard} />{" "}
-              {/* Redirect logged-in users to dashboard */}
-              <Route path="/pending-verification" component={Dashboard} />{" "}
-              {/* Redirect verified users to dashboard */}
-            </Switch>
+            <Suspense fallback={<ContentLoader />}>
+              <Switch>
+                <Route path="/" component={Dashboard} />
+                <Route path="/dashboard" component={Dashboard} />
+                <Route path="/company" component={CompanyPage} />
+                <Route path="/campaigns" component={CampaignsPage} />
+                <Route path="/shops" component={ShopsPage} />
+                <Route path="/shops/new" component={NewShopPage} />
+                <Route path="/shops/:id" component={ShopDetailsPage} />
+                <Route path="/shops/:id/edit" component={EditShopPage} />
+                <Route path="/forms" component={FormsPage} />
+                <Route path="/forms/add" component={FormsAddPage} />
+                <Route path="/profile" component={ProfilePage} />
+                <Route path="/sessions" component={SessionsPage} />
+                <Route path="/users" component={UsersPage} />
+                <Route path="/table-example" component={TableExamplePage} />
+                <Route path="/subscribe" component={Subscribe} />
+                <Route component={NotFound} />
+              </Switch>
+            </Suspense>
           </AppLayout>
-        ) : isAuthenticated && isEmailVerified === false ? (
-          <>
-            <Route path="/" component={PendingVerificationPage} />
-            <Route
-              path="/pending-verification"
-              component={PendingVerificationPage}
-            />
-            <Route path="/verify-email" component={VerifyEmailPage} />
-            <Route path="/auth" component={PendingVerificationPage} />{" "}
-            {/* Redirect unverified users to pending */}
-            {/* Redirect protected routes to pending verification */}
-            <Route path="/dashboard" component={PendingVerificationPage} />
-            <Route path="/profile" component={PendingVerificationPage} />
-            <Route path="/sessions" component={PendingVerificationPage} />
-            <Route path="/users" component={PendingVerificationPage} />
-          </>
         ) : (
-          <>
-            <Route path="/" component={AuthPage} />
-            <Route path="/auth" component={AuthPage} />
-            <Route path="/subscribe" component={Subscribe} />
-            <Route path="/verify-email" component={VerifyEmailPage} />
-            {/* Redirect any other route to auth for unauthenticated users */}
-            <Route path="/dashboard" component={AuthPage} />
-            <Route path="/profile" component={AuthPage} />
-            <Route path="/sessions" component={AuthPage} />
-            <Route path="/pending-verification" component={AuthPage} />
-          </>
+          /* Routes that should NOT be wrapped in AppLayout */
+          <Suspense fallback={<PageLoader />}>
+            <Switch>
+              <Route path="/" component={isAuthenticated ? PendingVerificationPage : AuthPage} />
+              <Route path="/auth" component={AuthPage} />
+              <Route path="/pending-verification" component={PendingVerificationPage} />
+              <Route path="/verify-email" component={VerifyEmailPage} />
+              <Route path="/subscribe" component={Subscribe} />
+              <Route component={NotFound} />
+            </Switch>
+          </Suspense>
         )}
-        <Route component={NotFound} />
       </Switch>
-    </Suspense>
+    </ProtectedRoute>
   );
 }
 

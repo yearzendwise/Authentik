@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Trash2 } from 'lucide-react';
 
 interface FormPropertiesProps {
   formTitle: string;
@@ -18,6 +19,7 @@ interface FormPropertiesProps {
     compactMode?: boolean;
   };
   elements?: any[];
+  onClearForm?: () => void;
 }
 
 export function FormProperties({ 
@@ -25,7 +27,8 @@ export function FormProperties({
   onUpdateFormTitle, 
   onUpdateSettings,
   settings = {},
-  elements = []
+  elements = [],
+  onClearForm
 }: FormPropertiesProps) {
   const [isOpen, setIsOpen] = useState(true);
   
@@ -43,6 +46,12 @@ export function FormProperties({
         ...settings,
         [key]: value,
       });
+    }
+  };
+
+  const handleClearForm = () => {
+    if (window.confirm('Are you sure you want to clear all form data? This action cannot be undone.')) {
+      onClearForm?.();
     }
   };
 
@@ -156,6 +165,19 @@ export function FormProperties({
                   <span className="font-medium">{elements.filter(el => el.required).length}</span>
                 </div>
               </div>
+            </div>
+
+            {/* Clear Form Button */}
+            <div className="pt-2 border-t border-neutral-200">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleClearForm}
+                className="w-full flex items-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Clear form
+              </Button>
             </div>
           </CardContent>
         </CollapsibleContent>

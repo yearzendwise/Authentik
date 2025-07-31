@@ -6,6 +6,7 @@ import { setAccessToken, clearAuth } from "../store/authSlice";
 
 let store: any = null;
 let authListener: ((token: string | null) => void) | null = null;
+let isUpdatingFromRedux = false;
 
 export const initializeAuthStoreSync = (reduxStore: any) => {
   store = reduxStore;
@@ -22,26 +23,46 @@ export const initializeAuthStoreSync = (reduxStore: any) => {
       return;
     }
     
-    try {
-      if (token) {
-        // Token was set - update Redux store
-        console.log("🔄 Syncing token to Redux store");
-        store.dispatch(setAccessToken(token));
-      } else {
-        // Token was cleared - clear Redux store
-        console.log("🔄 Clearing Redux store authentication state");
-        store.dispatch(clearAuth());
-      }
-    } catch (error) {
-      console.error("Failed to sync auth state to Redux store:", error);
-      // Don't rethrow to prevent breaking the auth system
+    // Prevent circular updates - don't dispatch if we're already updating from Redux
+    if (isUpdatingFromRedux) {
+      return;
     }
+    
+    // Use setTimeout to defer the dispatch to the next tick
+    // This prevents the "cannot call getState while reducer is executing" error
+    setTimeout(() => {
+      try {
+        const currentState = store.getState();
+        const currentToken = currentState.auth?.accessToken;
+        
+        // Only update if the token actually changed
+        if (token !== currentToken) {
+          if (token) {
+            // Token was set - update Redux store
+            console.log("🔄 Syncing token to Redux store");
+            store.dispatch(setAccessToken(token));
+          } else {
+            // Token was cleared - clear Redux store
+            console.log("🔄 Clearing Redux store authentication state");
+            store.dispatch(clearAuth());
+          }
+        }
+      } catch (error) {
+        console.error("Failed to sync auth state to Redux store:", error);
+        // Don't rethrow to prevent breaking the auth system
+      }
+    }, 0);
   };
   
   // Add the listener
   addAuthStateListener(authListener);
   
   console.log("🔄 Auth store sync initialized");
+};
+
+// Export a function to set the update flag
+export const setUpdatingFromRedux = (value: boolean) => {
+  isUpdatingFromRedux = value;
 };
 
 export const cleanupAuthStoreSync = () => {

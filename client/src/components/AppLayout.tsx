@@ -175,18 +175,28 @@ export function AppLayout({ children }: AppLayoutProps) {
           isCollapsed ? "w-16" : "w-64",
         )}
       >
-        {/* Header */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <h1 className={cn(
-            "text-xl font-semibold text-gray-900 dark:text-white",
-            isCollapsed && "text-center"
-          )}>
-            {isCollapsed ? "SA" : "SaaS Auth"}
-          </h1>
+        {/* Logo */}
+        <div className={cn(
+          "flex items-center mt-4 mb-6 px-4",
+          isCollapsed && "justify-center px-2"
+        )}>
+          <div className="flex items-center justify-center w-12 h-12 bg-black text-white rounded-full">
+            <span className="text-lg font-bold">Z</span>
+          </div>
+          {!isCollapsed && (
+            <div className="ml-3">
+              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
+                SaaS Auth
+              </h1>
+            </div>
+          )}
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className={cn(
+          "flex-1 space-y-2",
+          isCollapsed ? "flex flex-col items-center px-2" : "px-4"
+        )}>
           {navigation.map((item, index) => {
             const isActive =
               location === item.href ||
@@ -199,11 +209,12 @@ export function AppLayout({ children }: AppLayoutProps) {
             const navButton = (
               <Button
                 key={item.name}
-                variant={isActive ? "default" : "ghost"}
+                variant="ghost"
                 size="sm"
                 className={cn(
-                  "w-full justify-start h-10",
-                  isCollapsed && "px-2 justify-center",
+                  "h-10 hover:bg-purple-100 hover:text-purple-600 dark:hover:bg-purple-900/20 dark:hover:text-purple-400",
+                  isActive && "bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400",
+                  isCollapsed ? "w-10 p-0 rounded-lg justify-center" : "w-full justify-start rounded-lg"
                 )}
                 asChild
               >
@@ -225,7 +236,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
             return (
               <div key={`nav-${item.name}`}>
-                {showSeparator && (
+                {showSeparator && !isCollapsed && (
                   <div className="my-2 mx-2 border-t border-gray-200 dark:border-gray-700" />
                 )}
                 {buttonElement}
@@ -235,20 +246,28 @@ export function AppLayout({ children }: AppLayoutProps) {
         </nav>
 
         {/* User Profile Menu */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+        <div className={cn(
+          "border-t border-gray-200 dark:border-gray-700",
+          isCollapsed ? "p-2" : "p-4"
+        )}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 className={cn(
-                  "w-full justify-start h-12",
-                  isCollapsed && "px-2 justify-center",
+                  "hover:bg-purple-100 dark:hover:bg-purple-900/20",
+                  isCollapsed 
+                    ? "w-10 h-10 p-0 rounded-full justify-center" 
+                    : "w-full justify-start h-12 rounded-lg"
                 )}
               >
                 <CustomAvatar 
                   user={user}
                   size="sm"
-                  className="flex-shrink-0"
+                  className={cn(
+                    "flex-shrink-0",
+                    isCollapsed ? "w-8 h-8" : "w-8 h-8"
+                  )}
                 />
                 {!isCollapsed && (
                   <div className="ml-3 text-left">
@@ -262,16 +281,23 @@ export function AppLayout({ children }: AppLayoutProps) {
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-56" side="right">
+              <div className="px-2 py-1.5 text-sm font-medium">
+                {user?.firstName} {user?.lastName}
+              </div>
+              <div className="px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400">
+                {user?.email}
+              </div>
+              <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link href="/profile" className="cursor-pointer">
-                  <User className="mr-2 h-5 w-5" />
+                  <User className="mr-2 h-4 w-4" />
                   Profile
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/sessions" className="cursor-pointer">
-                  <Activity className="mr-2 h-5 w-5" />
+                  <Activity className="mr-2 h-4 w-4" />
                   Sessions
                 </Link>
               </DropdownMenuItem>
@@ -282,12 +308,12 @@ export function AppLayout({ children }: AppLayoutProps) {
               >
                 {theme === 'light' ? (
                   <>
-                    <Moon className="mr-2 h-5 w-5" />
+                    <Moon className="mr-2 h-4 w-4" />
                     Dark mode
                   </>
                 ) : (
                   <>
-                    <Sun className="mr-2 h-5 w-5" />
+                    <Sun className="mr-2 h-4 w-4" />
                     Light mode
                   </>
                 )}
@@ -297,7 +323,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 onClick={handleLogout}
                 className="cursor-pointer text-red-600 dark:text-red-400"
               >
-                <LogOut className="mr-2 h-5 w-5" />
+                <LogOut className="mr-2 h-4 w-4" />
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>

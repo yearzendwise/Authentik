@@ -25,10 +25,10 @@ export default function Dashboard() {
     avgClickRate: 21.7
   });
 
-  // Fetch user's subscription
+  // Fetch user's subscription (only for Owners)
   const { data: subscription, isLoading: subscriptionLoading } = useQuery<UserSubscriptionResponse>({
     queryKey: ['/api/my-subscription'],
-    enabled: !!user,
+    enabled: !!user && user.role === 'Owner',
   });
 
   // Fetch user's sessions

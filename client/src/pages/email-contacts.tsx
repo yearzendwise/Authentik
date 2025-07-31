@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -50,98 +53,85 @@ import {
 interface Contact {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
+  firstName: string | null;
+  lastName: string | null;
   status: "active" | "unsubscribed" | "bounced" | "pending";
-  tags: string[];
-  lists: string[];
-  addedDate: string;
-  lastActivity?: string;
+  tags: ContactTag[];
+  lists: EmailList[];
+  addedDate: Date;
+  lastActivity?: Date | null;
   emailsSent: number;
   emailsOpened: number;
 }
 
-const mockContacts: Contact[] = [
-  {
-    id: "1",
-    email: "john.doe@example.com",
-    firstName: "John",
-    lastName: "Doe",
-    status: "active",
-    tags: ["customer", "premium", "newsletter"],
-    lists: ["All Contacts", "Premium Customers"],
-    addedDate: "2025-03-15",
-    lastActivity: "2025-07-28",
-    emailsSent: 24,
-    emailsOpened: 18,
-  },
-  {
-    id: "2",
-    email: "jane.smith@company.com",
-    firstName: "Jane",
-    lastName: "Smith",
-    status: "active",
-    tags: ["lead", "webinar-attendee"],
-    lists: ["All Contacts", "Leads"],
-    addedDate: "2025-06-20",
-    lastActivity: "2025-07-25",
-    emailsSent: 8,
-    emailsOpened: 6,
-  },
-  {
-    id: "3",
-    email: "mike.wilson@email.com",
-    firstName: "Mike",
-    lastName: "Wilson",
-    status: "unsubscribed",
-    tags: ["customer"],
-    lists: ["All Contacts"],
-    addedDate: "2025-02-10",
-    lastActivity: "2025-05-15",
-    emailsSent: 15,
-    emailsOpened: 10,
-  },
-  {
-    id: "4",
-    email: "sarah.jones@test.com",
-    firstName: "Sarah",
-    lastName: "Jones",
-    status: "bounced",
-    tags: ["lead"],
-    lists: ["All Contacts", "Leads"],
-    addedDate: "2025-07-01",
-    lastActivity: "2025-07-10",
-    emailsSent: 3,
-    emailsOpened: 0,
-  },
-  {
-    id: "5",
-    email: "alex.brown@startup.io",
-    firstName: "Alex",
-    lastName: "Brown",
-    status: "pending",
-    tags: ["trial-user"],
-    lists: ["All Contacts", "Trial Users"],
-    addedDate: "2025-07-28",
-    emailsSent: 1,
-    emailsOpened: 0,
-  },
-];
+interface ContactTag {
+  id: string;
+  name: string;
+  color: string;
+}
 
-const mockLists = [
-  { id: "1", name: "All Contacts", count: 2847 },
-  { id: "2", name: "Premium Customers", count: 342 },
-  { id: "3", name: "Leads", count: 1205 },
-  { id: "4", name: "Trial Users", count: 89 },
-  { id: "5", name: "Newsletter Subscribers", count: 1876 },
-];
+interface EmailList {
+  id: string;
+  name: string;
+  description?: string | null;
+}
+
+interface ContactStats {
+  totalContacts: number;
+  activeContacts: number;
+  unsubscribedContacts: number;
+  bouncedContacts: number;
+  pendingContacts: number;
+  totalLists: number;
+  averageEngagementRate: number;
+}
+
+interface EmailListWithCount extends EmailList {
+  count: number;
+}
 
 export default function EmailContacts() {
-  const [contacts] = useState<Contact[]>(mockContacts);
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [listFilter, setListFilter] = useState("all");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch email contacts
+  const { data: contactsData, isLoading: contactsLoading, error: contactsError } = useQuery({
+    queryKey: ['/api/email-contacts', { search: searchQuery, status: statusFilter, listId: listFilter !== 'all' ? listFilter : undefined }],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (searchQuery) params.append('search', searchQuery);
+      if (statusFilter !== 'all') params.append('status', statusFilter);
+      if (listFilter !== 'all') params.append('listId', listFilter);
+      
+      const response = await apiRequest('GET', `/api/email-contacts?${params.toString()}`);
+      return response.json();
+    },
+  });
+
+  // Fetch email lists
+  const { data: listsData } = useQuery({
+    queryKey: ['/api/email-lists'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/email-lists');
+      return response.json();
+    },
+  });
+
+  const contacts: Contact[] = contactsData?.contacts || [];
+  const stats: ContactStats = contactsData?.stats || {
+    totalContacts: 0,
+    activeContacts: 0,
+    unsubscribedContacts: 0,
+    bouncedContacts: 0,
+    pendingContacts: 0,
+    totalLists: 0,
+    averageEngagementRate: 0,
+  };
+  const lists: EmailListWithCount[] = listsData?.lists || [];
 
   const getStatusBadge = (status: Contact["status"]) => {
     const statusConfig = {
@@ -162,8 +152,10 @@ export default function EmailContacts() {
     );
   };
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName[0]}${lastName[0]}`.toUpperCase();
+  const getInitials = (firstName: string | null, lastName: string | null) => {
+    const first = firstName?.[0] || '';
+    const last = lastName?.[0] || '';
+    return `${first}${last}`.toUpperCase() || '??';
   };
 
   const toggleSelectAll = () => {
@@ -182,9 +174,10 @@ export default function EmailContacts() {
     );
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", { 
+  const formatDate = (date: Date | string | null) => {
+    if (!date) return '';
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleDateString("en-US", { 
       month: "short", 
       day: "numeric", 
       year: "numeric" 
@@ -195,6 +188,35 @@ export default function EmailContacts() {
     if (sent === 0) return 0;
     return Math.round((opened / sent) * 100);
   };
+
+  // Show loading state
+  if (contactsLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-4">Loading contacts...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (contactsError) {
+    return (
+      <div className="p-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Error Loading Contacts</h1>
+          <p className="text-gray-600 mb-4">
+            There was an error loading your email contacts. Please try again.
+          </p>
+          <Button onClick={() => window.location.reload()} variant="outline">
+            Refresh Page
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -227,7 +249,7 @@ export default function EmailContacts() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Contacts</p>
-                <p className="text-2xl font-bold text-gray-900">2,847</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalContacts.toLocaleString()}</p>
               </div>
               <Users className="text-blue-500 w-8 h-8" />
             </div>
@@ -239,8 +261,10 @@ export default function EmailContacts() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Active Subscribers</p>
-                <p className="text-2xl font-bold text-gray-900">2,485</p>
-                <p className="text-sm text-green-600">87.3%</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.activeContacts.toLocaleString()}</p>
+                <p className="text-sm text-green-600">
+                  {stats.totalContacts > 0 ? Math.round((stats.activeContacts / stats.totalContacts) * 100) : 0}%
+                </p>
               </div>
               <UserCheck className="text-green-500 w-8 h-8" />
             </div>
@@ -252,7 +276,7 @@ export default function EmailContacts() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Lists</p>
-                <p className="text-2xl font-bold text-gray-900">{mockLists.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalLists}</p>
               </div>
               <Tag className="text-purple-500 w-8 h-8" />
             </div>
@@ -264,7 +288,7 @@ export default function EmailContacts() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Avg Engagement</p>
-                <p className="text-2xl font-bold text-gray-900">68.4%</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.averageEngagementRate}%</p>
               </div>
               <Mail className="text-orange-500 w-8 h-8" />
             </div>
@@ -281,7 +305,20 @@ export default function EmailContacts() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {mockLists.map((list) => (
+              <button
+                className={`w-full text-left p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
+                  listFilter === 'all' ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600" : ""
+                }`}
+                onClick={() => setListFilter('all')}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">All Contacts</span>
+                  <Badge variant="secondary" className="ml-2">
+                    {stats.totalContacts}
+                  </Badge>
+                </div>
+              </button>
+              {lists.map((list) => (
                 <button
                   key={list.id}
                   className={`w-full text-left p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
@@ -403,7 +440,10 @@ export default function EmailContacts() {
                           </Avatar>
                           <div>
                             <p className="font-medium text-gray-900 dark:text-white">
-                              {contact.firstName} {contact.lastName}
+                              {contact.firstName || contact.lastName 
+                                ? `${contact.firstName || ''} ${contact.lastName || ''}`.trim()
+                                : contact.email.split('@')[0]
+                              }
                             </p>
                             <p className="text-sm text-gray-500">{contact.email}</p>
                           </div>
@@ -415,8 +455,8 @@ export default function EmailContacts() {
                       <TableCell>
                         <div className="flex items-center gap-1 flex-wrap">
                           {contact.tags.slice(0, 2).map((tag) => (
-                            <Badge key={tag} variant="outline" className="text-xs">
-                              {tag}
+                            <Badge key={tag.id} variant="outline" className="text-xs" style={{ backgroundColor: tag.color + '20', borderColor: tag.color }}>
+                              {tag.name}
                             </Badge>
                           ))}
                           {contact.tags.length > 2 && (

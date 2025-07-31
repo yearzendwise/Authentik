@@ -164,6 +164,56 @@ export const verificationTokens = pgTable("verification_tokens", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Email contacts tables for contact management
+export const emailContacts = pgTable("email_contacts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  email: text("email").notNull(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  status: text("status").notNull().default('active'), // active, unsubscribed, bounced, pending
+  addedDate: timestamp("added_date").defaultNow(),
+  lastActivity: timestamp("last_activity"),
+  emailsSent: integer("emails_sent").default(0),
+  emailsOpened: integer("emails_opened").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const emailLists = pgTable("email_lists", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const contactTags = pgTable("contact_tags", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  name: text("name").notNull(),
+  color: text("color").default('#3B82F6'),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Junction tables for many-to-many relationships
+export const contactListMemberships = pgTable("contact_list_memberships", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  contactId: varchar("contact_id").notNull().references(() => emailContacts.id, { onDelete: 'cascade' }),
+  listId: varchar("list_id").notNull().references(() => emailLists.id, { onDelete: 'cascade' }),
+  addedAt: timestamp("added_at").defaultNow(),
+});
+
+export const contactTagAssignments = pgTable("contact_tag_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  contactId: varchar("contact_id").notNull().references(() => emailContacts.id, { onDelete: 'cascade' }),
+  tagId: varchar("tag_id").notNull().references(() => contactTags.id, { onDelete: 'cascade' }),
+  assignedAt: timestamp("assigned_at").defaultNow(),
+});
+
 // Companies table for multi-tenant company information
 export const companies = pgTable("companies", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -216,6 +266,11 @@ export const tenantRelations = relations(tenants, ({ many }) => ({
   refreshTokens: many(refreshTokens),
   verificationTokens: many(verificationTokens),
   formResponses: many(formResponses),
+  emailContacts: many(emailContacts),
+  emailLists: many(emailLists),
+  contactTags: many(contactTags),
+  contactListMemberships: many(contactListMemberships),
+  contactTagAssignments: many(contactTagAssignments),
 }));
 
 export const userRelations = relations(users, ({ one, many }) => ({
@@ -710,4 +765,121 @@ export interface ShopFilters {
   status?: 'active' | 'inactive' | 'maintenance' | 'all';
   category?: string;
   managerId?: string;
+}
+
+// Email contact relations
+export const emailContactRelations = relations(emailContacts, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [emailContacts.tenantId],
+    references: [tenants.id],
+  }),
+  listMemberships: many(contactListMemberships),
+  tagAssignments: many(contactTagAssignments),
+}));
+
+export const emailListRelations = relations(emailLists, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [emailLists.tenantId],
+    references: [tenants.id],
+  }),
+  memberships: many(contactListMemberships),
+}));
+
+export const contactTagRelations = relations(contactTags, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [contactTags.tenantId],
+    references: [tenants.id],
+  }),
+  assignments: many(contactTagAssignments),
+}));
+
+export const contactListMembershipRelations = relations(contactListMemberships, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [contactListMemberships.tenantId],
+    references: [tenants.id],
+  }),
+  contact: one(emailContacts, {
+    fields: [contactListMemberships.contactId],
+    references: [emailContacts.id],
+  }),
+  list: one(emailLists, {
+    fields: [contactListMemberships.listId],
+    references: [emailLists.id],
+  }),
+}));
+
+export const contactTagAssignmentRelations = relations(contactTagAssignments, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [contactTagAssignments.tenantId],
+    references: [tenants.id],
+  }),
+  contact: one(emailContacts, {
+    fields: [contactTagAssignments.contactId],
+    references: [emailContacts.id],
+  }),
+  tag: one(contactTags, {
+    fields: [contactTagAssignments.tagId],
+    references: [contactTags.id],
+  }),
+}));
+
+// Email contact schemas
+export const createEmailContactSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  status: z.enum(['active', 'unsubscribed', 'bounced', 'pending']).default('active'),
+  tags: z.array(z.string()).optional(),
+  lists: z.array(z.string()).optional(),
+});
+
+export const updateEmailContactSchema = z.object({
+  email: z.string().email("Please enter a valid email address").optional(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  status: z.enum(['active', 'unsubscribed', 'bounced', 'pending']).optional(),
+});
+
+export const createEmailListSchema = z.object({
+  name: z.string().min(1, "List name is required"),
+  description: z.string().optional(),
+});
+
+export const createContactTagSchema = z.object({
+  name: z.string().min(1, "Tag name is required"),
+  color: z.string().default('#3B82F6'),
+});
+
+// Email contact types
+export type EmailContact = typeof emailContacts.$inferSelect;
+export type InsertEmailContact = typeof emailContacts.$inferInsert;
+export type CreateEmailContactData = z.infer<typeof createEmailContactSchema>;
+export type UpdateEmailContactData = z.infer<typeof updateEmailContactSchema>;
+
+export type EmailList = typeof emailLists.$inferSelect;
+export type InsertEmailList = typeof emailLists.$inferInsert;
+export type CreateEmailListData = z.infer<typeof createEmailListSchema>;
+
+export type ContactTag = typeof contactTags.$inferSelect;
+export type InsertContactTag = typeof contactTags.$inferInsert;
+export type CreateContactTagData = z.infer<typeof createContactTagSchema>;
+
+export type ContactListMembership = typeof contactListMemberships.$inferSelect;
+export type ContactTagAssignment = typeof contactTagAssignments.$inferSelect;
+
+// Extended types for email contacts
+export interface EmailContactWithDetails extends EmailContact {
+  tags: ContactTag[];
+  lists: EmailList[];
+}
+
+export interface EmailListWithCount extends EmailList {
+  count: number;
+}
+
+export interface ContactFilters {
+  search?: string;
+  status?: 'active' | 'unsubscribed' | 'bounced' | 'pending' | 'all';
+  listId?: string;
+  tagId?: string;
 }

@@ -82,9 +82,14 @@ export const getQueryFn: <T>(options: {
     } catch (error: any) {
       if (
         unauthorizedBehavior === "returnNull" &&
-        error.message?.includes("401")
+        (error.message?.includes("401") || error.message?.includes("403"))
       ) {
         return null;
+      }
+      // Log 403 errors but don't throw them in console
+      if (error.message?.includes("403")) {
+        console.debug("Access forbidden:", queryKey.join("/"));
+        throw error;
       }
       throw error;
     }
@@ -98,10 +103,12 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       staleTime: 5 * 60 * 1000, // 5 minutes default stale time
       retry: (failureCount, error: any) => {
-        // Retry once for non-auth errors
+        // Don't retry for auth errors
         if (
           error?.message?.includes("401") ||
-          error?.message?.includes("Authentication failed")
+          error?.message?.includes("403") ||
+          error?.message?.includes("Authentication failed") ||
+          error?.message?.includes("Forbidden")
         ) {
           return false;
         }

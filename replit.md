@@ -7,6 +7,7 @@ This project is a full-stack SaaS authentication system providing a comprehensiv
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+UI/UX Design: Modern glass morphism design with enhanced dark mode support (July 31, 2025).
 
 ## System Architecture
 
@@ -29,6 +30,7 @@ The application adopts a monorepo architecture, separating client, server, and s
 -   **Robust Data Flow**: Defined processes for owner registration, user login (including 2FA), profile management, and multi-device session handling.
 -   **Abstraction Layers**: Storage interface for database operations and custom auth manager for token refresh.
 -   **UI/UX**: Utilizes shadcn/ui and Tailwind CSS for a consistent and accessible design, including comprehensive dark mode support.
+-   **Modern Design System**: Implemented glass morphism design with backdrop blur effects, gradient-based visual hierarchy, and enhanced dark mode parity (July 31, 2025).
 -   **Form Management**: React Hook Form with Zod validation for robust form handling.
 -   **User Management**: Provides administrators with full CRUD operations for users, including role-based access control (Owner, Administrator, Manager, Employee).
 -   **Subscription Management**: Interface for managing subscription plans with upgrade/downgrade options and Stripe integration.

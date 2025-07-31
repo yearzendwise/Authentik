@@ -379,7 +379,7 @@ export default function ProfilePage() {
                           updateMenuPreferenceMutation.mutate({ menuExpanded: checked });
                         }}
                         disabled={updateMenuPreferenceMutation.isPending}
-                        className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-green-500 data-[state=checked]:to-emerald-500 data-[state=unchecked]:bg-gray-300 dark:data-[state=unchecked]:bg-gray-600 data-[state=checked]:shadow-lg data-[state=checked]:shadow-green-500/25 scale-125 transition-all duration-300 ease-in-out transform hover:scale-130 data-[state=checked]:ring-2 data-[state=checked]:ring-green-400/50 data-[state=checked]:ring-offset-2 data-[state=checked]:ring-offset-white dark:data-[state=checked]:ring-offset-gray-800"
+                        className="data-[state=checked]:bg-green-600"
                       />
                     </div>
                   </div>

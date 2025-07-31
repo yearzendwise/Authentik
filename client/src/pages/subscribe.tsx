@@ -352,49 +352,7 @@ export default function Subscribe() {
   const { user, isLoading: authLoading, hasInitialized } = useAuth();
   const { user: reduxUser, isAuthenticated } = useReduxAuth();
 
-  // Redirect unauthenticated users immediately
-  if (hasInitialized && !isAuthenticated) {
-    setLocation('/auth');
-    return null;
-  }
-
-  // Show loading while authentication is being determined
-  if (!hasInitialized || authLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <span className="ml-4">Authenticating...</span>
-        </div>
-      </div>
-    );
-  }
-
-  // Check if user has Owner role - only Owners can access subscription management
-  if (reduxUser && reduxUser.role !== "Owner") {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center max-w-md mx-auto">
-          <div className="mb-6">
-            <Shield className="mx-auto h-16 w-16 text-muted-foreground" />
-          </div>
-          <h1 className="text-2xl font-bold mb-4">Access Restricted</h1>
-          <p className="text-muted-foreground mb-6">
-            Only organization owners can access subscription management. 
-            Please contact your organization owner to manage subscription plans.
-          </p>
-          <Button 
-            onClick={() => setLocation('/dashboard')}
-            variant="outline"
-          >
-            Return to Dashboard
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Check if user already has a subscription
+  // Check if user already has a subscription - moved before conditional returns
   const { data: userSubscription, isLoading: subscriptionLoading } = useQuery<UserSubscriptionResponse>({
     queryKey: ['/api/my-subscription'],
     enabled: hasInitialized && !!user && !authLoading,
@@ -513,6 +471,48 @@ export default function Subscribe() {
     upgradeSubscriptionMutation.mutate({ planId, billingCycle });
   };
 
+  // Redirect unauthenticated users immediately
+  if (hasInitialized && !isAuthenticated) {
+    setLocation('/auth');
+    return null;
+  }
+
+  // Show loading while authentication is being determined
+  if (!hasInitialized || authLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-4">Authenticating...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user has Owner role - only Owners can access subscription management
+  if (reduxUser && reduxUser.role !== "Owner") {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center max-w-md mx-auto">
+          <div className="mb-6">
+            <Shield className="mx-auto h-16 w-16 text-muted-foreground" />
+          </div>
+          <h1 className="text-2xl font-bold mb-4">Access Restricted</h1>
+          <p className="text-muted-foreground mb-6">
+            Only organization owners can access subscription management. 
+            Please contact your organization owner to manage subscription plans.
+          </p>
+          <Button 
+            onClick={() => setLocation('/dashboard')}
+            variant="outline"
+          >
+            Return to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   // Show loading state while data is loading
   if (plansLoading || subscriptionLoading) {
     return (
@@ -560,7 +560,7 @@ export default function Subscribe() {
 
   // If we have a client secret, show the payment form  
   if (clientSecret && currentPlan) {
-    const selectedPlanData = plans.find(p => p.id === currentPlan);
+    const selectedPlanData = plans?.find(p => p.id === currentPlan);
     
     return (
       <div className="container mx-auto px-4 py-8 max-w-md">
@@ -583,7 +583,7 @@ export default function Subscribe() {
   }
 
   // If user has an existing subscription, show subscription management
-  if (userSubscription?.subscription) {
+  if (userSubscription?.subscription && plans) {
     return (
       <SubscriptionManagement 
         subscription={userSubscription.subscription}
@@ -617,7 +617,7 @@ export default function Subscribe() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
-        {plans.map((plan) => (
+        {plans?.map((plan) => (
           <Card key={plan.id} className={`relative ${plan.isPopular ? 'border-primary shadow-lg' : ''}`}>
             {plan.isPopular && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">

@@ -111,17 +111,7 @@ async function initializeDatabase() {
   }
 }
 
-// Run initialization if this file is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  initializeDatabase()
-    .then(() => {
-      console.log("✅ Database initialization completed");
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error("❌ Database initialization failed:", error);
-      process.exit(1);
-    });
-}
+// Note: Direct execution removed to prevent interference with main server process
+// To run initialization standalone, use: node -e "import('./init-db.js').then(m => m.initializeDatabase())"
 
-export { initializeDatabase }; 
+export { initializeDatabase };

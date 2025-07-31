@@ -137,6 +137,15 @@ The application is designed for deployment on platforms like Replit:
 
 The architecture supports both development and production environments with hot reloading in development and optimized builds for production deployment.
 
+## Recent Changes (July 31, 2025)
+
+✓ **Dark Mode Persistence Fix**:
+  • Fixed theme not persisting when users log back in
+  • Added theme field to findUserByEmailAcrossTenants database query
+  • Enhanced theme synchronization logic in AppLayout with user ID tracking
+  • Theme preferences now properly save and restore across login sessions
+  • Added debug logging for theme synchronization tracking
+
 ## Recent Changes (July 27, 2025)
 
 ✓ **User Search Performance Optimization**: 

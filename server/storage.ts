@@ -236,6 +236,7 @@ export class DatabaseStorage implements IStorage {
         lastVerificationEmailSent: users.lastVerificationEmailSent,
         lastLoginAt: users.lastLoginAt,
         menuExpanded: users.menuExpanded,
+        theme: users.theme,
         avatarUrl: users.avatarUrl,
         stripeCustomerId: users.stripeCustomerId,
         stripeSubscriptionId: users.stripeSubscriptionId,

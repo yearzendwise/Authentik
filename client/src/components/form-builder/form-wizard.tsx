@@ -168,7 +168,7 @@ export function FormWizard() {
         )}
       </div>
       {/* Navigation Footer */}
-      <footer className="bg-white border-t border-slate-200 px-6 py-4">
+      <footer className="bg-white dark:bg-gray-950 border-t border-slate-200 dark:border-gray-800 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
             {wizardState.currentStep !== 'build' && (
@@ -181,7 +181,7 @@ export function FormWizard() {
 
           <div className="flex items-center space-x-3">
             {wizardState.currentStep === 'build' && (
-              <div className="text-sm text-slate-600">
+              <div className="text-sm text-slate-600 dark:text-slate-400">
                 {canProceedToStyle ? 
                   `${wizardState.formData.elements.length} element${wizardState.formData.elements.length !== 1 ? 's' : ''} added` :
                   'Add at least one form element to continue'
@@ -190,7 +190,7 @@ export function FormWizard() {
             )}
             
             {wizardState.currentStep === 'style' && (
-              <div className="text-sm text-slate-600">
+              <div className="text-sm text-slate-600 dark:text-slate-400">
                 {canProceedToPreview ? 
                   `${wizardState.selectedTheme?.name} theme selected` :
                   'Select a theme to continue'

@@ -176,4 +176,26 @@
   .dark [style*="color: #000000"] {
     color: var(--foreground) !important;
   }
+
+  /* Enhanced sidebar button styling for dark mode */
+  .dark .hover\:bg-accent:hover {
+    background-color: hsl(240, 3.7%, 20%) !important;
+  }
+
+  /* Fix for footer components */
+  .dark footer {
+    background-color: var(--background);
+    border-color: var(--border);
+  }
+
+  /* Fix data table styling */
+  .dark .data-table-toolbar {
+    background-color: transparent;
+  }
+
+  /* Ensure proper styling for all card components */
+  .dark [class*="card"] {
+    background-color: var(--card);
+    color: var(--card-foreground);
+  }
 }

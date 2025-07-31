@@ -190,14 +190,14 @@ export function AppLayout({ children }: AppLayoutProps) {
       {/* Sidebar */}
       <div
         className={cn(
-          "flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-200",
+          "flex flex-col bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 transition-all duration-200",
           isCollapsed ? "w-16" : "w-64",
         )}
       >
         {/* Header */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-800">
           <h1 className={cn(
-            "text-xl font-semibold text-gray-900 dark:text-white",
+            "text-xl font-semibold text-gray-900 dark:text-gray-100",
             isCollapsed && "text-center"
           )}>
             {isCollapsed ? "SA" : "SaaS Auth"}
@@ -245,7 +245,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             return (
               <div key={`nav-${item.name}`}>
                 {showSeparator && (
-                  <div className="my-2 mx-2 border-t border-gray-200 dark:border-gray-700" />
+                  <div className="my-2 mx-2 border-t border-gray-200 dark:border-gray-800" />
                 )}
                 {buttonElement}
               </div>
@@ -254,7 +254,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </nav>
 
         {/* User Profile Menu */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="p-4 border-t border-gray-200 dark:border-gray-800">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -322,7 +322,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>

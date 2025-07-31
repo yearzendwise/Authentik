@@ -17,6 +17,22 @@ export default function PendingVerificationPage() {
   const [nextAllowedTime, setNextAllowedTime] = useState<Date | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
 
+  // Force light theme on verification page regardless of user preference
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove('dark');
+    root.classList.add('light');
+    
+    // Cleanup: restore previous theme when leaving
+    const originalTheme = localStorage.getItem('theme');
+    return () => {
+      if (originalTheme === 'dark') {
+        root.classList.remove('light');
+        root.classList.add('dark');
+      }
+    };
+  }, []);
+
   // Redirect if user is already verified
   useEffect(() => {
     if (user?.emailVerified) {

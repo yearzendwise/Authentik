@@ -78,8 +78,34 @@ export default function UsersPage() {
   // Check authentication first
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="p-6 bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 min-h-screen">
+        <div className="max-w-7xl mx-auto">
+          <div className="space-y-6">
+            <div className="mb-8">
+              <div className="flex items-center space-x-4">
+                <UsersIcon className="text-blue-600 dark:text-blue-500 w-8 h-8" />
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
+                    Users
+                  </h1>
+                  <p className="text-gray-600 dark:text-gray-400 mt-1">
+                    Loading user management
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="grid gap-4">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="animate-pulse bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30">
+                  <CardContent className="p-6">
+                    <div className="h-4 bg-muted rounded w-1/3 mb-2"></div>
+                    <div className="h-3 bg-muted rounded w-1/2"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -87,13 +113,19 @@ export default function UsersPage() {
   // Check if current user has permission to access this page
   if (!currentUser || (currentUser.role !== 'Owner' && currentUser.role !== 'Administrator' && currentUser.role !== 'Manager')) {
     return (
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="text-center">
-          <Shield className="mx-auto h-12 w-12 text-gray-400" />
-          <h2 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">Access Denied</h2>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
-            You don't have permission to access the user management system.
-          </p>
+      <div className="p-6 bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 min-h-screen">
+        <div className="max-w-4xl mx-auto">
+          <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30">
+            <CardContent className="p-8">
+              <div className="text-center">
+                <Shield className="mx-auto h-12 w-12 text-red-500 dark:text-red-400 mb-4" />
+                <h2 className="mt-4 text-lg font-semibold text-gray-900 dark:text-gray-100">Access Denied</h2>
+                <p className="mt-2 text-gray-600 dark:text-gray-300">
+                  You don't have permission to access the user management system.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -478,7 +510,7 @@ export default function UsersPage() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+              className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
               onClick={() => {
                 if (confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}?`)) {
                   handleDeleteUser(user.id);
@@ -512,30 +544,32 @@ export default function UsersPage() {
 
   if (usersLoading) {
     return (
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="space-y-6">
-          <div className="mb-8">
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <UsersIcon className="text-white w-6 h-6" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Users</h1>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Manage user accounts and permissions
-                </p>
+      <div className="p-6 bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 min-h-screen">
+        <div className="max-w-7xl mx-auto">
+          <div className="space-y-6">
+            <div className="mb-8">
+              <div className="flex items-center space-x-4">
+                <UsersIcon className="text-blue-600 dark:text-blue-500 w-8 h-8" />
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
+                    Users
+                  </h1>
+                  <p className="text-gray-600 dark:text-gray-400 mt-1">
+                    Manage user accounts and permissions
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="grid gap-4">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="animate-pulse">
-                <CardContent className="p-6">
-                  <div className="h-4 bg-muted rounded w-1/3 mb-2"></div>
-                  <div className="h-3 bg-muted rounded w-1/2"></div>
-                </CardContent>
-              </Card>
-            ))}
+            <div className="grid gap-4">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="animate-pulse bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30">
+                  <CardContent className="p-6">
+                    <div className="h-4 bg-muted rounded w-1/3 mb-2"></div>
+                    <div className="h-3 bg-muted rounded w-1/2"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -543,23 +577,24 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="mb-8">
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <UsersIcon className="text-white w-6 h-6" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Users</h1>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Manage user accounts and permissions
-                </p>
+    <div className="p-6 bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="mb-8">
+              <div className="flex items-center space-x-4">
+                <UsersIcon className="text-blue-600 dark:text-blue-500 w-8 h-8" />
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
+                    Users
+                  </h1>
+                  <p className="text-gray-600 dark:text-gray-400 mt-1">
+                    Manage user accounts and permissions
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
           {isAdmin && (
             <TooltipProvider>
               <Tooltip>
@@ -567,7 +602,10 @@ export default function UsersPage() {
                   <span>
                     <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                       <DialogTrigger asChild>
-                        <Button disabled={!limits.canAddUser}>
+                        <Button 
+                          disabled={!limits.canAddUser}
+                          className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+                        >
                           <Plus className="h-4 w-4 mr-2" />
                           Add User
                         </Button>
@@ -673,7 +711,11 @@ export default function UsersPage() {
                       )}
                     />
                     <DialogFooter>
-                      <Button type="submit" disabled={createUserMutation.isPending}>
+                      <Button 
+                        type="submit" 
+                        disabled={createUserMutation.isPending}
+                        className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+                      >
                         {createUserMutation.isPending ? "Creating..." : "Create User"}
                       </Button>
                     </DialogFooter>
@@ -698,12 +740,12 @@ export default function UsersPage() {
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
+          <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-blue-600">Total Users</p>
-                  <p className="text-2xl font-bold text-blue-900">{stats.totalUsers}</p>
+                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Total Users</p>
+                  <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{stats.totalUsers}</p>
                 </div>
                 <UsersIcon className="text-blue-500 w-8 h-8" />
               </div>
@@ -711,12 +753,12 @@ export default function UsersPage() {
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-green-600">Active Users</p>
-                  <p className="text-2xl font-bold text-green-900">{stats.activeUsers}</p>
+                  <p className="text-sm font-medium text-green-600 dark:text-green-400">Active Users</p>
+                  <p className="text-2xl font-bold text-green-900 dark:text-green-100">{stats.activeUsers}</p>
                 </div>
                 <UserCheck className="text-green-500 w-8 h-8" />
               </div>
@@ -726,12 +768,12 @@ export default function UsersPage() {
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-purple-600">Roles</p>
-                  <p className="text-2xl font-bold text-purple-900">{Object.keys(stats.usersByRole).length}</p>
+                  <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Roles</p>
+                  <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{Object.keys(stats.usersByRole).length}</p>
                 </div>
                 <Shield className="text-purple-500 w-8 h-8" />
               </div>
@@ -739,12 +781,12 @@ export default function UsersPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-orange-600">Plan Limits</p>
-                  <p className="text-2xl font-bold text-orange-900">
+                  <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Plan Limits</p>
+                  <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">
                     {limits.currentUsers}{limits.maxUsers ? `/${limits.maxUsers}` : ''}
                   </p>
                 </div>
@@ -804,7 +846,7 @@ export default function UsersPage() {
         </div>
 
         {/* Users Table */}
-        <div className="bg-white rounded-lg shadow-sm">
+        <div className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 rounded-lg shadow-sm">
           <DataTable
             columns={columns}
             data={filteredUsers}
@@ -911,7 +953,11 @@ export default function UsersPage() {
                   )}
                 />
                 <DialogFooter>
-                  <Button type="submit" disabled={updateUserMutation.isPending}>
+                  <Button 
+                    type="submit" 
+                    disabled={updateUserMutation.isPending}
+                    className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+                  >
                     {updateUserMutation.isPending ? "Updating..." : "Update User"}
                   </Button>
                 </DialogFooter>
@@ -919,6 +965,7 @@ export default function UsersPage() {
             </Form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
     </div>
   );

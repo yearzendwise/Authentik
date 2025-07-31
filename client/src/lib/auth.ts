@@ -446,6 +446,7 @@ class AuthManager {
 
     const data = await response.json();
     console.log("getCurrentUser: Successfully retrieved user data");
+    console.log(">>>>> Data received from backend on avatar:", data.user?.avatarUrl);
     return data.user;
   }
 

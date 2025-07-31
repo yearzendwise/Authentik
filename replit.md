@@ -2,221 +2,79 @@
 
 ## Overview
 
-This is a modern full-stack SaaS authentication system built with React, Express, and PostgreSQL. The application provides a comprehensive authentication system with JWT token management, user registration, login, profile management, email verification with Resend, and security features. It features a multi-tenant architecture with Owner-based organization management where each organization has its own tenant space with an Owner user who can manage team members. It uses a clean monorepo structure with shared types and schemas between frontend and backend.
+This project is a full-stack SaaS authentication system providing a comprehensive solution for user management. It features JWT token management, user registration, login, profile management, and email verification. The application supports a multi-tenant architecture with Owner-based organization management, allowing each organization its own tenant space and an Owner user to manage team members. The system aims to provide a secure and scalable authentication backbone for SaaS applications.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+UI/UX Design: Modern glass morphism design with enhanced dark mode support (July 31, 2025).
 
 ## System Architecture
 
-The application follows a monorepo architecture with clear separation between client, server, and shared code:
+The application adopts a monorepo architecture, separating client, server, and shared code.
 
-- **Frontend**: React with TypeScript, using Vite for development and building
-- **Backend**: Express.js with TypeScript for API endpoints
-- **Database**: PostgreSQL with Drizzle ORM for type-safe database operations
-- **Styling**: Tailwind CSS with shadcn/ui component library
-- **State Management**: TanStack Query for server state management
-- **Authentication**: JWT-based authentication with access tokens and refresh tokens
+### Core Technologies
+-   **Frontend**: React with TypeScript, using Vite.
+-   **Backend**: Express.js with TypeScript.
+-   **Database**: PostgreSQL with Drizzle ORM.
+-   **Styling**: Tailwind CSS with shadcn/ui.
+-   **State Management**: TanStack Query.
+-   **Authentication**: JWT-based with access and refresh tokens, with token invalidation support for logout all devices.
 
-## Key Components
+### Key Architectural Decisions
+-   **Monorepo Structure**: Facilitates shared types and schemas between frontend and backend.
+-   **Multi-Tenant Architecture**: Supports owner-based organization management with row-level security and tenant isolation for data.
+-   **JWT Authentication**: Implemented with secure HTTP-only cookies for refresh tokens and comprehensive device session tracking.
+-   **Email Verification**: Integrated with Resend for account verification and welcome emails.
+-   **Two-Factor Authentication (2FA)**: TOTP-based 2FA with QR code generation.
+-   **Robust Data Flow**: Defined processes for owner registration, user login (including 2FA), profile management, and multi-device session handling.
+-   **Abstraction Layers**: Storage interface for database operations and custom auth manager for token refresh.
+-   **UI/UX**: Utilizes shadcn/ui and Tailwind CSS for a consistent and accessible design, including comprehensive dark mode support.
+-   **Modern Design System**: Implemented glass morphism design with backdrop blur effects, gradient-based visual hierarchy, and enhanced dark mode parity (July 31, 2025).
+-   **Form Management**: React Hook Form with Zod validation for robust form handling.
+-   **User Management**: Provides administrators with full CRUD operations for users, including role-based access control (Owner, Administrator, Manager, Employee).
+-   **Subscription Management**: Interface for managing subscription plans with upgrade/downgrade options and Stripe integration.
 
-### Frontend Architecture
-- **React Router**: Using wouter for lightweight client-side routing
-- **Form Management**: React Hook Form with Zod validation
-- **UI Components**: shadcn/ui component library built on Radix UI primitives
-- **Styling**: Tailwind CSS with CSS variables for theming
-- **State Management**: TanStack Query for API state, React Context for auth state
-- **Device Session Management**: Complete interface for viewing and managing active login sessions
+## Security Features
 
-### Backend Architecture
-- **Express Server**: RESTful API with comprehensive authentication middleware
-- **Database Layer**: Drizzle ORM with PostgreSQL for data persistence
-- **Authentication**: JWT access and refresh tokens with bcrypt password hashing
-- **Email Verification**: Fully functional Resend service integration for account verification emails
-- **Two-Factor Authentication**: TOTP-based 2FA with QR code generation using otplib and qrcode
-- **Multi-Device Tracking**: Device detection with browser/OS identification and IP tracking
-- **Storage Interface**: Abstracted storage layer for all database operations
-- **Cookie Management**: HTTP-only cookies for secure refresh token storage
-- **Profile Management**: Complete CRUD operations for user account management
-- **Development Tools**: Console URL logging and development endpoints for testing email verification
-
-### Database Schema
-- **Tenants Table**: Multi-tenant organization support with unique slugs and owner relationships
-- **Users Table**: Stores user credentials, profile information, 2FA settings, email verification status, and role-based permissions (Owner, Administrator, Manager, Employee)
-- **Refresh Tokens Table**: Enhanced with device tracking fields (device ID, name, user agent, IP address, location, last used)
-- **Verification Tokens Table**: Manages email verification tokens with expiration
-- **Schema Validation**: Zod schemas shared between frontend and backend
-
-## Data Flow
-
-1. **Owner Registration Flow**:
-   - User submits Owner registration form with organization details → new tenant and Owner user created
-   - System sends verification email via Resend to Owner
-   - Owner clicks verification link → email is verified → welcome email sent
-   - Organization is fully set up with Owner having full administrative privileges
-
-2. **User Login Flow**:
-   - User submits login form with verified email
-   - System searches across all tenants to find user and their organization
-   - Frontend validates data using Zod schemas
-   - API endpoint processes request and generates JWT tokens
-   - If 2FA is enabled, user must provide TOTP code for verification
-   - Access token stored in localStorage, refresh token in HTTP-only cookie
-   - Protected routes verify access token with automatic refresh handling
-
-2. **Two-Factor Authentication Flow**:
-   - User initiates 2FA setup from profile page
-   - Server generates TOTP secret and QR code using otplib
-   - User scans QR code with authenticator app (Google Authenticator, Authy, etc.)
-   - User verifies setup by entering 6-digit TOTP code
-   - 2FA protection applies to all future login attempts
-
-3. **Profile Management Flow**:
-   - User updates profile information through secure forms
-   - Password changes trigger token revocation across all devices
-   - Account deletion marks user as inactive and clears all tokens
-   - Real-time validation with password strength indicators
-   - 2FA can be enabled/disabled with authenticator code verification
-
-4. **Multi-Device Session Management Flow**:
-   - System tracks each login with device detection (browser, OS, IP address)
-   - Users can view all active sessions with device details and last used timestamps
-   - Individual device logout functionality with confirmation dialogs
-   - Bulk logout from all other devices except current session
-   - Automatic device fingerprinting for unique session identification
-
-3. **API Communication**:
-   - Frontend uses TanStack Query for API calls
-   - Custom auth manager handles token refresh automatically
-   - Comprehensive error handling with toast notifications
-
-4. **Database Operations**:
-   - Drizzle ORM provides type-safe database queries
-   - Storage interface abstracts all database operations
-   - Connection pooling with PostgreSQL database
+### Token Invalidation for "Logout All Devices"
+-   **Implementation**: Uses `tokenValidAfter` timestamp in the users table to track when all tokens should be invalidated.
+-   **How it works**: When a user clicks "Log Out All Other Devices", the system updates `tokenValidAfter` to the current timestamp. Any JWT token issued before this timestamp is immediately rejected by the authentication middleware.
+-   **Security benefit**: Provides immediate token invalidation across all devices, eliminating the security vulnerability where tokens could remain valid for up to 15 minutes after logout.
+-   **User experience**: Users can confidently secure their account by instantly revoking access from all other devices/browsers.
 
 ## External Dependencies
 
-### Core Dependencies
-- **@neondatabase/serverless**: Serverless PostgreSQL database connection
-- **drizzle-orm**: Type-safe ORM for database operations
-- **@tanstack/react-query**: Server state management
-- **@radix-ui/***: Accessible UI component primitives
-- **bcryptjs**: Password hashing
-- **jsonwebtoken**: JWT token generation and verification
-- **zod**: Runtime type validation
+-   **@neondatabase/serverless**: PostgreSQL database connection.
+-   **drizzle-orm**: Type-safe ORM.
+-   **@tanstack/react-query**: Server state management.
+-   **@radix-ui/***: Accessible UI component primitives.
+-   **bcryptjs**: Password hashing.
+-   **jsonwebtoken**: JWT token generation and verification.
+-   **zod**: Runtime type validation.
+-   **Resend**: Email service for verification and communication.
+-   **otplib**: For TOTP-based 2FA.
+-   **qrcode**: For QR code generation in 2FA.
+-   **Stripe**: For subscription and billing management.
+-   **wouter**: Lightweight client-side routing.
+-   **@headlessui/react**: UI components for forms.
+-   **@heroicons/react**: Icons for UI components.
 
-### Development Tools
-- **Vite**: Fast development server and build tool
-- **TypeScript**: Static type checking
-- **Tailwind CSS**: Utility-first CSS framework
-- **ESBuild**: Fast JavaScript bundler for production builds
+## Database Migration Status
 
-## Deployment Strategy
+**Last Verified**: July 31, 2025
 
-The application is designed for deployment on platforms like Replit:
+All database migrations are up-to-date and include current schema columns:
 
-### Build Process
-- **Frontend**: Vite builds React app to `dist/public`
-- **Backend**: ESBuild bundles server code to `dist/index.js`
-- **Database**: Drizzle migrations in `migrations/` directory
+### Applied Migrations
+- **001_make_location_fields_optional.sql**: Made address and city fields optional in shops table
+- **002_add_shop_limits_to_subscriptions.sql**: Added max_shops column to subscription_plans table
 
-### Environment Configuration
-- **DATABASE_URL**: PostgreSQL connection string
-- **JWT_SECRET**: Secret key for access token signing
-- **REFRESH_TOKEN_SECRET**: Secret key for refresh token signing
-- **RESEND_API_KEY**: API key for Resend email service (verified and functional)
-- **NODE_ENV**: Environment mode (development/production)
+### Schema Verification (11 tables)
+- ✅ **users**: 28 columns including menu_expanded, theme, avatar_url, token_valid_after, stripe integration fields
+- ✅ **refresh_tokens**: Complete device tracking (device_id, device_name, user_agent, ip_address, location, last_used, is_active)
+- ✅ **subscription_plans**: All limit columns (max_users, max_projects, max_shops, storage_limit, features array)
+- ✅ **shops**: Full location details with proper nullable constraints
+- ✅ **tenants, stores, subscriptions, verification_tokens, companies, forms, form_responses**: All current columns present
 
-### Production Setup
-- Static files served from `dist/public`
-- API routes prefixed with `/api`
-- Database migrations applied via `db:push` script
-- Server runs on configurable port with Express
-
-The architecture supports both development and production environments with hot reloading in development and optimized builds for production deployment.
-
-## Recent Changes (July 27, 2025)
-
-✓ **User Search Performance Optimization**: 
-  • Fixed single-character typing issue with 300ms debounced search
-  • Eliminated page refreshes during search operations
-  • Implemented targeted loading overlay only on user cards area
-  • Removed authentication token refresh cycles from search queries
-  • Used stable query keys with ref-based parameter passing
-  • Search input remains fully responsive during data fetching
-  • Previous data visible while new results load
-
-## Recent Changes (July 26, 2025)
-
-✓ **Owner-Based Multi-Tenant Architecture (Latest Update)**: 
-  • Added Owner user role as the highest privilege level in the system
-  • Implemented multi-tenant registration where Owners create their own organization
-  • Modified login system to search across all tenants for user authentication  
-  • Updated role-based authorization to include Owner privileges
-  • Prevented Owner role creation through regular user management endpoints
-  • All users created by Owners are automatically scoped to the Owner's tenant
-  • Cross-tenant isolation ensures users only access their organization's data
-  • User Role Hierarchy: Owner > Administrator > Manager > Employee
-
-✓ **DragFormMaster Integration Completed**: Successfully integrated existing DragFormMaster component from /components/DragFormMaster folder
-✓ **Forms Navigation Added**: Added Forms section to sidebar navigation with FileText icon
-✓ **Forms Pages Created**: Created forms.tsx with routing for /forms and /forms/add routes
-✓ **Import Path Fixes**: Fixed multiple broken import paths in DragFormMaster components
-✓ **Missing UI Components**: Created rate-scale, number-input, themed-full-name, language-selector, boolean-switch, and full-name components
-✓ **Form Builder Integration**: Replaced custom form builder with actual DragFormMaster FormBuilder component import
-✓ **Multi-Tenant Row-Level Security**: Implemented comprehensive row-level multi-tenancy across all database tables
-✓ **Tenant-Aware Authentication**: Updated login system to require tenant slug for multi-tenant authentication
-✓ **Forms API Routes**: Added complete tenant-aware forms API endpoints for CRUD operations
-✓ **Form Response Storage**: Implemented form submission and response tracking with tenant isolation
-✓ **Page Refresh Authentication Fix**: Resolved logout on page refresh issue by improving authentication state management, token refresh timing, and network error handling
-✓ **Enhanced Token Refresh Resilience**: Added intelligent retry logic and better error differentiation between authentication failures and network issues
-✓ **Database Schema Migration**: Successfully migrated all existing data to multi-tenant structure with default tenant
-✓ **Input Sanitization Implemented**: Added comprehensive input sanitization and SQL injection protection
-✓ **Rate Limiting Added**: Implemented rate limiting for login and registration endpoints
-✓ **Authentication Security Enhanced**: Username/password trimming, IP-based rate limiting, and secure password validation
-✓ **Deployment Dependency Fix**: Installed missing @headlessui/react and @heroicons/react packages for form builder components
-✓ **Build Warnings Fixed**: Removed duplicate class methods in storage.ts eliminating all build warnings
-✓ **Token Refresh Fix**: Fixed automatic token refresh system to prevent unexpected logouts - tokens now refresh proactively 30-45 seconds before expiry
-✓ **Authentication State Stability**: Improved authentication state management to prevent temporary loading states from causing logouts
-✓ **Subscription Redirect Fix**: Fixed dashboard subscription redirect interfering with authentication by adding delay to allow auth state to stabilize
-✓ **Subscription Redirect Removed**: Removed mandatory subscription redirect after login - users now go directly to dashboard regardless of subscription status
-✓ **Authentication Persistence Enhanced**: Fixed users being logged out on page refresh by improving error handling in authentication checks and making token clearing more conservative
-✓ **Token Initialization Improved**: Enhanced authentication manager initialization to be more resilient with better retry logic and extended token refresh timing
-✓ **Logout Functionality Fixed**: Resolved logout redirect issue - users are now immediately redirected to login page after logout
-✓ **Enhanced Logout Security**: Updated logout endpoint to work with or without access tokens, improved token cleanup, and added proper error handling
-✓ **User Role Management**: Set admin@example.com as Owner role, with remaining @example.com users as Employee roles for proper permission hierarchy
-
-## Previous Changes (January 25, 2025)
-
-✓ **Email Verification System Completed**: Fully implemented and tested Resend integration
-✓ **API Key Configuration**: Successfully configured Resend API key (re_f27r7h2s_BYXi6aNpimSCfCLwMeec686Q)
-✓ **Email Delivery**: Confirmed working email delivery to verified domains
-✓ **Development Tools**: Added console URL logging and development verification endpoints
-✓ **Registration Flow**: Updated to handle email verification requirements
-✓ **Login Security**: Blocks unverified users from accessing the system
-✓ **Automatic Verification Detection**: Added periodic checking and cache invalidation for email verification status
-✓ **From Address Update**: Changed email from address to "dan@zendwise.work"
-✓ **Session Management Bug Fix**: Fixed "log out all devices" functionality that was incorrectly logging out current device
-✓ **Menu Preferences System**: Added persistent menu state management with user preferences
-✓ **Default Menu State**: Changed sidebar to be minimized by default with option to expand
-✓ **Profile Settings**: Added preferences tab in profile page for menu toggle control
-✓ **User Management System**: Comprehensive admin interface for managing users with full CRUD operations
-✓ **Role-Based Access Control**: Administrator and Manager roles can access user management features
-✓ **User Creation & Editing**: Admins can create new users with automatic verification and edit existing users
-✓ **User Status Management**: Toggle user active/inactive status and delete users with confirmation
-✓ **Advanced Filtering**: Search users by name/email, filter by role and status with real-time updates
-✓ **User Statistics Dashboard**: Display total users, active users, and role distribution with visual cards
-✓ **Authentication Enhancement**: Fixed backend to include user roles in all authentication responses
-✓ **Subscription Management Interface**: Comprehensive subscription page for existing subscribers showing current plan details, billing info, and upgrade options
-✓ **Subscription Upgrade System**: Backend API and frontend interface for users to upgrade/downgrade their subscription plans
-✓ **Plan Comparison View**: Side-by-side comparison of all available plans with current plan highlighting and upgrade recommendations
-✓ **Trial Status Display**: Clear indication of trial status with days remaining and billing information
-✓ **Stripe Integration Enhancement**: Added subscription modification capabilities with prorated billing
-
-The authentication system now includes comprehensive session management with proper device isolation for logout operations. The navigation menu defaults to a minimized state showing only icons, with users able to toggle their preference both via the sidebar button and the profile preferences page. Menu preferences are saved to the database and persist across sessions.
-
-The user management system provides administrators with complete control over user accounts, including creation, editing, activation/deactivation, and deletion. The interface includes advanced filtering and search capabilities, plus real-time statistics about the user base. Role-based access ensures only authorized personnel can access these features.
-
-The subscription system now allows existing subscribers to access the subscription page to view their current plan details, see trial status, and upgrade or downgrade their plans. The interface provides clear comparison between plans and handles billing cycle changes with prorated invoicing through Stripe.
+**Database Command**: Use `npm run db:push` for schema changes instead of manual SQL migrations.

@@ -115,6 +115,30 @@ const authenticateToken = async (req: any, res: any, next: any) => {
       return res.status(401).json({ message: "User not found or inactive" });
     }
 
+    // Check if token was issued after tokenValidAfter
+    console.log("🔐 [Auth Middleware] Checking token validity timestamp:", {
+      tokenValidAfter: user.tokenValidAfter,
+      tokenIat: decoded.iat,
+      tokenIssuedAt: decoded.iat ? new Date(decoded.iat * 1000).toISOString() : 'NO IAT',
+      userTokenValidAfter: user.tokenValidAfter ? new Date(user.tokenValidAfter).toISOString() : 'NO VALID AFTER'
+    });
+    
+    if (user.tokenValidAfter && decoded.iat) {
+      const tokenIssuedAt = decoded.iat * 1000; // Convert to milliseconds
+      const tokenValidAfter = new Date(user.tokenValidAfter).getTime();
+      
+      console.log("🔐 [Auth Middleware] Token timestamp comparison:", {
+        tokenIssuedAt,
+        tokenValidAfter,
+        isTokenOlder: tokenIssuedAt < tokenValidAfter
+      });
+      
+      if (tokenIssuedAt < tokenValidAfter) {
+        console.log("🔐 [Auth Middleware] Token issued before tokenValidAfter - invalidating");
+        return res.status(401).json({ message: "Token has been invalidated. Please login again." });
+      }
+    }
+
     console.log("🔐 [Auth Middleware] User authenticated successfully:", user.email);
     req.user = {
       id: user.id,
@@ -174,11 +198,12 @@ const requireAdmin = requireRole(["Owner", "Administrator"]);
 const requireManagerOrAdmin = requireRole(["Owner", "Administrator", "Manager"]);
 
 const generateTokens = (userId: string, tenantId: string) => {
-  const accessToken = jwt.sign({ userId, tenantId }, JWT_SECRET, {
+  const now = Math.floor(Date.now() / 1000); // Current time in seconds
+  const accessToken = jwt.sign({ userId, tenantId, iat: now }, JWT_SECRET, {
     expiresIn: ACCESS_TOKEN_EXPIRES,
   });
   const refreshToken = jwt.sign(
-    { userId, tenantId, tokenId: randomBytes(16).toString("hex") },
+    { userId, tenantId, tokenId: randomBytes(16).toString("hex"), iat: now },
     REFRESH_TOKEN_SECRET,
     { expiresIn: REFRESH_TOKEN_EXPIRES },
   );
@@ -551,6 +576,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax", // Changed from "strict" to "lax" for better cross-site behavior
         maxAge: tokenExpiryDays * 24 * 60 * 60 * 1000, // 7 or 30 days based on rememberMe
+        path: "/", // Explicit path
+      });
+      
+      console.log("🔄 [Server] Refresh token cookie set successfully:", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: tokenExpiryDays * 24 * 60 * 60 * 1000,
+        expiresAt: refreshTokenExpiry
       });
 
       res.json({
@@ -564,6 +598,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           role: user.role,
           twoFactorEnabled: user.twoFactorEnabled,
           emailVerified: user.emailVerified,
+          menuExpanded: user.menuExpanded ?? false,
           theme: user.theme || 'light',
           avatarUrl: user.avatarUrl || null,
         },
@@ -618,7 +653,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+        path: "/", // Explicit path
       });
+      
+      console.log("🔄 [Server] Email verification refresh token cookie set successfully");
 
       // Send welcome email
       try {
@@ -798,24 +836,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("🔄 [Server] Refresh token found, verifying...");
 
       // Verify refresh token
-      const decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET) as any;
-      console.log("🔄 [Server] Token decoded successfully:", {
-        userId: decoded.userId,
-        tenantId: decoded.tenantId,
-      });
+      let decoded: any;
+      try {
+        decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET) as any;
+        console.log("🔄 [Server] Token decoded successfully:", {
+          userId: decoded.userId,
+          tenantId: decoded.tenantId,
+        });
+      } catch (jwtError) {
+        console.log("🔄 [Server] JWT verification failed:", jwtError);
+        // Clear invalid cookie
+        res.clearCookie("refreshToken", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+        });
+        if (jwtError instanceof jwt.TokenExpiredError) {
+          return res.status(401).json({ message: "Refresh token expired" });
+        }
+        return res.status(401).json({ message: "Invalid refresh token format" });
+      }
 
       // Check if refresh token exists in database and is not expired
       const storedToken = await storage.getRefreshToken(refreshToken);
       if (!storedToken) {
         console.log("🔄 [Server] Refresh token not found in database");
+        // Clear invalid cookie
+        res.clearCookie("refreshToken", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+        });
         return res.status(401).json({ message: "Invalid refresh token" });
       }
       console.log("🔄 [Server] Refresh token found in database");
+
+      // Check if token has expired
+      if (storedToken.expiresAt.getTime() < Date.now()) {
+        console.log("🔄 [Server] Refresh token has expired in database");
+        // Delete expired token
+        await storage.deleteRefreshToken(refreshToken);
+        // Clear expired cookie
+        res.clearCookie("refreshToken", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+        });
+        return res.status(401).json({ message: "Refresh token expired" });
+      }
 
       // Get user with tenant context
       const user = await storage.getUser(decoded.userId, decoded.tenantId);
       if (!user || !user.isActive) {
         console.log("🔄 [Server] User not found or inactive");
+        // Delete token for inactive user
+        await storage.deleteRefreshToken(refreshToken);
+        // Clear cookie
+        res.clearCookie("refreshToken", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+        });
         return res.status(401).json({ message: "User not found or inactive" });
       }
       console.log("🔄 [Server] User found and active");
@@ -869,6 +954,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax", // Changed from "strict" to "lax"
         maxAge: cookieMaxAge,
+        path: "/", // Explicit path
+      });
+      
+      console.log("🔄 [Server] New refresh token cookie set successfully:", {
+        maxAge: cookieMaxAge,
+        expiresAt: refreshTokenExpiry
       });
 
       console.log("🔄 [Server] Sending successful refresh response");
@@ -883,16 +974,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           role: user.role,
           twoFactorEnabled: user.twoFactorEnabled,
           emailVerified: user.emailVerified,
-          menuExpanded: user.menuExpanded || false,
+          menuExpanded: user.menuExpanded ?? false,
           theme: user.theme || 'light',
           avatarUrl: user.avatarUrl || null,
         },
       });
     } catch (error: any) {
-      if (error instanceof jwt.TokenExpiredError) {
-        return res.status(401).json({ message: "Refresh token expired" });
-      }
       console.error("Token refresh error:", error);
+      // Clear potentially invalid cookie on any error
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+      });
       res.status(401).json({ message: "Invalid refresh token" });
     }
   });
@@ -937,7 +1032,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
+        path: "/",
       });
+      
+      console.log("🔐 [Server] Refresh token cookie cleared successfully");
 
       console.log("🔐 [Server] Logout successful");
       res.json({ message: "Logout successful" });
@@ -968,6 +1066,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const storedToken = await storage.getRefreshToken(refreshToken);
         if (!storedToken) {
           console.log("🔍 [Server] Refresh token not found in database");
+          // Clear invalid cookie
+          res.clearCookie("refreshToken", {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+          });
+          return res.json({ hasAuth: false });
+        }
+
+        // Check if token is expired
+        if (storedToken.expiresAt.getTime() < Date.now()) {
+          console.log("🔍 [Server] Refresh token has expired");
+          // Delete expired token from database
+          await storage.deleteRefreshToken(refreshToken);
+          // Clear expired cookie
+          res.clearCookie("refreshToken", {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+          });
           return res.json({ hasAuth: false });
         }
 
@@ -975,6 +1093,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ hasAuth: true });
       } catch (error) {
         console.log("🔍 [Server] Invalid refresh token:", error);
+        // Clear invalid cookie
+        res.clearCookie("refreshToken", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production", 
+          sameSite: "lax",
+        });
         return res.json({ hasAuth: false });
       }
     } catch (error) {
@@ -994,11 +1118,163 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: req.user.role,
         twoFactorEnabled: req.user.twoFactorEnabled,
         emailVerified: req.user.emailVerified,
-        menuExpanded: req.user.menuExpanded || false,
+        menuExpanded: req.user.menuExpanded ?? false,
         theme: req.user.theme || 'light',
         avatarUrl: req.user.avatarUrl || null,
       },
     });
+  });
+
+  // Debug endpoint to check token validation
+  app.get("/api/auth/debug-token", authenticateToken, async (req: any, res) => {
+    const authHeader = req.headers["authorization"];
+    const token = authHeader && authHeader.split(" ")[1];
+    
+    if (token) {
+      const decoded = jwt.decode(token) as any;
+      const user = await storage.getUser(req.user.id, req.user.tenantId);
+      
+      res.json({
+        tokenInfo: {
+          iat: decoded.iat,
+          issuedAt: decoded.iat ? new Date(decoded.iat * 1000).toISOString() : null,
+          exp: decoded.exp,
+          expiresAt: decoded.exp ? new Date(decoded.exp * 1000).toISOString() : null,
+        },
+        userInfo: {
+          tokenValidAfter: user?.tokenValidAfter,
+          tokenValidAfterISO: user?.tokenValidAfter ? new Date(user.tokenValidAfter).toISOString() : null,
+        },
+        validation: {
+          tokenIssuedAtMs: decoded.iat ? decoded.iat * 1000 : 0,
+          tokenValidAfterMs: user?.tokenValidAfter ? new Date(user.tokenValidAfter).getTime() : 0,
+          isTokenValid: decoded.iat && user?.tokenValidAfter ? 
+            (decoded.iat * 1000) >= new Date(user.tokenValidAfter).getTime() : true
+        }
+      });
+    } else {
+      res.status(400).json({ message: "No token provided" });
+    }
+  });
+
+  // Session restoration endpoint - tries to restore user session using refresh token
+  app.post("/api/auth/restore-session", async (req, res) => {
+    try {
+      console.log("🔄 [Server] Session restoration request received");
+      const refreshToken = req.cookies.refreshToken;
+
+      if (!refreshToken) {
+        console.log("🔄 [Server] No refresh token found for session restoration");
+        return res.status(401).json({ 
+          message: "No active session found",
+          hasAuth: false 
+        });
+      }
+
+      // Verify refresh token
+      let decoded: any;
+      try {
+        decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET) as any;
+        console.log("🔄 [Server] Session restoration token decoded:", {
+          userId: decoded.userId,
+          tenantId: decoded.tenantId,
+        });
+      } catch (jwtError) {
+        console.log("🔄 [Server] Session restoration JWT verification failed:", jwtError);
+        // Clear invalid cookie
+        res.clearCookie("refreshToken", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+        });
+        return res.status(401).json({ 
+          message: "Invalid session token",
+          hasAuth: false 
+        });
+      }
+
+      // Check if refresh token exists in database
+      const storedToken = await storage.getRefreshToken(refreshToken);
+      if (!storedToken) {
+        console.log("🔄 [Server] Session restoration token not found in database");
+        res.clearCookie("refreshToken", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+        });
+        return res.status(401).json({ 
+          message: "Session not found",
+          hasAuth: false 
+        });
+      }
+
+      // Check if token has expired
+      if (storedToken.expiresAt.getTime() < Date.now()) {
+        console.log("🔄 [Server] Session restoration token has expired");
+        await storage.deleteRefreshToken(refreshToken);
+        res.clearCookie("refreshToken", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+        });
+        return res.status(401).json({ 
+          message: "Session expired",
+          hasAuth: false 
+        });
+      }
+
+      // Get user
+      const user = await storage.getUser(decoded.userId, decoded.tenantId);
+      if (!user || !user.isActive) {
+        console.log("🔄 [Server] Session restoration user not found or inactive");
+        await storage.deleteRefreshToken(refreshToken);
+        res.clearCookie("refreshToken", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+        });
+        return res.status(401).json({ 
+          message: "User account not found or inactive",
+          hasAuth: false 
+        });
+      }
+
+      // Generate new access token only (keep existing refresh token)
+      const { accessToken } = generateTokens(user.id, user.tenantId);
+      
+      // Update session last used time
+      await storage.updateSessionLastUsed(refreshToken);
+
+      console.log("🔄 [Server] Session restored successfully for user:", user.email);
+      res.json({
+        message: "Session restored successfully",
+        accessToken,
+        hasAuth: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          twoFactorEnabled: user.twoFactorEnabled,
+          emailVerified: user.emailVerified,
+          menuExpanded: user.menuExpanded ?? false,
+          theme: user.theme || 'light',
+          avatarUrl: user.avatarUrl || null,
+        },
+      });
+    } catch (error: any) {
+      console.error("Session restoration error:", error);
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+      });
+      res.status(401).json({ 
+        message: "Session restoration failed",
+        hasAuth: false 
+      });
+    }
   });
 
   // Get refresh token info endpoint
@@ -1051,7 +1327,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update menu preference endpoint
-  // Note: Temporarily using localStorage-only approach due to database schema mismatch
   app.patch(
     "/api/auth/menu-preference",
     authenticateToken,
@@ -1065,13 +1340,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .json({ message: "Menu preference must be a boolean value" });
         }
 
-        // TODO: Store in database once schema is migrated
-        // For now, we'll just acknowledge the request and rely on localStorage
         console.log(`Menu preference update for user ${req.user.id}: ${menuExpanded}`);
+
+        // Update the menu preference in the database
+        const updatedUser = await storage.updateUser(
+          req.user.id,
+          { menuExpanded },
+          req.user.tenantId,
+        );
+
+        if (!updatedUser) {
+          return res.status(404).json({ message: "User not found" });
+        }
 
         res.json({
           message: "Menu preference updated successfully",
-          menuExpanded,
+          menuExpanded: updatedUser.menuExpanded,
         });
       } catch (error) {
         console.error("Update menu preference error:", error);
@@ -1088,6 +1372,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Logged out from all devices" });
     } catch (error) {
       console.error("Logout all error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Update theme preference endpoint
+  app.patch("/api/auth/theme", authenticateToken, async (req: any, res) => {
+    try {
+      const { theme } = req.body;
+
+      if (!theme || !['light', 'dark'].includes(theme)) {
+        return res.status(400).json({ 
+          message: "Invalid theme. Must be 'light' or 'dark'" 
+        });
+      }
+
+      const updatedUser = await storage.updateUser(
+        req.user.id,
+        { theme },
+        req.user.tenantId,
+      );
+
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({
+        message: "Theme updated successfully",
+        theme: updatedUser.theme,
+      });
+    } catch (error) {
+      console.error("Update theme error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -1591,6 +1906,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "No refresh token cookie found, deleting all user sessions",
         );
         await storage.deleteAllUserSessions(userId, req.user.tenantId);
+        
+        // Update tokenValidAfter to invalidate all existing access tokens
+        await storage.updateUser(
+          userId,
+          { tokenValidAfter: new Date() },
+          req.user.tenantId
+        );
+        
         return res.json({ message: "All sessions logged out successfully" });
       }
 
@@ -1602,6 +1925,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "Refresh token not found in database, deleting all user sessions",
         );
         await storage.deleteAllUserSessions(userId, req.user.tenantId);
+        
+        // Update tokenValidAfter to invalidate all existing access tokens
+        await storage.updateUser(
+          userId,
+          { tokenValidAfter: new Date() },
+          req.user.tenantId
+        );
+        
         return res.json({ message: "All sessions logged out successfully" });
       }
 
@@ -1611,6 +1942,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId,
         currentRefreshToken,
         req.user.tenantId,
+      );
+
+      // Update tokenValidAfter to invalidate all existing access tokens
+      console.log("Updating tokenValidAfter to invalidate all tokens");
+      await storage.updateUser(
+        userId,
+        { tokenValidAfter: new Date() },
+        req.user.tenantId
       );
 
       res.json({ message: "All other sessions logged out successfully" });
@@ -2682,14 +3021,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get all active users in the tenant
       const allUsers = await storage.getAllUsers(req.user.tenantId, {
-        isActive: true,
+        showInactive: false,
+        status: 'active',
       });
       
       console.log("📋 [Managers List] Total active users found:", allUsers.length);
       
-      // Filter to only include users with Manager role
+      // Filter to only include users with Manager or Owner role
       const managers = allUsers.filter(user => 
-        user.role === 'Manager'
+        user.role === 'Manager' || user.role === 'Owner'
       );
       
       console.log("📋 [Managers List] Managers found:", managers.length, managers.map(m => ({ email: m.email, role: m.role })));
@@ -2753,7 +3093,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Create user
         const newUser = await storage.createUser({
-          id: crypto.randomUUID(),
+          // ID will be auto-generated by the storage layer
           email: managerData.email,
           password: hashedPassword,
           firstName: managerData.firstName,

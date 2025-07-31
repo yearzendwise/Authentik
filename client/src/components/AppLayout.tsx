@@ -111,19 +111,23 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   // Sync theme from backend only on initial load
   const [hasInitializedTheme, setHasInitializedTheme] = useState(false);
+  const [lastUserId, setLastUserId] = useState<string | null>(null);
   
   useEffect(() => {
-    // Reset initialization flag when user changes (logout/login)
+    // Reset initialization flag when user changes (logout/login) or when user ID changes
     if (!user) {
       setHasInitializedTheme(false);
-    } else if (user && !hasInitializedTheme && !isThemeChanging) {
-      // Always set theme from backend when user logs in, even if undefined
+      setLastUserId(null);
+    } else if (user && (!hasInitializedTheme || user.id !== lastUserId) && !isThemeChanging) {
+      // Always set theme from backend when user logs in or changes, even if undefined
       const backendTheme = user.theme || 'light';
-
+      
+      console.log(`🎨 [Theme] Syncing theme from backend: ${backendTheme} for user ${user.email}`);
       setUserTheme(backendTheme);
       setHasInitializedTheme(true);
+      setLastUserId(user.id);
     }
-  }, [user, setUserTheme, hasInitializedTheme, isThemeChanging]);
+  }, [user, setUserTheme, hasInitializedTheme, isThemeChanging, lastUserId]);
 
   // Listen for localStorage changes from other tabs and immediate changes
   useEffect(() => {

@@ -45,7 +45,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   // Method to set theme from user preference (forces update from backend)
   const setUserTheme = (userTheme: Theme | undefined) => {
-    if (userTheme) {
+    if (userTheme && userTheme !== theme) {
+      console.log(`🎨 [ThemeContext] Setting user theme: ${userTheme} (current: ${theme})`);
       setTheme(userTheme);
       // Also update localStorage to ensure consistency
       localStorage.setItem('theme', userTheme);

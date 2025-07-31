@@ -7,7 +7,7 @@ import { useLogout } from "@/hooks/useAuth";
 import { useReduxAuth } from "@/hooks/useReduxAuth";
 import type { UserSubscriptionResponse, RefreshTokenInfo } from "@shared/schema";
 import { authManager } from "@/lib/auth";
-import { Shield, Users, Clock, TrendingUp, LogOut, RefreshCw, Settings, CreditCard, Calendar, Mail, Send, Eye, MousePointer, FileText } from "lucide-react";
+import { Shield, Users, Clock, TrendingUp, LogOut, RefreshCw, Settings, CreditCard, Calendar, Mail, Send, Eye, MousePointer, FileText, User } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function Dashboard() {

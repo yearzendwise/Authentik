@@ -176,71 +176,101 @@ export default function CompanyPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="p-6 bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 min-h-screen">
+        <div className="max-w-4xl mx-auto">
+          <div className="space-y-6">
+            <div className="mb-8">
+              <div className="flex items-center space-x-4">
+                <Building2 className="text-blue-600 dark:text-blue-500 w-8 h-8" />
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
+                    Company Information
+                  </h1>
+                  <p className="text-gray-600 dark:text-gray-400 mt-1">
+                    Loading company details
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="grid gap-4">
+              {[1, 2].map((i) => (
+                <Card key={i} className="animate-pulse bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30">
+                  <CardContent className="p-6">
+                    <div className="h-4 bg-muted rounded w-1/3 mb-2"></div>
+                    <div className="h-3 bg-muted rounded w-1/2"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!company && !isEditing) {
     return (
-      <div className="p-6">
-        {/* Page Header */}
-        <div className="mb-8">
-          <div className="flex items-center space-x-4">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Building2 className="text-white w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Company Information</h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                Set up your company profile to get started
-              </p>
+      <div className="p-6 bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 min-h-screen">
+        <div className="max-w-4xl mx-auto">
+          {/* Page Header */}
+          <div className="mb-8">
+            <div className="flex items-center space-x-4">
+              <Building2 className="text-blue-600 dark:text-blue-500 w-8 h-8" />
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
+                  Company Information
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400 mt-1">
+                  Set up your company profile to get started
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No company information found</h3>
-            <p className="text-muted-foreground text-center mb-6">
-              {canEdit ? "Get started by adding your company details." : "Company information will be displayed here once it's added by an Owner or Administrator."}
-            </p>
-            {canEdit && (
-              <Button onClick={() => setIsEditing(true)}>
-                <Building2 className="mr-2 h-4 w-4" />
-                Add Company Information
-              </Button>
-            )}
-          </CardContent>
-        </Card>
+          <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30">
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Building2 className="h-12 w-12 text-blue-500 dark:text-blue-400 mb-4" />
+              <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">No company information found</h3>
+              <p className="text-gray-600 dark:text-gray-300 text-center mb-6">
+                {canEdit ? "Get started by adding your company details." : "Company information will be displayed here once it's added by an Owner or Administrator."}
+              </p>
+              {canEdit && (
+                <Button 
+                  onClick={() => setIsEditing(true)}
+                  className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+                >
+                  <Building2 className="mr-2 h-4 w-4" />
+                  Add Company Information
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   if (isEditing) {
     return (
-      <div className="p-6">
-        {/* Page Header */}
-        <div className="mb-8">
-          <div className="flex items-center space-x-4">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Building2 className="text-white w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {company ? "Edit Company Information" : "Add Company Information"}
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                {company ? "Update your company details" : "Set up your company profile"}
-              </p>
+      <div className="p-6 bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 min-h-screen">
+        <div className="max-w-4xl mx-auto">
+          {/* Page Header */}
+          <div className="mb-8">
+            <div className="flex items-center space-x-4">
+              <Building2 className="text-blue-600 dark:text-blue-500 w-8 h-8" />
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
+                  {company ? "Edit Company Information" : "Add Company Information"}
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400 mt-1">
+                  {company ? "Update your company details" : "Set up your company profile"}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-        
-        <Card>
-          <CardContent className="p-6">
+          
+          <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30">
+            <CardContent className="p-6">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -387,6 +417,7 @@ export default function CompanyPage() {
             </Form>
           </CardContent>
         </Card>
+        </div>
       </div>
     );
   }
@@ -397,39 +428,42 @@ export default function CompanyPage() {
   }
 
   return (
-    <div className="p-6">
-      {/* Page Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Building2 className="text-white w-6 h-6" />
+    <div className="p-6 bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 min-h-screen">
+      <div className="max-w-4xl mx-auto">
+        {/* Page Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Building2 className="text-blue-600 dark:text-blue-500 w-8 h-8" />
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
+                  Company Information
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400 mt-1">
+                  View and manage your company details
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Company Information</h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                View and manage your company details
-              </p>
-            </div>
+            {canEdit && (
+              <Button 
+                onClick={handleEdit}
+                variant="outline" 
+                className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 border-blue-200 dark:border-blue-700/50 hover:from-blue-100 hover:to-blue-200 dark:hover:from-blue-800/40 dark:hover:to-blue-700/40 transition-all duration-300 text-blue-700 dark:text-blue-300"
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Information
+              </Button>
+            )}
           </div>
-          {canEdit && (
-            <Button onClick={handleEdit}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit Information
-            </Button>
-          )}
         </div>
-      </div>
 
-      <div className="grid gap-6">
+        <div className="grid gap-6">
         {/* Company Overview Card */}
-        <Card>
+        <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Building2 className="h-6 w-6 text-primary" />
-                </div>
+                <Building2 className="h-8 w-8 text-blue-600 dark:text-blue-500" />
                 <div>
                   <CardTitle>{company.name}</CardTitle>
                   {company.industry && (
@@ -527,9 +561,9 @@ export default function CompanyPage() {
         </Card>
 
         {/* Additional Information Card */}
-        <Card>
+        <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300">
           <CardHeader>
-            <CardTitle className="text-base">Account Information</CardTitle>
+            <CardTitle className="text-base text-gray-900 dark:text-gray-100">Account Information</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -544,6 +578,7 @@ export default function CompanyPage() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );

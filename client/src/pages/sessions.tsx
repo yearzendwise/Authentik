@@ -125,9 +125,7 @@ export default function Sessions() {
           <div className="space-y-6">
             <div className="mb-8">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 dark:from-blue-500 dark:to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <Monitor className="text-white w-7 h-7" />
-                </div>
+                <Monitor className="text-blue-600 dark:text-blue-500 w-8 h-8" />
                 <div>
                   <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
                     Active Sessions
@@ -164,9 +162,7 @@ export default function Sessions() {
           <div className="flex items-center justify-between">
             <div className="mb-8">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 dark:from-blue-500 dark:to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <Monitor className="text-white w-7 h-7" />
-                </div>
+                <Monitor className="text-blue-600 dark:text-blue-500 w-8 h-8" />
                 <div>
                   <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
                     Active Sessions
@@ -218,7 +214,7 @@ export default function Sessions() {
                 <CardHeader className="pb-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 dark:from-green-400 dark:to-green-500 rounded-xl flex items-center justify-center shadow-lg">
+                      <div className="text-green-600 dark:text-green-500 w-8 h-8 flex items-center justify-center">
                         {getDeviceIcon(currentSession.deviceName)}
                       </div>
                       <div>
@@ -260,7 +256,7 @@ export default function Sessions() {
                     <CardHeader className="pb-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
-                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500 rounded-xl flex items-center justify-center shadow-lg">
+                          <div className="text-blue-600 dark:text-blue-500 w-8 h-8 flex items-center justify-center">
                             {getDeviceIcon(session.deviceName)}
                           </div>
                           <div>

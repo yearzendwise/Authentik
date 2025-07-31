@@ -59,3 +59,22 @@ The application adopts a monorepo architecture, separating client, server, and s
 -   **wouter**: Lightweight client-side routing.
 -   **@headlessui/react**: UI components for forms.
 -   **@heroicons/react**: Icons for UI components.
+
+## Database Migration Status
+
+**Last Verified**: July 31, 2025
+
+All database migrations are up-to-date and include current schema columns:
+
+### Applied Migrations
+- **001_make_location_fields_optional.sql**: Made address and city fields optional in shops table
+- **002_add_shop_limits_to_subscriptions.sql**: Added max_shops column to subscription_plans table
+
+### Schema Verification (11 tables)
+- ✅ **users**: 28 columns including menu_expanded, theme, avatar_url, token_valid_after, stripe integration fields
+- ✅ **refresh_tokens**: Complete device tracking (device_id, device_name, user_agent, ip_address, location, last_used, is_active)
+- ✅ **subscription_plans**: All limit columns (max_users, max_projects, max_shops, storage_limit, features array)
+- ✅ **shops**: Full location details with proper nullable constraints
+- ✅ **tenants, stores, subscriptions, verification_tokens, companies, forms, form_responses**: All current columns present
+
+**Database Command**: Use `npm run db:push` for schema changes instead of manual SQL migrations.

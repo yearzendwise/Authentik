@@ -20,6 +20,63 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Core React libraries
+          'react-vendor': ['react', 'react-dom'],
+          
+          // State management
+          'state-vendor': ['@reduxjs/toolkit', 'react-redux', 'redux-persist'],
+          
+          // Data fetching
+          'query-vendor': ['@tanstack/react-query', '@tanstack/react-table'],
+          
+          // UI component libraries
+          'radix-vendor': [
+            '@radix-ui/react-accordion',
+            '@radix-ui/react-alert-dialog',
+            '@radix-ui/react-avatar',
+            '@radix-ui/react-checkbox',
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-label',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-select',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-toast',
+            '@radix-ui/react-tooltip'
+          ],
+          
+          // Form handling
+          'form-vendor': ['react-hook-form', '@hookform/resolvers', 'zod'],
+          
+          // Charts and data visualization
+          'charts-vendor': ['recharts'],
+          
+          // Icons and styling
+          'ui-vendor': [
+            'lucide-react',
+            'react-icons',
+            'framer-motion',
+            'class-variance-authority',
+            'clsx',
+            'tailwind-merge'
+          ],
+          
+          // Date and utility libraries
+          'utils-vendor': ['date-fns', 'nanoid'],
+          
+          // Payment processing
+          'stripe-vendor': ['@stripe/stripe-js', '@stripe/react-stripe-js', 'stripe'],
+          
+          // AWS and cloud services
+          'aws-vendor': ['@aws-sdk/client-s3', '@aws-sdk/s3-request-presigner']
+        }
+      }
+    },
+    // Increase chunk size warning limit to 1000kb
+    chunkSizeWarningLimit: 1000
   },
   server: {
     host: '0.0.0.0',

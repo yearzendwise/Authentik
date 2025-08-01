@@ -3,9 +3,33 @@ import { BuildStep } from './wizard-steps/build-step';
 import { StyleStep } from './wizard-steps/style-step';
 import { PreviewStep } from './wizard-steps/preview-step';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
+import { useReduxAuth } from '@/hooks/useReduxAuth';
+import { useAuth } from '@/hooks/useAuth';
+import { useLocation } from 'wouter';
 
 export function FormWizard() {
+  const { isAuthenticated, isLoading: authLoading } = useReduxAuth();
+  const { hasInitialized } = useAuth();
+  const [, setLocation] = useLocation();
+
+  // Redirect unauthenticated users immediately
+  if (hasInitialized && !isAuthenticated) {
+    setLocation('/auth');
+    return null;
+  }
+
+  // Show loading while authentication is being determined
+  if (!hasInitialized || authLoading) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-neutral-50 dark:bg-neutral-900">
+        <div className="flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-4">Authenticating...</span>
+        </div>
+      </div>
+    );
+  }
   const {
     wizardState,
     themes,
@@ -36,6 +60,8 @@ export function FormWizard() {
     // TODO: Implement export functionality
     console.log('Exporting form:', wizardState);
   };
+
+
 
   const getStepTitle = () => {
     switch (wizardState.currentStep) {
@@ -127,8 +153,10 @@ export function FormWizard() {
           </div>
         </div>
 
-        <div className="text-sm text-slate-600">
-          Step {getStepNumber()} of 3
+        <div className="flex items-center space-x-4">
+          <div className="text-sm text-slate-600">
+            Step {getStepNumber()} of 3
+          </div>
         </div>
       </header>
       {/* Step Content */}
@@ -164,7 +192,7 @@ export function FormWizard() {
         )}
       </div>
       {/* Navigation Footer */}
-      <footer className="bg-white border-t border-slate-200 px-6 py-4">
+      <footer className="bg-white dark:bg-gray-950 border-t border-slate-200 dark:border-gray-800 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
             {wizardState.currentStep !== 'build' && (
@@ -177,7 +205,7 @@ export function FormWizard() {
 
           <div className="flex items-center space-x-3">
             {wizardState.currentStep === 'build' && (
-              <div className="text-sm text-slate-600">
+              <div className="text-sm text-slate-600 dark:text-slate-400">
                 {canProceedToStyle ? 
                   `${wizardState.formData.elements.length} element${wizardState.formData.elements.length !== 1 ? 's' : ''} added` :
                   'Add at least one form element to continue'
@@ -186,7 +214,7 @@ export function FormWizard() {
             )}
             
             {wizardState.currentStep === 'style' && (
-              <div className="text-sm text-slate-600">
+              <div className="text-sm text-slate-600 dark:text-slate-400">
                 {canProceedToPreview ? 
                   `${wizardState.selectedTheme?.name} theme selected` :
                   'Select a theme to continue'

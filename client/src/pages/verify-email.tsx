@@ -8,6 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useReduxAuth } from "@/hooks/useReduxAuth";
 import { useAppDispatch } from "@/store";
 import { checkAuthStatus } from "@/store/authSlice";
+import { authManager } from "@/lib/auth";
 
 export default function VerifyEmailPage() {
   const [location, setLocation] = useLocation();
@@ -19,6 +20,22 @@ export default function VerifyEmailPage() {
   const [isVerified, setIsVerified] = useState(false);
   const [error, setError] = useState("");
   const [isResending, setIsResending] = useState(false);
+
+  // Force light theme on email verification page regardless of user preference
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove('dark');
+    root.classList.add('light');
+    
+    // Cleanup: restore previous theme when leaving
+    const originalTheme = localStorage.getItem('theme');
+    return () => {
+      if (originalTheme === 'dark') {
+        root.classList.remove('light');
+        root.classList.add('dark');
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -54,7 +71,6 @@ export default function VerifyEmailPage() {
             console.log("🔍 [VerifyEmail] Automatic login detected, updating auth state...");
             
             // Update the auth manager with the new token
-            const { authManager } = await import("@/lib/auth");
             authManager.setAccessToken(responseData.accessToken);
             
             // Invalidate user cache to refresh the verification status

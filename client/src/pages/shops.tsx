@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Store, 
   Plus, 
@@ -233,7 +234,7 @@ export default function ShopsPage() {
                  <Avatar className="h-10 w-10">
                     <AvatarImage src={shop.logoUrl ?? undefined} />
                     <AvatarFallback className="bg-gray-100 text-gray-600 text-sm">
-                      {getShopCategoryIcon(shop.category)}
+                      {getShopCategoryIcon(shop.category || undefined)}
                     </AvatarFallback>
                   </Avatar>
                </div>
@@ -403,30 +404,45 @@ export default function ShopsPage() {
     <div className="max-w-7xl mx-auto p-6">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="mb-8">
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Store className="text-white w-6 h-6" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Shops</h1>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Manage your shop locations and details
-                </p>
+        {isLoading ? (
+          <div className="flex items-center justify-between">
+            <div className="mb-8">
+              <div className="flex items-center space-x-4">
+                <Skeleton className="w-10 h-10 rounded-lg" />
+                <div className="space-y-2">
+                  <Skeleton className="h-8 w-20" />
+                  <Skeleton className="h-4 w-48" />
+                </div>
               </div>
             </div>
+            <Skeleton className="h-10 w-24" />
           </div>
-          <Link href="/shops/new">
-            <Button disabled={data?.limits && !data.limits.canAddShop}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Shop
-            </Button>
-          </Link>
-        </div>
+        ) : (
+          <div className="flex items-center justify-between">
+            <div className="mb-8">
+              <div className="flex items-center space-x-4">
+                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <Store className="text-white w-6 h-6" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Shops</h1>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Manage your shop locations and details
+                  </p>
+                </div>
+              </div>
+            </div>
+            <Link href="/shops/new">
+              <Button disabled={data?.limits && !data.limits.canAddShop}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Shop
+              </Button>
+            </Link>
+          </div>
+        )}
 
       {/* Stats Cards */}
-      {data?.stats && (
+      {!isLoading && data?.stats && (
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardContent className="p-6">
@@ -535,6 +551,7 @@ export default function ShopsPage() {
       )}
 
       {/* Filters */}
+      {!isLoading && (
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -574,14 +591,60 @@ export default function ShopsPage() {
           )}
         </div>
       </div>
+      )}
 
       {/* Shops Table */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading shops...</p>
+        <div className="space-y-6">
+          {/* Stats Cards Skeleton */}
+          <div className="grid gap-4 md:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-8 w-12" />
+                    </div>
+                    <Skeleton className="h-8 w-8 rounded" />
+                  </div>
+                  <Skeleton className="h-3 w-24 mt-2" />
+                </CardContent>
+              </Card>
+            ))}
           </div>
+          
+          {/* Filters Skeleton */}
+          <div className="flex items-center justify-between">
+            <div className="relative flex-1 max-w-sm">
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="flex gap-2">
+              <Skeleton className="h-10 w-[180px]" />
+              <Skeleton className="h-10 w-[180px]" />
+            </div>
+          </div>
+          
+          {/* Table Skeleton */}
+          <Card>
+            <CardContent className="p-0">
+              <div className="space-y-4 p-6">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex items-center space-x-4">
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <div className="space-y-2 flex-1">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                    <Skeleton className="h-6 w-16" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-8 w-8" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       ) : error ? (
         <Card>

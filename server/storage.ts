@@ -285,7 +285,42 @@ export class DatabaseStorage implements IStorage {
     // This ensures Drizzle properly maps database column names (like avatar_url) to schema field names (like avatarUrl)
     // Using explicit field selection can break this mapping for some fields
     const result = await db
-      .select()
+      .select({
+        // User fields
+        id: users.id,
+        tenantId: users.tenantId,
+        email: users.email,
+        password: users.password,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        role: users.role,
+        isActive: users.isActive,
+        twoFactorEnabled: users.twoFactorEnabled,
+        twoFactorSecret: users.twoFactorSecret,
+        emailVerified: users.emailVerified,
+        emailVerificationToken: users.emailVerificationToken,
+        emailVerificationExpires: users.emailVerificationExpires,
+        lastVerificationEmailSent: users.lastVerificationEmailSent,
+        lastLoginAt: users.lastLoginAt,
+        menuExpanded: users.menuExpanded,
+        theme: users.theme,
+        avatarUrl: users.avatarUrl,
+        stripeCustomerId: users.stripeCustomerId,
+        stripeSubscriptionId: users.stripeSubscriptionId,
+        subscriptionStatus: users.subscriptionStatus,
+        subscriptionPlanId: users.subscriptionPlanId,
+        subscriptionStartDate: users.subscriptionStartDate,
+        subscriptionEndDate: users.subscriptionEndDate,
+        trialEndsAt: users.trialEndsAt,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+        // Tenant fields
+        tenant: {
+          id: tenants.id,
+          name: tenants.name,
+          slug: tenants.slug,
+        },
+      })
       .from(users)
       .innerJoin(tenants, eq(users.tenantId, tenants.id))
       .where(and(eq(users.email, email), eq(users.isActive, true), eq(tenants.isActive, true)))

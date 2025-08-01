@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
-import { useUpdateProfile, useChangePassword, useDeleteAccount, useSetup2FA, useEnable2FA, useDisable2FA, useUpdateMenuPreference } from "@/hooks/useAuth";
+import { useUpdateProfile, useChangePassword, useDeleteAccount, useSetup2FA, useEnable2FA, useDisable2FA, useUpdateMenuPreference, useAuth } from "@/hooks/useAuth";
 import { useReduxAuth } from "@/hooks/useReduxAuth";
 import { updateProfileSchema, changePasswordSchema } from "@shared/schema";
 import type { UpdateProfileData, ChangePasswordData } from "@shared/schema";
@@ -35,7 +35,10 @@ import { useLocation, Link } from "wouter";
 
 export default function ProfilePage() {
   const [, setLocation] = useLocation();
-  const { user, isLoading } = useReduxAuth();
+  const { user, isLoading: authLoading, isAuthenticated } = useReduxAuth();
+  const { hasInitialized } = useAuth();
+  
+  // All hooks must be called before any conditional returns
   const updateProfileMutation = useUpdateProfile();
   const changePasswordMutation = useChangePassword();
   const deleteAccountMutation = useDeleteAccount();
@@ -83,6 +86,24 @@ export default function ProfilePage() {
       setPasswordStrength(calculatePasswordStrength(watchNewPassword));
     }
   }, [watchNewPassword]);
+
+  // Redirect unauthenticated users immediately
+  if (hasInitialized && !isAuthenticated) {
+    setLocation('/auth');
+    return null;
+  }
+
+  // Show loading while authentication is being determined
+  if (!hasInitialized || authLoading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-4">Authenticating...</span>
+        </div>
+      </div>
+    );
+  }
 
   const onUpdateProfile = async (data: UpdateProfileData) => {
     await updateProfileMutation.mutateAsync(data);
@@ -158,18 +179,7 @@ export default function ProfilePage() {
     );
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
 
-  if (!user) {
-    setLocation("/auth");
-    return null;
-  }
 
   return (
     <div className="max-w-4xl mx-auto p-6">

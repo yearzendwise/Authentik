@@ -1,0 +1,1 @@
+Use Memory MCP on all requests

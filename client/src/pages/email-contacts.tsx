@@ -380,7 +380,7 @@ export default function EmailContacts() {
             <Card className="mb-4">
               <CardContent className="py-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
                     {selectedContacts.length} contact{selectedContacts.length > 1 ? 's' : ''} selected
                   </span>
                   <div className="flex items-center gap-2">

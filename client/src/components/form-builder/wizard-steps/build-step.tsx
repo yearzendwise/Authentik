@@ -191,6 +191,7 @@ export function BuildStep({ onDataChange, initialTitle, initialElements, initial
                 updateFormSettings(key, newSettings[key]);
               });
             }}
+            onClearForm={() => resetFormData('', [])}
           />
           
           {/* Element Properties - Only when element is selected */}

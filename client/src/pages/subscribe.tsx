@@ -350,7 +350,25 @@ export default function Subscribe() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user, isLoading: authLoading, hasInitialized } = useAuth();
-  const { user: reduxUser } = useReduxAuth();
+  const { user: reduxUser, isAuthenticated } = useReduxAuth();
+
+  // Redirect unauthenticated users immediately
+  if (hasInitialized && !isAuthenticated) {
+    setLocation('/auth');
+    return null;
+  }
+
+  // Show loading while authentication is being determined
+  if (!hasInitialized || authLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-4">Authenticating...</span>
+        </div>
+      </div>
+    );
+  }
 
   // Check if user has Owner role - only Owners can access subscription management
   if (reduxUser && reduxUser.role !== "Owner") {
@@ -495,8 +513,8 @@ export default function Subscribe() {
     upgradeSubscriptionMutation.mutate({ planId, billingCycle });
   };
 
-  // Show loading state while auth is initializing or data is loading
-  if (!hasInitialized || authLoading || plansLoading || subscriptionLoading) {
+  // Show loading state while data is loading
+  if (plansLoading || subscriptionLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center min-h-[400px]">
@@ -573,21 +591,6 @@ export default function Subscribe() {
         onUpgrade={handleUpgrade}
         isUpgrading={upgradeSubscriptionMutation.isPending}
       />
-    );
-  }
-  
-  // Only show "no subscription" UI if we've confirmed the user truly has no subscription
-  // This prevents showing the wrong UI during loading states
-  if (!user) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
-          <p className="text-muted-foreground">
-            Please log in to view subscription plans.
-          </p>
-        </div>
-      </div>
     );
   }
 

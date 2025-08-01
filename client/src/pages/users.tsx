@@ -478,7 +478,7 @@ export default function UsersPage() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+              className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
               onClick={() => {
                 if (confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}?`)) {
                   handleDeleteUser(user.id);
@@ -702,8 +702,8 @@ export default function UsersPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-blue-600">Total Users</p>
-                  <p className="text-2xl font-bold text-blue-900">{stats.totalUsers}</p>
+                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Total Users</p>
+                  <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{stats.totalUsers}</p>
                 </div>
                 <UsersIcon className="text-blue-500 w-8 h-8" />
               </div>
@@ -715,8 +715,8 @@ export default function UsersPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-green-600">Active Users</p>
-                  <p className="text-2xl font-bold text-green-900">{stats.activeUsers}</p>
+                  <p className="text-sm font-medium text-green-600 dark:text-green-400">Active Users</p>
+                  <p className="text-2xl font-bold text-green-900 dark:text-green-100">{stats.activeUsers}</p>
                 </div>
                 <UserCheck className="text-green-500 w-8 h-8" />
               </div>
@@ -730,8 +730,8 @@ export default function UsersPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-purple-600">Roles</p>
-                  <p className="text-2xl font-bold text-purple-900">{Object.keys(stats.usersByRole).length}</p>
+                  <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Roles</p>
+                  <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{Object.keys(stats.usersByRole).length}</p>
                 </div>
                 <Shield className="text-purple-500 w-8 h-8" />
               </div>
@@ -743,8 +743,8 @@ export default function UsersPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-orange-600">Plan Limits</p>
-                  <p className="text-2xl font-bold text-orange-900">
+                  <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Plan Limits</p>
+                  <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">
                     {limits.currentUsers}{limits.maxUsers ? `/${limits.maxUsers}` : ''}
                   </p>
                 </div>
@@ -804,7 +804,7 @@ export default function UsersPage() {
         </div>
 
         {/* Users Table */}
-        <div className="bg-white rounded-lg shadow-sm">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           <DataTable
             columns={columns}
             data={filteredUsers}

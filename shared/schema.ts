@@ -40,6 +40,7 @@ export const users = pgTable("users", {
   menuExpanded: boolean("menu_expanded").default(false), // New field for menu preference
   theme: text("theme").default('light'), // Theme preference: 'light' or 'dark'
   avatarUrl: text("avatar_url"), // User avatar URL from Cloudflare R2
+  tokenValidAfter: timestamp("token_valid_after").defaultNow(), // Tokens issued before this time are invalid
   // Stripe fields for subscription management
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),

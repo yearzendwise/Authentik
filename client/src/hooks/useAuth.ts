@@ -545,3 +545,53 @@ export function useDisable2FA() {
     },
   });
 }
+
+export function useUpdateTheme() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { theme: 'light' | 'dark' }) => {
+      // Check if user is authenticated before making the request
+      if (!authManager.getAccessToken()) {
+        console.log("No access token available, skipping theme update");
+        return null;
+      }
+      
+      const response = await authManager.makeAuthenticatedRequest(
+        "PATCH",
+        "/api/auth/theme",
+        data,
+      );
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "Unknown error" }));
+        throw new Error(errorData.message || "Failed to update theme");
+      }
+      const result = await response.json();
+      return result;
+    },
+    onSuccess: (data, variables) => {
+      // Skip if no data returned (unauthenticated)
+      if (!data) return;
+      
+      // Update the cached user data with new theme
+      queryClient.setQueryData(["/api/auth/me"], (oldData: any) => {
+        if (oldData?.user) {
+          return { 
+            ...oldData, 
+            user: { 
+              ...oldData.user, 
+              theme: variables.theme 
+            } 
+          };
+        }
+        return oldData;
+      });
+      
+      console.log("Theme updated successfully on backend");
+    },
+    onError: (error) => {
+      console.error("🎨 [Theme] Error:", error);
+      // Don't show error toast for theme updates - they should be silent
+    },
+  });
+}

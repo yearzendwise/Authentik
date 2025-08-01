@@ -6,7 +6,7 @@ import { setAccessToken, clearAuth } from "../store/authSlice";
 
 let store: any = null;
 let authListener: ((token: string | null) => void) | null = null;
-let isUpdatingFromRedux = false;
+let isDispatchingFromListener = false;
 
 export const initializeAuthStoreSync = (reduxStore: any) => {
   store = reduxStore;
@@ -23,33 +23,32 @@ export const initializeAuthStoreSync = (reduxStore: any) => {
       return;
     }
     
-    // Prevent circular updates - don't dispatch if we're already updating from Redux
-    if (isUpdatingFromRedux) {
+    // Prevent circular dispatches
+    if (isDispatchingFromListener) {
+      console.log("🔄 Skipping auth sync - already dispatching to prevent circular dependency");
       return;
     }
     
-    // Use setTimeout to defer the dispatch to the next tick
-    // This prevents the "cannot call getState while reducer is executing" error
+    // Use setTimeout to defer dispatch outside of current execution context
+    // This prevents "store.getState() while reducer is executing" errors
     setTimeout(() => {
       try {
-        const currentState = store.getState();
-        const currentToken = currentState.auth?.accessToken;
+        isDispatchingFromListener = true;
         
-        // Only update if the token actually changed
-        if (token !== currentToken) {
-          if (token) {
-            // Token was set - update Redux store
-            console.log("🔄 Syncing token to Redux store");
-            store.dispatch(setAccessToken(token));
-          } else {
-            // Token was cleared - clear Redux store
-            console.log("🔄 Clearing Redux store authentication state");
-            store.dispatch(clearAuth());
-          }
+        if (token) {
+          // Token was set - update Redux store
+          console.log("🔄 Syncing token to Redux store");
+          store.dispatch(setAccessToken(token));
+        } else {
+          // Token was cleared - clear Redux store
+          console.log("🔄 Clearing Redux store authentication state");
+          store.dispatch(clearAuth());
         }
       } catch (error) {
         console.error("Failed to sync auth state to Redux store:", error);
         // Don't rethrow to prevent breaking the auth system
+      } finally {
+        isDispatchingFromListener = false;
       }
     }, 0);
   };

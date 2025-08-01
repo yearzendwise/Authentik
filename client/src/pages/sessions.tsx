@@ -62,7 +62,10 @@ export default function Sessions() {
       }
       return response.json();
     },
-    staleTime: 30000, // 30 seconds
+    staleTime: 0, // Always consider data stale - fetch fresh data every time
+    gcTime: 0, // Don't cache data in memory
+    refetchOnMount: 'always', // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window regains focus
   });
 
   const sessions = (sessionsData as any)?.sessions || [];

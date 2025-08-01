@@ -19,7 +19,8 @@ export async function apiRequest(
       !authManager.isAuthenticated() &&
       (url.includes("/auth/login") ||
         url.includes("/auth/register") ||
-        url.includes("/auth/forgot-password"))
+        url.includes("/auth/forgot-password") ||
+        url.includes("/auth/refresh"))
     ) {
       const headers: Record<string, string> = {
         ...(data ? { "Content-Type": "application/json" } : {}),
@@ -36,24 +37,9 @@ export async function apiRequest(
       return res;
     }
 
-    // For authenticated requests, use the auth manager
-    const token = authManager.getAccessToken();
-    if (!token) {
-      throw new Error("No access token available");
-    }
-
-    const headers: Record<string, string> = {
-      Authorization: `Bearer ${token}`,
-      ...(data ? { "Content-Type": "application/json" } : {}),
-    };
-
-    const res = await fetch(url, {
-      method,
-      headers,
-      body: data ? JSON.stringify(data) : undefined,
-      credentials: "include",
-    });
-
+    // For authenticated requests, use the auth manager's makeAuthenticatedRequest
+    // which handles automatic token refresh on 401 errors
+    const res = await authManager.makeAuthenticatedRequest(method, url, data);
     await throwIfResNotOk(res);
     return res;
   } catch (error) {
@@ -76,13 +62,13 @@ export const getQueryFn: <T>(options: {
         throw new Error("401: Not authenticated");
       }
 
-      // Make authenticated request using auth manager
-      const res = await apiRequest("GET", queryKey.join("/") as string);
+      // Make authenticated request using auth manager with automatic token refresh
+      const res = await authManager.makeAuthenticatedRequest("GET", queryKey.join("/") as string);
       return await res.json();
     } catch (error: any) {
       if (
         unauthorizedBehavior === "returnNull" &&
-        (error.message?.includes("401") || error.message?.includes("403"))
+        (error.message?.includes("401") || error.message?.includes("Authentication failed"))
       ) {
         return null;
       }

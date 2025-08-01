@@ -7,6 +7,7 @@ This project is a full-stack SaaS authentication system providing a comprehensiv
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+UI/UX Design: Modern glass morphism design with enhanced dark mode support (July 31, 2025).
 
 ## System Architecture
 
@@ -29,6 +30,7 @@ The application adopts a monorepo architecture, separating client, server, and s
 -   **Robust Data Flow**: Defined processes for owner registration, user login (including 2FA), profile management, and multi-device session handling.
 -   **Abstraction Layers**: Storage interface for database operations and custom auth manager for token refresh.
 -   **UI/UX**: Utilizes shadcn/ui and Tailwind CSS for a consistent and accessible design, including comprehensive dark mode support.
+-   **Modern Design System**: Implemented glass morphism design with backdrop blur effects, gradient-based visual hierarchy, and enhanced dark mode parity (July 31, 2025).
 -   **Form Management**: React Hook Form with Zod validation for robust form handling.
 -   **User Management**: Provides administrators with full CRUD operations for users, including role-based access control (Owner, Administrator, Manager, Employee).
 -   **Subscription Management**: Interface for managing subscription plans with upgrade/downgrade options and Stripe integration.
@@ -57,3 +59,22 @@ The application adopts a monorepo architecture, separating client, server, and s
 -   **wouter**: Lightweight client-side routing.
 -   **@headlessui/react**: UI components for forms.
 -   **@heroicons/react**: Icons for UI components.
+
+## Database Migration Status
+
+**Last Verified**: July 31, 2025
+
+All database migrations are up-to-date and include current schema columns:
+
+### Applied Migrations
+- **001_make_location_fields_optional.sql**: Made address and city fields optional in shops table
+- **002_add_shop_limits_to_subscriptions.sql**: Added max_shops column to subscription_plans table
+
+### Schema Verification (11 tables)
+- ✅ **users**: 28 columns including menu_expanded, theme, avatar_url, token_valid_after, stripe integration fields
+- ✅ **refresh_tokens**: Complete device tracking (device_id, device_name, user_agent, ip_address, location, last_used, is_active)
+- ✅ **subscription_plans**: All limit columns (max_users, max_projects, max_shops, storage_limit, features array)
+- ✅ **shops**: Full location details with proper nullable constraints
+- ✅ **tenants, stores, subscriptions, verification_tokens, companies, forms, form_responses**: All current columns present
+
+**Database Command**: Use `npm run db:push` for schema changes instead of manual SQL migrations.

@@ -42,8 +42,8 @@ export default function Sessions() {
   // Check authentication first
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
       </div>
     );
   }
@@ -120,30 +120,32 @@ export default function Sessions() {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="space-y-6">
-          <div className="mb-8">
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Monitor className="text-white w-6 h-6" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Active Sessions</h1>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Manage your active login sessions across different devices
-                </p>
+      <div className="p-6 bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 min-h-screen">
+        <div className="max-w-4xl mx-auto">
+          <div className="space-y-6">
+            <div className="mb-8">
+              <div className="flex items-center space-x-4">
+                <Monitor className="text-blue-600 dark:text-blue-500 w-8 h-8" />
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
+                    Active Sessions
+                  </h1>
+                  <p className="text-gray-600 dark:text-gray-400 mt-1">
+                    Manage your active login sessions across different devices
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="grid gap-4">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="animate-pulse">
-                <CardContent className="p-6">
-                  <div className="h-4 bg-muted rounded w-1/3 mb-2"></div>
-                  <div className="h-3 bg-muted rounded w-1/2"></div>
-                </CardContent>
-              </Card>
-            ))}
+            <div className="grid gap-4">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="animate-pulse bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30">
+                  <CardContent className="p-6">
+                    <div className="h-4 bg-muted rounded w-1/3 mb-2"></div>
+                    <div className="h-3 bg-muted rounded w-1/2"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -154,166 +156,176 @@ export default function Sessions() {
   const otherSessions = sessions.filter((s: Session) => !s.isCurrent);
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="mb-8">
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Monitor className="text-white w-6 h-6" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Active Sessions</h1>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Manage your active login sessions across different devices
-                </p>
+    <div className="p-6 bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 min-h-screen">
+      <div className="max-w-4xl mx-auto">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="mb-8">
+              <div className="flex items-center space-x-4">
+                <Monitor className="text-blue-600 dark:text-blue-500 w-8 h-8" />
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
+                    Active Sessions
+                  </h1>
+                  <p className="text-gray-600 dark:text-gray-400 mt-1">
+                    Manage your active login sessions across different devices
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-          {otherSessions.length > 0 && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive">
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Log Out All Other Devices
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Log Out All Other Devices?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will log you out from all other devices except this one. 
-                    You'll need to sign in again on those devices.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => logoutAllOtherSessionsMutation.mutate()}
-                    disabled={logoutAllOtherSessionsMutation.isPending}
+            {otherSessions.length > 0 && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 border-red-200 dark:border-red-700/50 hover:from-red-100 hover:to-red-200 dark:hover:from-red-800/40 dark:hover:to-red-700/40 transition-all duration-300 text-red-700 dark:text-red-300"
                   >
-                    {logoutAllOtherSessionsMutation.isPending ? "Logging out..." : "Log Out All"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Log Out All Other Devices
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Log Out All Other Devices?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will log you out from all other devices except this one. 
+                      You'll need to sign in again on those devices.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => logoutAllOtherSessionsMutation.mutate()}
+                      disabled={logoutAllOtherSessionsMutation.isPending}
+                    >
+                      {logoutAllOtherSessionsMutation.isPending ? "Logging out..." : "Log Out All"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
+
+          {/* Current Session */}
+          {currentSession && (
+            <div>
+              <h2 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Current Session</h2>
+              <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-green-200/50 dark:border-green-700/30 hover:shadow-lg transition-all duration-300">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="text-green-600 dark:text-green-500 w-8 h-8 flex items-center justify-center">
+                        {getDeviceIcon(currentSession.deviceName)}
+                      </div>
+                      <div>
+                        <CardTitle className="text-base text-gray-900 dark:text-gray-100">{currentSession.deviceName}</CardTitle>
+                        <CardDescription className="flex items-center space-x-4 mt-1">
+                          <span className="flex items-center">
+                            <Globe className="h-3 w-3 mr-1" />
+                            {currentSession.ipAddress}
+                          </span>
+                          {currentSession.location && (
+                            <span className="flex items-center">
+                              <MapPin className="h-3 w-3 mr-1" />
+                              {currentSession.location}
+                            </span>
+                          )}
+                        </CardDescription>
+                      </div>
+                    </div>
+                    <Badge className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200 border-green-200 dark:border-green-700">Current</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Clock className="h-3 w-3 mr-1" />
+                    Last active {formatDistanceToNow(new Date(currentSession.lastUsed), { addSuffix: true })}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Other Sessions */}
+          {otherSessions.length > 0 ? (
+            <div>
+              <h2 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Other Sessions</h2>
+              <div className="grid gap-4">
+                {otherSessions.map((session: Session) => (
+                  <Card key={session.id} className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300">
+                    <CardHeader className="pb-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="text-blue-600 dark:text-blue-500 w-8 h-8 flex items-center justify-center">
+                            {getDeviceIcon(session.deviceName)}
+                          </div>
+                          <div>
+                            <CardTitle className="text-base text-gray-900 dark:text-gray-100">{session.deviceName}</CardTitle>
+                            <CardDescription className="flex items-center space-x-4 mt-1">
+                              <span className="flex items-center">
+                                <Globe className="h-3 w-3 mr-1" />
+                                {session.ipAddress}
+                              </span>
+                              {session.location && (
+                                <span className="flex items-center">
+                                  <MapPin className="h-3 w-3 mr-1" />
+                                  {session.location}
+                                </span>
+                              )}
+                            </CardDescription>
+                          </div>
+                        </div>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                              <LogOut className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Log Out Device?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will log out this device: {session.deviceName}. 
+                                You'll need to sign in again on that device.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => logoutSessionMutation.mutate(session.id)}
+                                disabled={logoutSessionMutation.isPending}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                {logoutSessionMutation.isPending ? "Logging out..." : "Log Out"}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <Clock className="h-3 w-3 mr-1" />
+                        Last active {formatDistanceToNow(new Date(session.lastUsed), { addSuffix: true })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+            </div>
+            </div>
+          ) : (
+            <div>
+              <h2 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Other Sessions</h2>
+              <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30">
+                <CardContent className="p-6">
+                  <p className="text-center text-muted-foreground">
+                    No other active sessions found
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
           )}
         </div>
-
-        {/* Current Session */}
-        {currentSession && (
-          <div>
-            <h2 className="text-lg font-semibold mb-3">Current Session</h2>
-            <Card>
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    {getDeviceIcon(currentSession.deviceName)}
-                    <div>
-                      <CardTitle className="text-base">{currentSession.deviceName}</CardTitle>
-                      <CardDescription className="flex items-center space-x-4 mt-1">
-                        <span className="flex items-center">
-                          <Globe className="h-3 w-3 mr-1" />
-                          {currentSession.ipAddress}
-                        </span>
-                        {currentSession.location && (
-                          <span className="flex items-center">
-                            <MapPin className="h-3 w-3 mr-1" />
-                            {currentSession.location}
-                          </span>
-                        )}
-                      </CardDescription>
-                    </div>
-                  </div>
-                  <Badge variant="secondary">Current</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Clock className="h-3 w-3 mr-1" />
-                  Last active {formatDistanceToNow(new Date(currentSession.lastUsed), { addSuffix: true })}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Other Sessions */}
-        {otherSessions.length > 0 ? (
-          <div>
-            <h2 className="text-lg font-semibold mb-3">Other Sessions</h2>
-            <div className="grid gap-4">
-              {otherSessions.map((session: Session) => (
-                <Card key={session.id}>
-                  <CardHeader className="pb-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        {getDeviceIcon(session.deviceName)}
-                        <div>
-                          <CardTitle className="text-base">{session.deviceName}</CardTitle>
-                          <CardDescription className="flex items-center space-x-4 mt-1">
-                            <span className="flex items-center">
-                              <Globe className="h-3 w-3 mr-1" />
-                              {session.ipAddress}
-                            </span>
-                            {session.location && (
-                              <span className="flex items-center">
-                                <MapPin className="h-3 w-3 mr-1" />
-                                {session.location}
-                              </span>
-                            )}
-                          </CardDescription>
-                        </div>
-                      </div>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <LogOut className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Log Out Device?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will log out this device: {session.deviceName}. 
-                              You'll need to sign in again on that device.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => logoutSessionMutation.mutate(session.id)}
-                              disabled={logoutSessionMutation.isPending}
-                            >
-                              {logoutSessionMutation.isPending ? "Logging out..." : "Log Out"}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Clock className="h-3 w-3 mr-1" />
-                      Last active {formatDistanceToNow(new Date(session.lastUsed), { addSuffix: true })}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div>
-            <h2 className="text-lg font-semibold mb-3">Other Sessions</h2>
-            <Card>
-              <CardContent className="p-6">
-                <p className="text-center text-muted-foreground">
-                  No other active sessions found
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
       </div>
     </div>
   );

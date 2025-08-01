@@ -401,8 +401,9 @@ export default function ShopsPage() {
   }, [data?.shops]);
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
-      <div className="space-y-6">
+    <div className="p-6 bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        <div className="space-y-6">
         {/* Header */}
         {isLoading ? (
           <div className="flex items-center justify-between">
@@ -421,19 +422,22 @@ export default function ShopsPage() {
           <div className="flex items-center justify-between">
             <div className="mb-8">
               <div className="flex items-center space-x-4">
-                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <Store className="text-white w-6 h-6" />
-                </div>
+                <Store className="text-blue-600 dark:text-blue-500 w-8 h-8" />
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Shops</h1>
-                  <p className="text-gray-600 dark:text-gray-400">
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
+                    Shops
+                  </h1>
+                  <p className="text-gray-600 dark:text-gray-400 mt-1">
                     Manage your shop locations and details
                   </p>
                 </div>
               </div>
             </div>
             <Link href="/shops/new">
-              <Button disabled={data?.limits && !data.limits.canAddShop}>
+              <Button 
+                disabled={data?.limits && !data.limits.canAddShop}
+                className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Add Shop
               </Button>
@@ -444,24 +448,24 @@ export default function ShopsPage() {
       {/* Stats Cards */}
       {!isLoading && data?.stats && (
         <div className="grid gap-4 md:grid-cols-4">
-          <Card>
+          <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-blue-600">Total Shops</p>
-                  <p className="text-2xl font-bold text-blue-900">{data.stats.totalShops}</p>
+                  <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{data.stats.totalShops}</p>
                 </div>
                 <Store className="text-blue-500 w-8 h-8" />
               </div>
               <p className="text-xs text-muted-foreground mt-2">Across all locations</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-green-600">Active Shops</p>
-                  <p className="text-2xl font-bold text-green-900">{data.stats.activeShops}</p>
+                  <p className="text-2xl font-bold text-green-900 dark:text-green-100">{data.stats.activeShops}</p>
                 </div>
                 <CheckCircle className="text-green-500 w-8 h-8" />
               </div>
@@ -472,12 +476,12 @@ export default function ShopsPage() {
               </p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-purple-600">Categories</p>
-                  <p className="text-2xl font-bold text-purple-900">
+                  <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
                     {Object.keys(data.stats.shopsByCategory).length || 0}
                   </p>
                 </div>
@@ -486,12 +490,12 @@ export default function ShopsPage() {
               <p className="text-xs text-muted-foreground mt-2">Different shop types</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-orange-600">Shop Slots</p>
-                  <p className="text-2xl font-bold text-orange-900">
+                  <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">
                     {data.limits?.currentShops || 0}{data.limits?.maxShops ? `/${data.limits.maxShops}` : ''}
                   </p>
                 </div>
@@ -532,7 +536,7 @@ export default function ShopsPage() {
 
       {/* Shop Limit Warning */}
       {data?.limits && !data.limits.canAddShop && (
-        <Card className="border-orange-200 bg-orange-50 dark:bg-orange-950 dark:border-orange-800">
+        <Card className="bg-orange-50/70 dark:bg-orange-950/50 backdrop-blur-sm border border-orange-200/50 dark:border-orange-800/30">
           <CardContent className="pt-6">
             <div className="flex">
               <AlertCircle className="h-5 w-5 text-orange-600 dark:text-orange-400 mr-3 flex-shrink-0 mt-0.5" />
@@ -599,7 +603,7 @@ export default function ShopsPage() {
           {/* Stats Cards Skeleton */}
           <div className="grid gap-4 md:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
-              <Card key={i}>
+              <Card key={i} className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div className="space-y-2">
@@ -626,7 +630,7 @@ export default function ShopsPage() {
           </div>
           
           {/* Table Skeleton */}
-          <Card>
+          <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30">
             <CardContent className="p-0">
               <div className="space-y-4 p-6">
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -647,9 +651,9 @@ export default function ShopsPage() {
           </Card>
         </div>
       ) : error ? (
-        <Card>
+        <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30">
           <CardContent className="py-8">
-            <p className="text-center text-muted-foreground">Failed to load shops. Please try again.</p>
+            <p className="text-center text-gray-600 dark:text-gray-300">Failed to load shops. Please try again.</p>
           </CardContent>
         </Card>
       ) : (
@@ -660,19 +664,19 @@ export default function ShopsPage() {
             </div>
           )}
           {filteredShops.length === 0 ? (
-            <Card>
+            <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30">
               <CardContent className="py-8">
                 <div className="text-center">
-                  <Store className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No shops found</h3>
-                  <p className="text-muted-foreground mb-4">
+                  <Store className="mx-auto h-12 w-12 text-blue-500 dark:text-blue-400 mb-4" />
+                  <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">No shops found</h3>
+                  <p className="text-gray-600 dark:text-gray-300 mb-4">
                     {searchTerm || statusFilter !== 'all' || categoryFilter !== 'all'
                       ? "Try adjusting your filters" 
                       : "Get started by adding your first shop"}
                   </p>
                   {!searchTerm && statusFilter === 'all' && categoryFilter === 'all' && (
                     <Link href="/shops/new">
-                      <Button>
+                      <Button className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
                         <Plus className="mr-2 h-4 w-4" />
                         Add Your First Shop
                       </Button>
@@ -682,7 +686,7 @@ export default function ShopsPage() {
               </CardContent>
             </Card>
           ) : (
-            <Card>
+            <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30">
               <CardContent className="p-0">
                 <DataTable columns={columns} data={filteredShops} showColumnVisibility={false} />
               </CardContent>
@@ -712,6 +716,7 @@ export default function ShopsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+        </div>
       </div>
     </div>
   );

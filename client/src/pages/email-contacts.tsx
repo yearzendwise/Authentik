@@ -96,7 +96,7 @@ export default function EmailContacts() {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [listFilter, setListFilter] = useState("all");
+  const [listFilter, setListFilter] = useState("");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -160,7 +160,7 @@ export default function EmailContacts() {
       searchParamsRef.current = {
         search: searchQuery,
         status: statusFilter,
-        listId: listFilter !== 'all' ? listFilter : undefined
+        listId: listFilter || undefined
       };
       refetch();
     }, 300);
@@ -188,6 +188,13 @@ export default function EmailContacts() {
     averageEngagementRate: 0,
   };
   const lists: EmailListWithCount[] = listsData?.lists || [];
+
+  // Set the first list as default when lists are loaded and no filter is set
+  useEffect(() => {
+    if (lists.length > 0 && !listFilter) {
+      setListFilter(lists[0].id);
+    }
+  }, [lists, listFilter]);
 
   const getStatusBadge = (status: Contact["status"]) => {
     const statusConfig = {
@@ -370,19 +377,6 @@ export default function EmailContacts() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <button
-                className={`w-full text-left p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
-                  listFilter === 'all' ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600" : ""
-                }`}
-                onClick={() => setListFilter('all')}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">All Contacts</span>
-                  <Badge variant="secondary" className="ml-2">
-                    {stats.totalContacts}
-                  </Badge>
-                </div>
-              </button>
               {lists.map((list) => (
                 <button
                   key={list.id}

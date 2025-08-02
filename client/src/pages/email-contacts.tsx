@@ -111,7 +111,7 @@ export default function EmailContacts() {
   }, [searchInput]);
 
   // Fetch email contacts
-  const { data: contactsData, isLoading: contactsLoading, error: contactsError } = useQuery({
+  const { data: contactsData, isLoading: contactsLoading, error: contactsError, isFetching } = useQuery({
     queryKey: ['/api/email-contacts', { search: debouncedSearchQuery, status: statusFilter, listId: listFilter !== 'all' ? listFilter : undefined }],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -122,6 +122,8 @@ export default function EmailContacts() {
       const response = await apiRequest('GET', `/api/email-contacts?${params.toString()}`);
       return response.json();
     },
+    staleTime: 0, // Always refetch when params change
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
   });
 
   // Fetch email lists
@@ -133,8 +135,8 @@ export default function EmailContacts() {
     },
   });
 
-  const contacts: Contact[] = contactsData?.contacts || [];
-  const stats: ContactStats = contactsData?.stats || {
+  const contacts: Contact[] = (contactsData as any)?.contacts || [];
+  const stats: ContactStats = (contactsData as any)?.stats || {
     totalContacts: 0,
     activeContacts: 0,
     unsubscribedContacts: 0,
@@ -418,14 +420,23 @@ export default function EmailContacts() {
           )}
 
           {/* Contacts Table */}
-          <Card>
+          <Card className="relative">
             <CardContent className="p-0">
+              {/* Search Loading Indicator */}
+              {isFetching && (
+                <div className="absolute right-4 top-4 z-10">
+                  <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full text-sm">
+                    <div className="animate-spin rounded-full h-3 w-3 border border-blue-600 border-t-transparent"></div>
+                    Searching...
+                  </div>
+                </div>
+              )}
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12">
                       <Checkbox
-                        checked={selectedContacts.length === contacts.length}
+                        checked={selectedContacts.length === contacts.length && contacts.length > 0}
                         onCheckedChange={toggleSelectAll}
                       />
                     </TableHead>
@@ -438,7 +449,22 @@ export default function EmailContacts() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {contacts.map((contact) => (
+                  {contacts.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <div className="flex flex-col items-center gap-2 text-gray-500 dark:text-gray-400">
+                          <Search className="h-8 w-8" />
+                          <p>
+                            {debouncedSearchQuery ? 
+                              `No contacts found matching "${debouncedSearchQuery}"` : 
+                              'No contacts found'
+                            }
+                          </p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : 
+                    contacts.map((contact) => (
                     <TableRow key={contact.id}>
                       <TableCell>
                         <Checkbox
@@ -530,7 +556,8 @@ export default function EmailContacts() {
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </CardContent>

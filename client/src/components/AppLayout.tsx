@@ -19,6 +19,7 @@ import {
   BarChart3,
   PenTool,
 } from "lucide-react";
+import logoUrl from "@assets/logo.png";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar as CustomAvatar } from "@/components/Avatar";
@@ -196,12 +197,24 @@ export function AppLayout({ children }: AppLayoutProps) {
       >
         {/* Header */}
         <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-          <h1 className={cn(
-            "text-xl font-semibold text-gray-900 dark:text-gray-100",
-            isCollapsed && "text-center"
+          <div className={cn(
+            "flex items-center",
+            isCollapsed ? "justify-center" : "gap-3"
           )}>
-            {isCollapsed ? "SA" : "SaaS Auth"}
-          </h1>
+            <img 
+              src={logoUrl} 
+              alt="Company Logo" 
+              className={cn(
+                "object-contain",
+                isCollapsed ? "w-8 h-8" : "w-10 h-10"
+              )}
+            />
+            {!isCollapsed && (
+              <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                SaaS Auth
+              </h1>
+            )}
+          </div>
         </div>
 
         {/* Navigation */}

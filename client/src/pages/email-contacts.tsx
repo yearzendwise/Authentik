@@ -96,7 +96,7 @@ export default function EmailContacts() {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [listFilter, setListFilter] = useState("");
+
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -160,22 +160,13 @@ export default function EmailContacts() {
       searchParamsRef.current = {
         search: searchQuery,
         status: statusFilter,
-        listId: listFilter || undefined
+        listId: undefined
       };
       refetch();
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, statusFilter, listFilter, refetch]);
-
-  // Fetch email lists
-  const { data: listsData } = useQuery({
-    queryKey: ['/api/email-lists'],
-    queryFn: async () => {
-      const response = await apiRequest('GET', '/api/email-lists');
-      return response.json();
-    },
-  });
+  }, [searchQuery, statusFilter, refetch]);
 
   const contacts: Contact[] = (contactsData as any)?.contacts || [];
   const stats: ContactStats = (statsData as any)?.stats || {
@@ -187,14 +178,6 @@ export default function EmailContacts() {
     totalLists: 0,
     averageEngagementRate: 0,
   };
-  const lists: EmailListWithCount[] = listsData?.lists || [];
-
-  // Set the first list as default when lists are loaded and no filter is set
-  useEffect(() => {
-    if (lists.length > 0 && !listFilter) {
-      setListFilter(lists[0].id);
-    }
-  }, [lists, listFilter]);
 
   const getStatusBadge = (status: Contact["status"]) => {
     const statusConfig = {
@@ -368,41 +351,8 @@ export default function EmailContacts() {
         </Card>
       </div>
 
-      {/* Lists Sidebar + Main Content */}
-      <div className="flex gap-4">
-        {/* Lists Sidebar */}
-        <Card className="w-64 h-fit">
-          <CardHeader>
-            <CardTitle className="text-lg">Lists</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {lists.map((list) => (
-                <button
-                  key={list.id}
-                  className={`w-full text-left p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
-                    listFilter === list.id ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600" : ""
-                  }`}
-                  onClick={() => setListFilter(list.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{list.name}</span>
-                    <Badge variant="secondary" className="ml-2">
-                      {list.count}
-                    </Badge>
-                  </div>
-                </button>
-              ))}
-            </div>
-            <Button variant="outline" className="w-full mt-4">
-              <Plus className="w-4 h-4 mr-2" />
-              Create List
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Main Content */}
-        <div className="flex-1">
+      {/* Main Content */}
+      <div className="w-full">
           {/* Filters and Search */}
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <ContactSearch 
@@ -606,7 +556,6 @@ export default function EmailContacts() {
               </div>
             </CardContent>
           </Card>
-        </div>
       </div>
     </div>
   );

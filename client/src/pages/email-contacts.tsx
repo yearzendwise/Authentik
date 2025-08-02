@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ContactSearch } from "@/components/ContactSearch";
 import { 
   Users, 
   Plus, 
@@ -92,24 +94,47 @@ interface EmailListWithCount extends EmailList {
 
 export default function EmailContacts() {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [listFilter, setListFilter] = useState("all");
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch email contacts
-  const { data: contactsData, isLoading: contactsLoading, error: contactsError } = useQuery({
-    queryKey: ['/api/email-contacts', { search: searchQuery, status: statusFilter, listId: listFilter !== 'all' ? listFilter : undefined }],
+  // Handle search changes from ContactSearch component
+  const handleSearchChange = useCallback((search: string) => {
+    setDebouncedSearchQuery(search);
+  }, []);
+
+
+
+  // Fetch email contacts stats (independent of search/filters)
+  const { data: statsData } = useQuery({
+    queryKey: ['/api/email-contacts-stats'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/email-contacts?statsOnly=true');
+      return response.json();
+    },
+    staleTime: 5 * 60 * 1000, // Cache stats for 5 minutes
+  });
+
+  // Fetch email contacts (with search and filters)
+  const { data: contactsData, isLoading: contactsLoading, error: contactsError, isFetching } = useQuery({
+    queryKey: ['/api/email-contacts', { search: debouncedSearchQuery, status: statusFilter, listId: listFilter !== 'all' ? listFilter : undefined }],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (searchQuery) params.append('search', searchQuery);
+      if (debouncedSearchQuery) params.append('search', debouncedSearchQuery);
       if (statusFilter !== 'all') params.append('status', statusFilter);
       if (listFilter !== 'all') params.append('listId', listFilter);
       
       const response = await apiRequest('GET', `/api/email-contacts?${params.toString()}`);
       return response.json();
     },
+    staleTime: 0, // Always refetch when params change
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
+    retry: false, // Disable retries to prevent unexpected behavior
+    refetchOnMount: false, // Prevent automatic refetch on mount
+    refetchOnReconnect: false, // Prevent refetch on reconnect
   });
 
   // Fetch email lists
@@ -121,8 +146,8 @@ export default function EmailContacts() {
     },
   });
 
-  const contacts: Contact[] = contactsData?.contacts || [];
-  const stats: ContactStats = contactsData?.stats || {
+  const contacts: Contact[] = (contactsData as any)?.contacts || [];
+  const stats: ContactStats = (statsData as any)?.stats || {
     totalContacts: 0,
     activeContacts: 0,
     unsubscribedContacts: 0,
@@ -234,7 +259,10 @@ export default function EmailContacts() {
               <Upload className="w-4 h-4 mr-2" />
               Import
             </Button>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => setLocation('/email-contacts/new')}
+            >
               <UserPlus className="w-4 h-4 mr-2" />
               Add Contact
             </Button>
@@ -346,16 +374,10 @@ export default function EmailContacts() {
         <div className="flex-1">
           {/* Filters and Search */}
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <Input
-                type="text"
-                placeholder="Search contacts..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+            <ContactSearch 
+              onSearchChange={handleSearchChange}
+              placeholder="Search contacts..."
+            />
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[180px]">
                 <Filter className="w-4 h-4 mr-2" />
@@ -369,7 +391,10 @@ export default function EmailContacts() {
                 <SelectItem value="pending">Pending</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline">
+            <Button 
+              type="button"
+              variant="outline"
+            >
               <Download className="w-4 h-4 mr-2" />
               Export
             </Button>
@@ -403,14 +428,25 @@ export default function EmailContacts() {
           )}
 
           {/* Contacts Table */}
-          <Card>
+          <Card className="relative">
             <CardContent className="p-0">
-              <Table>
+              {/* Search Loading Indicator */}
+              {isFetching && (
+                <div className="absolute right-4 top-4 z-10">
+                  <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full text-sm">
+                    <div className="animate-spin rounded-full h-3 w-3 border border-blue-600 border-t-transparent"></div>
+                    Searching...
+                  </div>
+                </div>
+              )}
+              {/* Table with smooth transition */}
+              <div className={`transition-opacity duration-200 ${isFetching ? 'opacity-50' : 'opacity-100'}`}>
+                <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12">
                       <Checkbox
-                        checked={selectedContacts.length === contacts.length}
+                        checked={selectedContacts.length === contacts.length && contacts.length > 0}
                         onCheckedChange={toggleSelectAll}
                       />
                     </TableHead>
@@ -423,7 +459,22 @@ export default function EmailContacts() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {contacts.map((contact) => (
+                  {contacts.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <div className="flex flex-col items-center gap-2 text-gray-500 dark:text-gray-400">
+                          <Search className="h-8 w-8" />
+                          <p>
+                            {debouncedSearchQuery ? 
+                              `No contacts found matching "${debouncedSearchQuery}"` : 
+                              'No contacts found'
+                            }
+                          </p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    contacts.map((contact) => (
                     <TableRow key={contact.id}>
                       <TableCell>
                         <Checkbox
@@ -494,7 +545,7 @@ export default function EmailContacts() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setLocation(`/email-contacts/edit/${contact.id}`)}>
                               <Edit className="w-4 h-4 mr-2" />
                               Edit Contact
                             </DropdownMenuItem>
@@ -515,9 +566,11 @@ export default function EmailContacts() {
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    ))
+                  )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </div>

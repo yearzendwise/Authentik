@@ -7,6 +7,7 @@ import { setAccessToken, clearAuth } from "../store/authSlice";
 let store: any = null;
 let authListener: ((token: string | null) => void) | null = null;
 let isDispatchingFromListener = false;
+let isUpdatingFromRedux = false;
 
 export const initializeAuthStoreSync = (reduxStore: any) => {
   store = reduxStore;

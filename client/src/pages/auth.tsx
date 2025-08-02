@@ -135,24 +135,30 @@ export default function AuthPage() {
   const onLogin = async (data: LoginCredentials) => {
     try {
       const result = await login({ ...data, rememberMe });
-      if ('requires2FA' in result) {
-        setTwoFactorData({
-          email: data.email,
-          password: data.password,
-          tempLoginId: result.tempLoginId,
-        });
-        setCurrentView("twoFactor");
-      } else {
+      
+      // After successful login, check user state for redirects
+      if (result && result.user) {
         // Check if email verification is required
-        if (result.emailVerificationRequired) {
+        if (result.user.emailVerified === false) {
           setLocation("/pending-verification");
         } else {
           // Always redirect to dashboard after successful login
           setLocation("/dashboard");
         }
       }
-    } catch (error) {
-      // Error is handled by the mutation's onError
+    } catch (error: any) {
+      const errorMessage = error?.message || error?.toString() || "Unknown error";
+      
+      // Handle 2FA requirement
+      if (errorMessage === "2FA_REQUIRED") {
+        setTwoFactorData({
+          email: data.email,
+          password: data.password,
+          tempLoginId: "", // We don't have this from Redux, will need to handle differently
+        });
+        setCurrentView("twoFactor");
+      }
+      // Other errors are handled by the useReduxLogin hook's toast
     }
   };
 
@@ -179,9 +185,10 @@ export default function AuthPage() {
         rememberMe,
       });
 
-      if (!('requires2FA' in result)) {
+      // After successful login, check user state for redirects
+      if (result && result.user) {
         // Check if email verification is required
-        if (result.emailVerificationRequired) {
+        if (result.user.emailVerified === false) {
           setLocation("/pending-verification");
         } else {
           // Always redirect to dashboard after successful login
@@ -189,7 +196,7 @@ export default function AuthPage() {
         }
       }
     } catch (error) {
-      // Error is handled by the mutation's onError
+      // Error is handled by the useReduxLogin hook's toast
     }
   };
 

@@ -3260,6 +3260,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all email contacts
   app.get("/api/email-contacts", authenticateToken, async (req: any, res) => {
     try {
+      const statsOnly = req.query.statsOnly === 'true';
+      
+      // If only stats are requested, skip fetching contacts for better performance
+      if (statsOnly) {
+        const stats = await storage.getEmailContactStats(req.user.tenantId);
+        return res.json({ stats });
+      }
+
+      // Otherwise, fetch both contacts and stats
       const filters: ContactFilters = {
         search: req.query.search as string,
         status: req.query.status as 'active' | 'unsubscribed' | 'bounced' | 'pending' | 'all',

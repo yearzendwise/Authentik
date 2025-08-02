@@ -110,7 +110,17 @@ export default function EmailContacts() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  // Fetch email contacts
+  // Fetch email contacts stats (independent of search/filters)
+  const { data: statsData } = useQuery({
+    queryKey: ['/api/email-contacts-stats'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/email-contacts?statsOnly=true');
+      return response.json();
+    },
+    staleTime: 5 * 60 * 1000, // Cache stats for 5 minutes
+  });
+
+  // Fetch email contacts (with search and filters)
   const { data: contactsData, isLoading: contactsLoading, error: contactsError, isFetching } = useQuery({
     queryKey: ['/api/email-contacts', { search: debouncedSearchQuery, status: statusFilter, listId: listFilter !== 'all' ? listFilter : undefined }],
     queryFn: async () => {
@@ -136,7 +146,7 @@ export default function EmailContacts() {
   });
 
   const contacts: Contact[] = (contactsData as any)?.contacts || [];
-  const stats: ContactStats = (contactsData as any)?.stats || {
+  const stats: ContactStats = (statsData as any)?.stats || {
     totalContacts: 0,
     activeContacts: 0,
     unsubscribedContacts: 0,

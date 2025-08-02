@@ -8,6 +8,7 @@ export interface AuthState {
   accessToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isLoginLoading: boolean;
   isInitialized: boolean;
   error: string | null;
 }
@@ -17,6 +18,7 @@ const initialState: AuthState = {
   accessToken: null,
   isAuthenticated: false,
   isLoading: false,
+  isLoginLoading: false,
   isInitialized: false,
   error: null,
 };
@@ -265,11 +267,11 @@ const authSlice = createSlice({
 
       // Login
       .addCase(loginUser.pending, (state) => {
-        state.isLoading = true;
+        state.isLoginLoading = true;
         state.error = null;
       })
       .addCase(loginUser.fulfilled, (state, action) => {
-        state.isLoading = false;
+        state.isLoginLoading = false;
         state.user = action.payload.user;
         state.accessToken = action.payload.accessToken;
         state.isAuthenticated = true;
@@ -284,7 +286,7 @@ const authSlice = createSlice({
         }
       })
       .addCase(loginUser.rejected, (state, action) => {
-        state.isLoading = false;
+        state.isLoginLoading = false;
         state.isAuthenticated = false;
         state.error = action.payload as string;
       })

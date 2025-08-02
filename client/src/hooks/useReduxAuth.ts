@@ -42,7 +42,7 @@ export function useReduxAuth() {
 export function useReduxLogin() {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
-  const { isLoading, error } = useAppSelector((state) => state.auth);
+  const { isLoginLoading, error } = useAppSelector((state) => state.auth);
 
   const login = async (credentials: {
     email: string;
@@ -87,7 +87,7 @@ export function useReduxLogin() {
 
   return {
     login,
-    isLoading,
+    isLoading: isLoginLoading,
     error,
   };
 }

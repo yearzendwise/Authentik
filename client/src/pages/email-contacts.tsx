@@ -94,6 +94,7 @@ interface EmailListWithCount extends EmailList {
 
 export default function EmailContacts() {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [listFilter, setListFilter] = useState("all");
@@ -103,8 +104,17 @@ export default function EmailContacts() {
 
   // Handle search changes from ContactSearch component
   const handleSearchChange = useCallback((search: string) => {
-    setDebouncedSearchQuery(search);
+    setSearchQuery(search);
   }, []);
+
+  // Debounce the search query for API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
 
 
@@ -382,6 +392,7 @@ export default function EmailContacts() {
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <ContactSearch 
               key="contact-search"
+              value={searchQuery}
               onSearchChange={handleSearchChange}
               placeholder="Search contacts..."
             />

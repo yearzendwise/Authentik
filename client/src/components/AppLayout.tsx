@@ -219,7 +219,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
         {/* Navigation */}
         <nav className={cn(
-          "flex-1 space-y-2",
+          "flex-1 space-y-2 pt-4",
           isCollapsed ? "flex flex-col items-center px-2" : "px-4"
         )}>
           {navigation.map((item, index) => {

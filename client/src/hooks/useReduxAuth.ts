@@ -66,12 +66,14 @@ export function useReduxLogin() {
         throw new Error("2FA_REQUIRED");
       }
 
-      if (error.includes("401")) {
+      const errorString = typeof error === 'string' ? error : error.toString();
+      
+      if (errorString.includes("401")) {
         message = "Invalid email or password. Please check your credentials.";
-      } else if (error.includes("403") && error.includes("verify")) {
+      } else if (errorString.includes("403") && errorString.includes("verify")) {
         message =
           "Please verify your email address before logging in. Check your inbox for the verification email.";
-      } else if (error.includes("400")) {
+      } else if (errorString.includes("400")) {
         message = "Please check your input and try again.";
       }
 

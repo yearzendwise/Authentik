@@ -134,8 +134,9 @@ export default function AuthPage() {
 
   const onLogin = async (data: LoginCredentials) => {
     try {
+      console.log("🔐 [Auth Page] Starting login...");
       const result = await login({ ...data, rememberMe });
-      console.log("🔐 [Auth Page] Login result:", result);
+      console.log("🔐 [Auth Page] Login result:", JSON.stringify(result, null, 2));
       
       // After successful login, check user state for redirects
       if (result && result.user) {
@@ -148,12 +149,15 @@ export default function AuthPage() {
           console.log("🔐 [Auth Page] Redirecting to dashboard");
           setLocation("/dashboard");
         }
+      } else {
+        console.log("🔐 [Auth Page] No user in result, not redirecting");
       }
     } catch (error: any) {
-      console.log("🔐 [Auth Page] Login error:", error.message);
+      const errorMessage = error?.message || error?.toString() || "Unknown error";
+      console.log("🔐 [Auth Page] Login error:", errorMessage);
       
       // Handle 2FA requirement
-      if (error.message === "2FA_REQUIRED") {
+      if (errorMessage === "2FA_REQUIRED") {
         console.log("🔐 [Auth Page] 2FA required, switching to 2FA view");
         setTwoFactorData({
           email: data.email,

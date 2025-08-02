@@ -9,7 +9,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useReduxAuth } from "@/hooks/useReduxAuth";
 import { AppLayout } from "@/components/AppLayout";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 
 // Lazy load components for code splitting
 const AuthPage = lazy(() => import("@/pages/auth"));
@@ -53,29 +53,27 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   
   const isEmailVerified = user ? user.emailVerified : undefined;
   
-  // Redirect logic based on authentication state
-  if (!isAuthenticated) {
-    // Allow certain routes for unauthenticated users
-    if (!['/auth', '/verify-email'].includes(location)) {
-      setLocation('/auth');
-      return null;
+  // Handle redirects in useEffect to prevent React warnings about updating during render
+  useEffect(() => {
+    if (!isAuthenticated) {
+      // Allow certain routes for unauthenticated users
+      if (!['/auth', '/verify-email'].includes(location)) {
+        setLocation('/auth');
+      }
+    } else if (isAuthenticated && isEmailVerified === false) {
+      // Allow certain routes for unverified users (strict false check only)
+      if (!['/pending-verification', '/verify-email'].includes(location)) {
+        setLocation('/pending-verification');
+      }
+    } else if (isAuthenticated && isEmailVerified === true) {
+      // Redirect auth page to dashboard for verified users
+      if (['/auth', '/pending-verification'].includes(location)) {
+        setLocation('/dashboard');
+      }
     }
-  } else if (isAuthenticated && isEmailVerified === false) {
-    // Allow certain routes for unverified users (strict false check only)
-    if (!['/pending-verification', '/verify-email'].includes(location)) {
-      setLocation('/pending-verification');
-      return null;
-    }
-  } else if (isAuthenticated && isEmailVerified === true) {
-    // Redirect auth page to dashboard for verified users
-    if (['/auth', '/pending-verification'].includes(location)) {
-      setLocation('/dashboard');
-      return null;
-    }
-  }
-  
-  // If isEmailVerified is undefined/null (loading state), don't redirect
-  // This prevents premature redirects during authentication initialization
+    // If isEmailVerified is undefined/null (loading state), don't redirect
+    // This prevents premature redirects during authentication initialization
+  }, [isAuthenticated, isEmailVerified, location, setLocation]);
   
   return <>{children}</>;
 }

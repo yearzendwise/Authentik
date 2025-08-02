@@ -433,19 +433,19 @@ export default function CompanyPage() {
         
         {/* Simple Header */}
         <div className="mb-12 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 mb-6">
-            <Building2 className="w-8 h-8 text-gray-600 dark:text-gray-300" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-6 border-2 border-blue-300 dark:border-blue-700">
+            <Building2 className="w-8 h-8 text-blue-600 dark:text-blue-400" />
           </div>
           <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-3">
             {company.name}
           </h1>
           <div className="flex items-center justify-center gap-3 mb-6">
             {company.companyType && (
-              <Badge variant="outline" className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600">
+              <Badge variant="outline" className="bg-purple-50 dark:bg-purple-900/30 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300">
                 {company.companyType}
               </Badge>
             )}
-            <Badge variant={company.isActive ? "default" : "secondary"}>
+            <Badge variant={company.isActive ? "default" : "secondary"} className={company.isActive ? "bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300" : ""}>
               {company.isActive ? "Active" : "Inactive"}
             </Badge>
           </div>
@@ -453,7 +453,7 @@ export default function CompanyPage() {
             <Button 
               onClick={handleEdit}
               variant="outline"
-              className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+              className="bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50"
             >
               <Edit className="mr-2 h-4 w-4" />
               Edit Information
@@ -474,11 +474,11 @@ export default function CompanyPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           
           {/* Owner Card */}
-          <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
+          <Card className="bg-rose-50 dark:bg-rose-900/20 border-2 border-rose-200 dark:border-rose-800 shadow-sm">
             <CardHeader className="pb-4">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                  <User className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-900/50 flex items-center justify-center border-2 border-rose-300 dark:border-rose-700">
+                  <User className="h-5 w-5 text-rose-600 dark:text-rose-400" />
                 </div>
                 <CardTitle className="text-lg text-gray-900 dark:text-gray-100">Owner</CardTitle>
               </div>
@@ -496,11 +496,11 @@ export default function CompanyPage() {
           </Card>
 
           {/* Contact Info */}
-          <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
+          <Card className="bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-200 dark:border-emerald-800 shadow-sm">
             <CardHeader className="pb-4">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                  <Mail className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center border-2 border-emerald-300 dark:border-emerald-700">
+                  <Mail className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <CardTitle className="text-lg text-gray-900 dark:text-gray-100">Contact</CardTitle>
               </div>
@@ -511,7 +511,7 @@ export default function CompanyPage() {
                   <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Email</div>
                   <a 
                     href={`mailto:${company.companyEmail}`} 
-                    className="text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    className="text-gray-900 dark:text-gray-100 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
                   >
                     {company.companyEmail}
                   </a>
@@ -532,7 +532,7 @@ export default function CompanyPage() {
                     href={company.website} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors truncate block"
+                    className="text-gray-900 dark:text-gray-100 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors truncate block"
                   >
                     {company.website}
                   </a>
@@ -550,11 +550,11 @@ export default function CompanyPage() {
 
           {/* Location */}
           {company.address && (
-            <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
+            <Card className="bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 shadow-sm">
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                    <MapPin className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                  <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center border-2 border-amber-300 dark:border-amber-700">
+                    <MapPin className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                   </div>
                   <CardTitle className="text-lg text-gray-900 dark:text-gray-100">Location</CardTitle>
                 </div>
@@ -568,11 +568,11 @@ export default function CompanyPage() {
           )}
 
           {/* Account Info */}
-          <Card className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm ${!company.address ? 'md:col-span-2 lg:col-span-1' : ''}`}>
+          <Card className={`bg-violet-50 dark:bg-violet-900/20 border-2 border-violet-200 dark:border-violet-800 shadow-sm ${!company.address ? 'md:col-span-2 lg:col-span-1' : ''}`}>
             <CardHeader className="pb-4">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                  <Activity className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                <div className="w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center border-2 border-violet-300 dark:border-violet-700">
+                  <Activity className="h-5 w-5 text-violet-600 dark:text-violet-400" />
                 </div>
                 <CardTitle className="text-lg text-gray-900 dark:text-gray-100">Account Info</CardTitle>
               </div>

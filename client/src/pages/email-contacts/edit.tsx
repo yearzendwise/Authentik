@@ -115,20 +115,7 @@ export default function EditEmailContact() {
 
   const updateContactMutation = useMutation({
     mutationFn: async (data: EditContactForm) => {
-      const response = await fetch(`/api/email-contacts/${contactId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify(data),
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to update contact");
-      }
-      
+      const response = await apiRequest("PUT", `/api/email-contacts/${contactId}`, data);
       return response.json();
     },
     onSuccess: () => {

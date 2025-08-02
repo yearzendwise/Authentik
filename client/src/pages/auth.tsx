@@ -48,6 +48,9 @@ export default function AuthPage() {
   } | null>(null);
 
   const { login, isLoading: isLoginLoading } = useReduxLogin();
+  
+  // Debug logging
+  console.log("🐛 [Auth Page] Login loading state:", isLoginLoading);
 
   // For now, keep register and forgot password as simple fetch calls
   // These can be moved to Redux later if needed

@@ -124,8 +124,8 @@ export default function CompanyPage() {
       form.reset({
         name: company.name,
         address: company.address || "",
-        companyType: company.companyType || "",
-        companyEmail: company.companyEmail || "",
+        companyType: company.industry || "",
+        companyEmail: company.email || "",
         phone: company.phone || "",
         website: company.website || "",
         description: company.description || "",
@@ -149,8 +149,8 @@ export default function CompanyPage() {
       form.reset({
         name: company.name,
         address: company.address || "",
-        companyType: company.companyType || "",
-        companyEmail: company.companyEmail || "",
+        companyType: company.industry || "",
+        companyEmail: company.email || "",
         phone: company.phone || "",
         website: company.website || "",
         description: company.description || "",
@@ -428,17 +428,15 @@ export default function CompanyPage() {
   }
 
   return (
-    <div className="p-6 bg-gradient-to-br from-orange-50/30 via-purple-50/20 to-blue-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 min-h-screen">
+    <div className="p-6 bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 min-h-screen">
       <div className="max-w-4xl mx-auto">
         {/* Page Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="p-2 bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 rounded-xl">
-                <Building2 className="text-orange-600 dark:text-orange-400 w-8 h-8" />
-              </div>
+              <Building2 className="text-blue-600 dark:text-blue-500 w-8 h-8" />
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
                   Company Information
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400 mt-1">
@@ -449,7 +447,8 @@ export default function CompanyPage() {
             {canEdit && (
               <Button 
                 onClick={handleEdit}
-                className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-none shadow-md hover:shadow-lg transition-all duration-200"
+                variant="outline" 
+                className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 border-blue-200 dark:border-blue-700/50 hover:from-blue-100 hover:to-blue-200 dark:hover:from-blue-800/40 dark:hover:to-blue-700/40 transition-all duration-300 text-blue-700 dark:text-blue-300"
               >
                 <Edit className="mr-2 h-4 w-4" />
                 Edit Information
@@ -458,164 +457,123 @@ export default function CompanyPage() {
           </div>
         </div>
 
-        <div className="space-y-6">
-        {/* Company Header Card */}
-        <Card className="bg-gradient-to-br from-purple-100/60 to-purple-200/40 dark:bg-gray-800/60 backdrop-blur-sm border border-purple-200/50 dark:border-gray-700/40 shadow-lg">
-          <CardContent className="p-8">
-            <div className="flex items-start justify-between">
+        <div className="grid gap-6">
+        {/* Company Overview Card */}
+        <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300">
+          <CardHeader>
+            <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <div className="p-3 bg-gradient-to-br from-purple-200 to-purple-300 dark:bg-purple-900/30 rounded-xl">
-                  <Building2 className="h-8 w-8 text-purple-700 dark:text-purple-400" />
-                </div>
+                <Building2 className="h-8 w-8 text-blue-600 dark:text-blue-500" />
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-1">
-                    {company.name}
-                  </h2>
-                  <div className="flex items-center gap-3">
-                    {company.companyType && (
-                      <Badge variant="outline" className="text-xs border-purple-300 text-purple-700 bg-white/50">
-                        {company.companyType}
+                  <CardTitle>{company.name}</CardTitle>
+                  {company.industry && (
+                    <CardDescription>
+                      <Badge variant="outline" className="mt-1">
+                        {company.industry}
                       </Badge>
-                    )}
-                    <Badge 
-                      className={company.isActive ? "bg-green-100 text-green-700 border-green-200 hover:bg-green-100" : "bg-gray-100 text-gray-700 border-gray-200"}
-                    >
-                      {company.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </div>
+                    </CardDescription>
+                  )}
                 </div>
               </div>
+              <Badge variant={company.isActive ? "default" : "secondary"}>
+                {company.isActive ? "Active" : "Inactive"}
+              </Badge>
             </div>
+          </CardHeader>
+          <CardContent>
             {company.description && (
-              <p className="text-gray-700 dark:text-gray-300 mt-4 leading-relaxed">
+              <p className="text-sm text-muted-foreground mb-6">
                 {company.description}
               </p>
             )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Contact Information */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-sm">Contact Information</h3>
+                
+                {company.email && (
+                  <div className="flex items-center space-x-3 text-sm">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <a href={`mailto:${company.email}`} className="hover:underline">
+                      {company.email}
+                    </a>
+                  </div>
+                )}
+                
+                {company.phone && (
+                  <div className="flex items-center space-x-3 text-sm">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span>{company.phone}</span>
+                  </div>
+                )}
+                
+                {company.website && (
+                  <div className="flex items-center space-x-3 text-sm">
+                    <Globe className="h-4 w-4 text-muted-foreground" />
+                    <a 
+                      href={company.website} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="hover:underline"
+                    >
+                      {company.website}
+                    </a>
+                  </div>
+                )}
+
+                {!company.companyEmail && !company.phone && !company.website && (
+                  <p className="text-sm text-muted-foreground">
+                    No contact information available
+                  </p>
+                )}
+              </div>
+
+              {/* Location & Owner */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-sm">Details</h3>
+                
+                {company.address && (
+                  <div className="flex items-start space-x-3 text-sm">
+                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                    <span className="whitespace-pre-line">{company.address}</span>
+                  </div>
+                )}
+                
+                <div className="space-y-2">
+                  <div className="text-sm">
+                    <span className="font-medium">Owner:</span>{" "}
+                    {company.owner.firstName} {company.owner.lastName}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {company.owner.email}
+                  </div>
+                </div>
+
+                {!company.address && (
+                  <div className="text-sm text-muted-foreground">
+                    No address specified
+                  </div>
+                )}
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Contact Information Card */}
-          <Card className="bg-gradient-to-br from-orange-100/60 to-orange-200/40 dark:bg-gray-800/50 backdrop-blur-sm border border-orange-200/50 dark:border-gray-700/30 hover:shadow-md transition-all duration-200">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg flex items-center gap-2 text-gray-800 dark:text-gray-100">
-                <div className="p-1.5 bg-gradient-to-br from-orange-200 to-orange-300 rounded-lg">
-                  <Mail className="h-4 w-4 text-orange-700" />
-                </div>
-                Contact Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {company.companyEmail && (
-                <div className="flex items-center space-x-3">
-                  <div className="flex-shrink-0">
-                    <Mail className="h-4 w-4 text-orange-600" />
-                  </div>
-                  <a 
-                    href={`mailto:${company.companyEmail}`} 
-                    className="text-orange-700 dark:text-orange-400 hover:underline"
-                  >
-                    {company.companyEmail}
-                  </a>
-                </div>
-              )}
-              
-              {company.phone && (
-                <div className="flex items-center space-x-3">
-                  <div className="flex-shrink-0">
-                    <Phone className="h-4 w-4 text-orange-600" />
-                  </div>
-                  <span className="text-gray-700 dark:text-gray-300">{company.phone}</span>
-                </div>
-              )}
-              
-              {company.website && (
-                <div className="flex items-center space-x-3">
-                  <div className="flex-shrink-0">
-                    <Globe className="h-4 w-4 text-orange-600" />
-                  </div>
-                  <a 
-                    href={company.website} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-orange-700 dark:text-orange-400 hover:underline"
-                  >
-                    {company.website}
-                  </a>
-                </div>
-              )}
-
-              {!company.companyEmail && !company.phone && !company.website && (
-                <p className="text-gray-600 dark:text-gray-400 italic">
-                  No contact information available
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Details Card */}
-          <Card className="bg-gradient-to-br from-blue-100/60 to-blue-200/40 dark:bg-gray-800/50 backdrop-blur-sm border border-blue-200/50 dark:border-gray-700/30 hover:shadow-md transition-all duration-200">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg flex items-center gap-2 text-gray-800 dark:text-gray-100">
-                <div className="p-1.5 bg-gradient-to-br from-blue-200 to-blue-300 rounded-lg">
-                  <MapPin className="h-4 w-4 text-blue-700" />
-                </div>
-                Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {company.address && (
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 mt-0.5">
-                    <MapPin className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <div className="text-gray-700 dark:text-gray-300 whitespace-pre-line">
-                    {company.address}
-                  </div>
-                </div>
-              )}
-              
-              <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:bg-gray-700/30 rounded-lg p-4 border border-blue-200/30">
-                <div className="text-sm font-medium text-gray-800 dark:text-gray-100 mb-1">
-                  Owner: {company.owner.firstName} {company.owner.lastName}
-                </div>
-                <div className="text-sm text-blue-700 dark:text-gray-400">
-                  {company.owner.email}
-                </div>
-              </div>
-
-              {!company.address && (
-                <div className="text-gray-600 dark:text-gray-400 italic">
-                  No address specified
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Account Information Card */}
-        <Card className="bg-gradient-to-br from-green-100/60 to-green-200/40 dark:bg-gray-800/50 backdrop-blur-sm border border-green-200/50 dark:border-gray-700/30 hover:shadow-md transition-all duration-200">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg flex items-center gap-2 text-gray-800 dark:text-gray-100">
-              <div className="p-1.5 bg-gradient-to-br from-green-200 to-green-300 rounded-lg">
-                <Building2 className="h-4 w-4 text-green-700" />
-              </div>
-              Account Information
-            </CardTitle>
+        {/* Additional Information Card */}
+        <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300">
+          <CardHeader>
+            <CardTitle className="text-base text-gray-900 dark:text-gray-100">Account Information</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-1">
-                <div className="text-sm font-medium text-gray-800 dark:text-gray-100">Created</div>
-                <div className="text-sm text-gray-700 dark:text-gray-400">
-                  {company.createdAt ? new Date(company.createdAt).toLocaleDateString() : "Unknown"}
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="font-medium">Created:</span>{" "}
+                {company.createdAt ? new Date(company.createdAt).toLocaleDateString() : "Unknown"}
               </div>
-              <div className="space-y-1">
-                <div className="text-sm font-medium text-gray-800 dark:text-gray-100">Last Updated</div>
-                <div className="text-sm text-gray-700 dark:text-gray-400">
-                  {company.updatedAt ? new Date(company.updatedAt).toLocaleDateString() : "Unknown"}
-                </div>
+              <div>
+                <span className="font-medium">Last Updated:</span>{" "}
+                {company.updatedAt ? new Date(company.updatedAt).toLocaleDateString() : "Unknown"}
               </div>
             </div>
           </CardContent>

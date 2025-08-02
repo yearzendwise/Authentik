@@ -251,9 +251,7 @@ const authSlice = createSlice({
         
         // Also store token in authManager for proper token management system
         if (action.payload.accessToken) {
-          setUpdatingFromRedux(true);
           authManager.setAccessToken(action.payload.accessToken);
-          setUpdatingFromRedux(false);
         }
       })
       .addCase(checkAuthStatus.rejected, (state, action) => {
@@ -280,9 +278,7 @@ const authSlice = createSlice({
         
         // Also store token in authManager for proper token management system
         if (action.payload.accessToken) {
-          setUpdatingFromRedux(true);
           authManager.setAccessToken(action.payload.accessToken);
-          setUpdatingFromRedux(false);
         }
       })
       .addCase(loginUser.rejected, (state, action) => {

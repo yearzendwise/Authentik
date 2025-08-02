@@ -96,7 +96,7 @@ export default function EmailContacts() {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [listFilter, setListFilter] = useState("all");
+
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -160,22 +160,13 @@ export default function EmailContacts() {
       searchParamsRef.current = {
         search: searchQuery,
         status: statusFilter,
-        listId: listFilter !== 'all' ? listFilter : undefined
+        listId: undefined
       };
       refetch();
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, statusFilter, listFilter, refetch]);
-
-  // Fetch email lists
-  const { data: listsData } = useQuery({
-    queryKey: ['/api/email-lists'],
-    queryFn: async () => {
-      const response = await apiRequest('GET', '/api/email-lists');
-      return response.json();
-    },
-  });
+  }, [searchQuery, statusFilter, refetch]);
 
   const contacts: Contact[] = (contactsData as any)?.contacts || [];
   const stats: ContactStats = (statsData as any)?.stats || {
@@ -187,7 +178,6 @@ export default function EmailContacts() {
     totalLists: 0,
     averageEngagementRate: 0,
   };
-  const lists: EmailListWithCount[] = listsData?.lists || [];
 
   const getStatusBadge = (status: Contact["status"]) => {
     const statusConfig = {
@@ -281,9 +271,9 @@ export default function EmailContacts() {
   }
 
   return (
-    <div className="p-6">
+    <div className="max-w-6xl mx-auto p-4">
       {/* Page Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Contacts</h1>
@@ -308,7 +298,7 @@ export default function EmailContacts() {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -361,54 +351,8 @@ export default function EmailContacts() {
         </Card>
       </div>
 
-      {/* Lists Sidebar + Main Content */}
-      <div className="flex gap-6">
-        {/* Lists Sidebar */}
-        <Card className="w-64 h-fit">
-          <CardHeader>
-            <CardTitle className="text-lg">Lists</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <button
-                className={`w-full text-left p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
-                  listFilter === 'all' ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600" : ""
-                }`}
-                onClick={() => setListFilter('all')}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">All Contacts</span>
-                  <Badge variant="secondary" className="ml-2">
-                    {stats.totalContacts}
-                  </Badge>
-                </div>
-              </button>
-              {lists.map((list) => (
-                <button
-                  key={list.id}
-                  className={`w-full text-left p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
-                    listFilter === list.id ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600" : ""
-                  }`}
-                  onClick={() => setListFilter(list.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{list.name}</span>
-                    <Badge variant="secondary" className="ml-2">
-                      {list.count}
-                    </Badge>
-                  </div>
-                </button>
-              ))}
-            </div>
-            <Button variant="outline" className="w-full mt-4">
-              <Plus className="w-4 h-4 mr-2" />
-              Create List
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Main Content */}
-        <div className="flex-1">
+      {/* Main Content */}
+      <div className="w-full">
           {/* Filters and Search */}
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <ContactSearch 
@@ -529,13 +473,21 @@ export default function EmailContacts() {
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-medium text-gray-900 dark:text-white">
+                            <p 
+                              className="font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors"
+                              onClick={() => setLocation(`/email-contacts/view/${contact.id}`)}
+                            >
                               {contact.firstName || contact.lastName 
                                 ? `${contact.firstName || ''} ${contact.lastName || ''}`.trim()
                                 : contact.email.split('@')[0]
                               }
                             </p>
-                            <p className="text-sm text-gray-500">{contact.email}</p>
+                            <p 
+                              className="text-sm text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors"
+                              onClick={() => setLocation(`/email-contacts/view/${contact.id}`)}
+                            >
+                              {contact.email}
+                            </p>
                           </div>
                         </div>
                       </TableCell>
@@ -584,6 +536,10 @@ export default function EmailContacts() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setLocation(`/email-contacts/view/${contact.id}`)}>
+                              <UserCheck className="w-4 h-4 mr-2" />
+                              View Contact
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => setLocation(`/email-contacts/edit/${contact.id}`)}>
                               <Edit className="w-4 h-4 mr-2" />
                               Edit Contact
@@ -612,7 +568,6 @@ export default function EmailContacts() {
               </div>
             </CardContent>
           </Card>
-        </div>
       </div>
     </div>
   );

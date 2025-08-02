@@ -16,11 +16,11 @@ async function seedEmailContacts() {
   console.log("🌱 Seeding email contacts data...");
 
   try {
-    // Get the default tenant
+    // Get the user's tenant (Test Organization 2)
     const [tenant] = await db
       .select()
       .from(tenants)
-      .where(eq(tenants.slug, 'default'))
+      .where(eq(tenants.id, '3b00cc1c-60c7-4ab3-ad7f-44246bb149e1'))
       .limit(1);
 
     if (!tenant) {

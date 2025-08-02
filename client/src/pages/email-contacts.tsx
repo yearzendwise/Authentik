@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
@@ -93,19 +93,29 @@ interface EmailListWithCount extends EmailList {
 
 export default function EmailContacts() {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchInput, setSearchInput] = useState(""); // Separate input state
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(""); // Debounced search
   const [statusFilter, setStatusFilter] = useState("all");
   const [listFilter, setListFilter] = useState("all");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchInput);
+    }, 300); // Wait 300ms after user stops typing
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   // Fetch email contacts
   const { data: contactsData, isLoading: contactsLoading, error: contactsError } = useQuery({
-    queryKey: ['/api/email-contacts', { search: searchQuery, status: statusFilter, listId: listFilter !== 'all' ? listFilter : undefined }],
+    queryKey: ['/api/email-contacts', { search: debouncedSearchQuery, status: statusFilter, listId: listFilter !== 'all' ? listFilter : undefined }],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (searchQuery) params.append('search', searchQuery);
+      if (debouncedSearchQuery) params.append('search', debouncedSearchQuery);
       if (statusFilter !== 'all') params.append('status', statusFilter);
       if (listFilter !== 'all') params.append('listId', listFilter);
       
@@ -356,8 +366,8 @@ export default function EmailContacts() {
               <Input
                 type="text"
                 placeholder="Search contacts..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 className="pl-10"
               />
             </div>

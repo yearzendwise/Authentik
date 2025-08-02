@@ -3284,12 +3284,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/email-contacts/:id", authenticateToken, async (req: any, res) => {
     try {
       const { id } = req.params;
+      console.log(`[Debug] Fetching contact: ${id} for tenant: ${req.user.tenantId}`);
+      
       const contact = await storage.getEmailContactWithDetails(id, req.user.tenantId);
 
       if (!contact) {
+        console.log(`[Debug] Contact not found: ${id} in tenant: ${req.user.tenantId}`);
         return res.status(404).json({ message: "Contact not found" });
       }
 
+      console.log(`[Debug] Contact found: ${contact.email}`);
       res.json({ contact });
     } catch (error) {
       console.error("Get email contact error:", error);

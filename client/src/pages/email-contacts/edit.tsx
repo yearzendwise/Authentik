@@ -60,19 +60,28 @@ export default function EditEmailContact() {
   // Fetch contact data
   const { data: contactData, isLoading: isContactLoading, error: contactError } = useQuery({
     queryKey: ["/api/email-contacts", contactId],
-    queryFn: ({ queryKey }) => apiRequest(queryKey[0] + "/" + queryKey[1]),
+    queryFn: async ({ queryKey }) => {
+      const res = await apiRequest("GET", `${queryKey[0]}/${queryKey[1]}`);
+      return res.json();
+    },
   });
 
   // Fetch available tags
   const { data: tagsData } = useQuery({
     queryKey: ["/api/email-contacts/tags"],
-    queryFn: ({ queryKey }) => apiRequest(queryKey[0]),
+    queryFn: async ({ queryKey }) => {
+      const res = await apiRequest("GET", queryKey[0]);
+      return res.json();
+    },
   });
 
   // Fetch available lists
   const { data: listsData } = useQuery({
-    queryKey: ["/api/email-contacts/lists"],
-    queryFn: ({ queryKey }) => apiRequest(queryKey[0]),
+    queryKey: ["/api/email-lists"],
+    queryFn: async ({ queryKey }) => {
+      const res = await apiRequest("GET", queryKey[0]);
+      return res.json();
+    },
   });
 
   const form = useForm<EditContactForm>({

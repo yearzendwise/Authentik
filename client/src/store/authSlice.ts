@@ -306,6 +306,19 @@ const authSlice = createSlice({
       // Update profile
       .addCase(updateUserProfile.fulfilled, (state, action) => {
         state.user = action.payload;
+      })
+      
+      // Handle redux-persist rehydration
+      .addCase("persist/REHYDRATE", (state, action: any) => {
+        if (action.payload && action.payload.auth) {
+          // Restore auth state but reset loading states
+          return {
+            ...action.payload.auth,
+            isLoading: false,
+            isLoginLoading: false,
+          };
+        }
+        return state;
       });
   },
 });

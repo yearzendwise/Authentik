@@ -25,6 +25,7 @@ import {
   type ShopFilters,
   createShopSchema,
   updateShopSchema,
+  type ContactFilters,
 } from "@shared/schema";
 import Stripe from "stripe";
 import { randomBytes } from "crypto";
@@ -3259,6 +3260,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all email contacts
   app.get("/api/email-contacts", authenticateToken, async (req: any, res) => {
     try {
+      const statsOnly = req.query.statsOnly === 'true';
+      
+      // If only stats are requested, skip fetching contacts for better performance
+      if (statsOnly) {
+        const stats = await storage.getEmailContactStats(req.user.tenantId);
+        return res.json({ stats });
+      }
+
+      // Otherwise, fetch both contacts and stats
       const filters: ContactFilters = {
         search: req.query.search as string,
         status: req.query.status as 'active' | 'unsubscribed' | 'bounced' | 'pending' | 'all',
@@ -3283,12 +3293,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/email-contacts/:id", authenticateToken, async (req: any, res) => {
     try {
       const { id } = req.params;
+      console.log(`[Debug] Fetching contact: ${id} for tenant: ${req.user.tenantId}`);
+      
       const contact = await storage.getEmailContactWithDetails(id, req.user.tenantId);
 
       if (!contact) {
+        console.log(`[Debug] Contact not found: ${id} in tenant: ${req.user.tenantId}`);
         return res.status(404).json({ message: "Contact not found" });
       }
 
+      console.log(`[Debug] Contact found: ${contact.email}`);
       res.json({ contact });
     } catch (error) {
       console.error("Get email contact error:", error);
@@ -3300,7 +3314,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/email-contacts", authenticateToken, async (req: any, res) => {
     try {
       const contactData = req.body; // Use the schema from shared/schema.ts
-      const contact = await storage.createEmailContact(contactData, req.user.tenantId);
+      
+      // Extract client information for consent tracking
+      const clientIP = getClientIP(req);
+      const userAgent = req.get('User-Agent') || '';
+      
+      const contact = await storage.createEmailContact(
+        contactData, 
+        req.user.tenantId, 
+        req.user.userId,
+        clientIP,
+        userAgent
+      );
 
       res.status(201).json({
         message: "Email contact created successfully",
@@ -3308,6 +3333,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Create email contact error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Update email contact
+  app.put("/api/email-contacts/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const contactData = req.body;
+      
+      const contact = await storage.updateEmailContact(id, contactData, req.user.tenantId);
+
+      if (!contact) {
+        return res.status(404).json({ message: "Contact not found" });
+      }
+
+      res.json({
+        message: "Email contact updated successfully",
+        contact,
+      });
+    } catch (error: any) {
+      console.error("Update email contact error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

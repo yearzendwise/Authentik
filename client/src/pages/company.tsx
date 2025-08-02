@@ -428,15 +428,17 @@ export default function CompanyPage() {
   }
 
   return (
-    <div className="p-6 bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 min-h-screen">
+    <div className="p-6 bg-gradient-to-br from-orange-50/30 via-purple-50/20 to-blue-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 min-h-screen">
       <div className="max-w-4xl mx-auto">
         {/* Page Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Building2 className="text-blue-600 dark:text-blue-500 w-8 h-8" />
+              <div className="p-2 bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 rounded-xl">
+                <Building2 className="text-orange-600 dark:text-orange-400 w-8 h-8" />
+              </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
                   Company Information
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400 mt-1">
@@ -447,8 +449,7 @@ export default function CompanyPage() {
             {canEdit && (
               <Button 
                 onClick={handleEdit}
-                variant="outline" 
-                className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 border-blue-200 dark:border-blue-700/50 hover:from-blue-100 hover:to-blue-200 dark:hover:from-blue-800/40 dark:hover:to-blue-700/40 transition-all duration-300 text-blue-700 dark:text-blue-300"
+                className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-none shadow-md hover:shadow-lg transition-all duration-200"
               >
                 <Edit className="mr-2 h-4 w-4" />
                 Edit Information
@@ -459,26 +460,25 @@ export default function CompanyPage() {
 
         <div className="space-y-6">
         {/* Company Header Card */}
-        <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/40 shadow-lg">
+        <Card className="bg-gradient-to-br from-purple-100/60 to-purple-200/40 dark:bg-gray-800/60 backdrop-blur-sm border border-purple-200/50 dark:border-gray-700/40 shadow-lg">
           <CardContent className="p-8">
             <div className="flex items-start justify-between">
               <div className="flex items-center space-x-4">
-                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
-                  <Building2 className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                <div className="p-3 bg-gradient-to-br from-purple-200 to-purple-300 dark:bg-purple-900/30 rounded-xl">
+                  <Building2 className="h-8 w-8 text-purple-700 dark:text-purple-400" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+                  <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-1">
                     {company.name}
                   </h2>
                   <div className="flex items-center gap-3">
                     {company.companyType && (
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className="text-xs border-purple-300 text-purple-700 bg-white/50">
                         {company.companyType}
                       </Badge>
                     )}
                     <Badge 
-                      variant={company.isActive ? "default" : "secondary"}
-                      className={company.isActive ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800" : ""}
+                      className={company.isActive ? "bg-green-100 text-green-700 border-green-200 hover:bg-green-100" : "bg-gray-100 text-gray-700 border-gray-200"}
                     >
                       {company.isActive ? "Active" : "Inactive"}
                     </Badge>
@@ -487,7 +487,7 @@ export default function CompanyPage() {
               </div>
             </div>
             {company.description && (
-              <p className="text-gray-600 dark:text-gray-300 mt-4 leading-relaxed">
+              <p className="text-gray-700 dark:text-gray-300 mt-4 leading-relaxed">
                 {company.description}
               </p>
             )}
@@ -496,10 +496,12 @@ export default function CompanyPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Contact Information Card */}
-          <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-md transition-all duration-200">
+          <Card className="bg-gradient-to-br from-orange-100/60 to-orange-200/40 dark:bg-gray-800/50 backdrop-blur-sm border border-orange-200/50 dark:border-gray-700/30 hover:shadow-md transition-all duration-200">
             <CardHeader className="pb-4">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <CardTitle className="text-lg flex items-center gap-2 text-gray-800 dark:text-gray-100">
+                <div className="p-1.5 bg-gradient-to-br from-orange-200 to-orange-300 rounded-lg">
+                  <Mail className="h-4 w-4 text-orange-700" />
+                </div>
                 Contact Information
               </CardTitle>
             </CardHeader>
@@ -507,11 +509,11 @@ export default function CompanyPage() {
               {company.companyEmail && (
                 <div className="flex items-center space-x-3">
                   <div className="flex-shrink-0">
-                    <Mail className="h-4 w-4 text-gray-400" />
+                    <Mail className="h-4 w-4 text-orange-600" />
                   </div>
                   <a 
                     href={`mailto:${company.companyEmail}`} 
-                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                    className="text-orange-700 dark:text-orange-400 hover:underline"
                   >
                     {company.companyEmail}
                   </a>
@@ -521,7 +523,7 @@ export default function CompanyPage() {
               {company.phone && (
                 <div className="flex items-center space-x-3">
                   <div className="flex-shrink-0">
-                    <Phone className="h-4 w-4 text-gray-400" />
+                    <Phone className="h-4 w-4 text-orange-600" />
                   </div>
                   <span className="text-gray-700 dark:text-gray-300">{company.phone}</span>
                 </div>
@@ -530,13 +532,13 @@ export default function CompanyPage() {
               {company.website && (
                 <div className="flex items-center space-x-3">
                   <div className="flex-shrink-0">
-                    <Globe className="h-4 w-4 text-gray-400" />
+                    <Globe className="h-4 w-4 text-orange-600" />
                   </div>
                   <a 
                     href={company.website} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                    className="text-orange-700 dark:text-orange-400 hover:underline"
                   >
                     {company.website}
                   </a>
@@ -544,7 +546,7 @@ export default function CompanyPage() {
               )}
 
               {!company.companyEmail && !company.phone && !company.website && (
-                <p className="text-gray-500 dark:text-gray-400 italic">
+                <p className="text-gray-600 dark:text-gray-400 italic">
                   No contact information available
                 </p>
               )}
@@ -552,10 +554,12 @@ export default function CompanyPage() {
           </Card>
 
           {/* Details Card */}
-          <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-md transition-all duration-200">
+          <Card className="bg-gradient-to-br from-blue-100/60 to-blue-200/40 dark:bg-gray-800/50 backdrop-blur-sm border border-blue-200/50 dark:border-gray-700/30 hover:shadow-md transition-all duration-200">
             <CardHeader className="pb-4">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <CardTitle className="text-lg flex items-center gap-2 text-gray-800 dark:text-gray-100">
+                <div className="p-1.5 bg-gradient-to-br from-blue-200 to-blue-300 rounded-lg">
+                  <MapPin className="h-4 w-4 text-blue-700" />
+                </div>
                 Details
               </CardTitle>
             </CardHeader>
@@ -563,7 +567,7 @@ export default function CompanyPage() {
               {company.address && (
                 <div className="flex items-start space-x-3">
                   <div className="flex-shrink-0 mt-0.5">
-                    <MapPin className="h-4 w-4 text-gray-400" />
+                    <MapPin className="h-4 w-4 text-blue-600" />
                   </div>
                   <div className="text-gray-700 dark:text-gray-300 whitespace-pre-line">
                     {company.address}
@@ -571,17 +575,17 @@ export default function CompanyPage() {
                 </div>
               )}
               
-              <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-4">
-                <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+              <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:bg-gray-700/30 rounded-lg p-4 border border-blue-200/30">
+                <div className="text-sm font-medium text-gray-800 dark:text-gray-100 mb-1">
                   Owner: {company.owner.firstName} {company.owner.lastName}
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
+                <div className="text-sm text-blue-700 dark:text-gray-400">
                   {company.owner.email}
                 </div>
               </div>
 
               {!company.address && (
-                <div className="text-gray-500 dark:text-gray-400 italic">
+                <div className="text-gray-600 dark:text-gray-400 italic">
                   No address specified
                 </div>
               )}
@@ -590,24 +594,26 @@ export default function CompanyPage() {
         </div>
 
         {/* Account Information Card */}
-        <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-md transition-all duration-200">
+        <Card className="bg-gradient-to-br from-green-100/60 to-green-200/40 dark:bg-gray-800/50 backdrop-blur-sm border border-green-200/50 dark:border-gray-700/30 hover:shadow-md transition-all duration-200">
           <CardHeader className="pb-4">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <CardTitle className="text-lg flex items-center gap-2 text-gray-800 dark:text-gray-100">
+              <div className="p-1.5 bg-gradient-to-br from-green-200 to-green-300 rounded-lg">
+                <Building2 className="h-4 w-4 text-green-700" />
+              </div>
               Account Information
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1">
-                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">Created</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
+                <div className="text-sm font-medium text-gray-800 dark:text-gray-100">Created</div>
+                <div className="text-sm text-gray-700 dark:text-gray-400">
                   {company.createdAt ? new Date(company.createdAt).toLocaleDateString() : "Unknown"}
                 </div>
               </div>
               <div className="space-y-1">
-                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">Last Updated</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
+                <div className="text-sm font-medium text-gray-800 dark:text-gray-100">Last Updated</div>
+                <div className="text-sm text-gray-700 dark:text-gray-400">
                   {company.updatedAt ? new Date(company.updatedAt).toLocaleDateString() : "Unknown"}
                 </div>
               </div>

@@ -46,6 +46,10 @@ const addContactSchema = z.object({
   status: z.enum(['active', 'unsubscribed', 'bounced', 'pending']).default('active'),
   tags: z.array(z.string()).optional(),
   lists: z.array(z.string()).optional(),
+  consentGiven: z.boolean().refine(val => val === true, {
+    message: "You must acknowledge consent before adding this contact"
+  }),
+  consentMethod: z.string().default('manual_add'),
 });
 
 type AddContactForm = z.infer<typeof addContactSchema>;
@@ -78,6 +82,8 @@ export default function NewEmailContact() {
       status: "active",
       tags: [],
       lists: [],
+      consentGiven: false,
+      consentMethod: "manual_add",
     },
   });
 
@@ -333,6 +339,36 @@ export default function NewEmailContact() {
                     </div>
                   </div>
                 )}
+
+                {/* Consent Disclosure */}
+                <div className="border-t pt-6">
+                  <FormField
+                    control={form.control}
+                    name="consentGiven"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 bg-blue-50 dark:bg-blue-950/20">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel className="font-medium text-sm">
+                            Consent Acknowledgment *
+                          </FormLabel>
+                          <FormDescription className="text-xs">
+                            I acknowledge that I have express consent from this contact to add their email address to our mailing lists. 
+                            I understand that I am legally liable for ensuring proper consent has been obtained before adding any email 
+                            address to our email marketing lists. This includes having explicit permission to send marketing communications 
+                            to this email address in compliance with applicable laws (CAN-SPAM, GDPR, etc.).
+                          </FormDescription>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 {/* Form Actions */}
                 <div className="flex items-center gap-3 pt-6">

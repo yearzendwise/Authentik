@@ -177,6 +177,13 @@ export const emailContacts = pgTable("email_contacts", {
   lastActivity: timestamp("last_activity"),
   emailsSent: integer("emails_sent").default(0),
   emailsOpened: integer("emails_opened").default(0),
+  // Consent tracking fields
+  consentGiven: boolean("consent_given").notNull().default(false),
+  consentDate: timestamp("consent_date"),
+  consentMethod: text("consent_method"), // 'manual_add', 'form_submission', 'import', 'api'
+  consentIpAddress: text("consent_ip_address"),
+  consentUserAgent: text("consent_user_agent"),
+  addedByUserId: varchar("added_by_user_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -832,6 +839,10 @@ export const createEmailContactSchema = z.object({
   status: z.enum(['active', 'unsubscribed', 'bounced', 'pending']).default('active'),
   tags: z.array(z.string()).optional(),
   lists: z.array(z.string()).optional(),
+  consentGiven: z.boolean().refine(val => val === true, {
+    message: "You must acknowledge consent before adding this contact"
+  }),
+  consentMethod: z.string().default('manual_add'),
 });
 
 export const updateEmailContactSchema = z.object({

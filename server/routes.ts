@@ -25,6 +25,7 @@ import {
   type ShopFilters,
   createShopSchema,
   updateShopSchema,
+  type ContactFilters,
 } from "@shared/schema";
 import Stripe from "stripe";
 import { randomBytes } from "crypto";
@@ -3300,7 +3301,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/email-contacts", authenticateToken, async (req: any, res) => {
     try {
       const contactData = req.body; // Use the schema from shared/schema.ts
-      const contact = await storage.createEmailContact(contactData, req.user.tenantId);
+      
+      // Extract client information for consent tracking
+      const clientIP = getClientIP(req);
+      const userAgent = req.get('User-Agent') || '';
+      
+      const contact = await storage.createEmailContact(
+        contactData, 
+        req.user.tenantId, 
+        req.user.userId,
+        clientIP,
+        userAgent
+      );
 
       res.status(201).json({
         message: "Email contact created successfully",

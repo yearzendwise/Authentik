@@ -330,8 +330,8 @@ export class DatabaseStorage implements IStorage {
 
     // When using .select() with joins, Drizzle returns nested objects for each table
     const userWithTenant = result[0];
-    const userData = userWithTenant.users || userWithTenant;
-    const tenantData = userWithTenant.tenants || userWithTenant;
+    const userData = userWithTenant;
+    const tenantData = userWithTenant.tenant;
 
     return {
       ...userData,
@@ -1274,14 +1274,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllEmailContacts(tenantId: string, filters?: ContactFilters): Promise<EmailContactWithDetails[]> {
-    let query = db
-      .select()
-      .from(emailContacts)
-      .where(eq(emailContacts.tenantId, tenantId));
-
+    const conditions = [eq(emailContacts.tenantId, tenantId)];
+    
     if (filters) {
-      const conditions = [eq(emailContacts.tenantId, tenantId)];
-      
       if (filters.search) {
         conditions.push(
           or(
@@ -1295,11 +1290,13 @@ export class DatabaseStorage implements IStorage {
       if (filters.status && filters.status !== 'all') {
         conditions.push(eq(emailContacts.status, filters.status));
       }
-      
-      query = query.where(and(...conditions));
     }
 
-    const contacts = await query.orderBy(desc(emailContacts.createdAt));
+    const contacts = await db
+      .select()
+      .from(emailContacts)
+      .where(and(...conditions))
+      .orderBy(desc(emailContacts.createdAt));
 
     // Add tags and lists for each contact
     const contactsWithDetails = await Promise.all(
@@ -1317,12 +1314,16 @@ export class DatabaseStorage implements IStorage {
     return contactsWithDetails;
   }
 
-  async createEmailContact(contactData: CreateEmailContactData, tenantId: string): Promise<EmailContact> {
+  async createEmailContact(contactData: CreateEmailContactData, tenantId: string, userId?: string, ipAddress?: string, userAgent?: string): Promise<EmailContact> {
     const [contact] = await db
       .insert(emailContacts)
       .values({
         ...contactData,
         tenantId,
+        consentDate: contactData.consentGiven ? new Date() : null,
+        consentIpAddress: ipAddress,
+        consentUserAgent: userAgent,
+        addedByUserId: userId,
       })
       .returning();
 

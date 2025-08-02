@@ -103,12 +103,17 @@ export default function EmailContacts() {
 
   // Debounce search input
   useEffect(() => {
+    console.log('🔤 [Search Input] Changed:', searchInput, 'Length:', searchInput.length);
+    
     const timer = setTimeout(() => {
+      console.log('⏱️ [Search Debounce] Setting debounced query:', searchInput);
       setDebouncedSearchQuery(searchInput);
     }, 300); // Wait 300ms after user stops typing
 
     return () => clearTimeout(timer);
   }, [searchInput]);
+
+
 
   // Fetch email contacts stats (independent of search/filters)
   const { data: statsData } = useQuery({
@@ -124,16 +129,28 @@ export default function EmailContacts() {
   const { data: contactsData, isLoading: contactsLoading, error: contactsError, isFetching } = useQuery({
     queryKey: ['/api/email-contacts', { search: debouncedSearchQuery, status: statusFilter, listId: listFilter !== 'all' ? listFilter : undefined }],
     queryFn: async () => {
+      console.log('🔍 [Search] Executing search query:', { debouncedSearchQuery, statusFilter, listFilter });
+      
       const params = new URLSearchParams();
       if (debouncedSearchQuery) params.append('search', debouncedSearchQuery);
       if (statusFilter !== 'all') params.append('status', statusFilter);
       if (listFilter !== 'all') params.append('listId', listFilter);
       
-      const response = await apiRequest('GET', `/api/email-contacts?${params.toString()}`);
-      return response.json();
+      try {
+        const response = await apiRequest('GET', `/api/email-contacts?${params.toString()}`);
+        const data = await response.json();
+        console.log('✅ [Search] Query successful, contacts count:', data.contacts?.length || 0);
+        return data;
+      } catch (error) {
+        console.error('❌ [Search] Query failed:', error);
+        throw error;
+      }
     },
     staleTime: 0, // Always refetch when params change
     refetchOnWindowFocus: false, // Prevent refetch on window focus
+    retry: false, // Disable retries to prevent unexpected behavior
+    refetchOnMount: false, // Prevent automatic refetch on mount
+    refetchOnReconnect: false, // Prevent refetch on reconnect
   });
 
   // Fetch email lists
@@ -372,7 +389,10 @@ export default function EmailContacts() {
         {/* Main Content */}
         <div className="flex-1">
           {/* Filters and Search */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <form 
+            onSubmit={(e) => e.preventDefault()}
+            className="flex flex-col sm:flex-row gap-4 mb-6"
+          >
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <Input
@@ -383,9 +403,16 @@ export default function EmailContacts() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
+                    e.stopPropagation();
                   }
                 }}
                 className="pl-10"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                data-lpignore="true"
+                data-form-type="other"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -401,11 +428,15 @@ export default function EmailContacts() {
                 <SelectItem value="pending">Pending</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline">
+            <Button 
+              type="button"
+              variant="outline"
+              onClick={(e) => e.preventDefault()}
+            >
               <Download className="w-4 h-4 mr-2" />
               Export
             </Button>
-          </div>
+          </form>
 
           {/* Bulk Actions */}
           {selectedContacts.length > 0 && (

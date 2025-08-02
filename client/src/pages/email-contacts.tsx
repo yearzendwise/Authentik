@@ -130,9 +130,9 @@ export default function EmailContacts() {
       const response = await apiRequest('GET', `/api/email-contacts?${params.toString()}`);
       return response.json();
     },
-    staleTime: 0, // Always refetch when params change
+    staleTime: 30 * 1000, // Cache results for 30 seconds
     refetchOnWindowFocus: false, // Prevent refetch on window focus
-    retry: false, // Disable retries to prevent unexpected behavior
+    retry: 1, // Only retry once on failure
     refetchOnMount: false, // Prevent automatic refetch on mount
     refetchOnReconnect: false, // Prevent refetch on reconnect
   });
@@ -235,8 +235,14 @@ export default function EmailContacts() {
           <p className="text-gray-600 mb-4">
             There was an error loading your email contacts. Please try again.
           </p>
-          <Button onClick={() => window.location.reload()} variant="outline">
-            Refresh Page
+          <Button 
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ['/api/email-contacts'] });
+              queryClient.invalidateQueries({ queryKey: ['/api/email-contacts-stats'] });
+            }} 
+            variant="outline"
+          >
+            Retry
           </Button>
         </div>
       </div>
@@ -375,6 +381,7 @@ export default function EmailContacts() {
           {/* Filters and Search */}
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <ContactSearch 
+              key="contact-search"
               onSearchChange={handleSearchChange}
               placeholder="Search contacts..."
             />

@@ -370,6 +370,11 @@ export default function EmailContacts() {
                 placeholder="Search contacts..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                  }
+                }}
                 className="pl-10"
               />
             </div>
@@ -431,7 +436,9 @@ export default function EmailContacts() {
                   </div>
                 </div>
               )}
-              <Table>
+              {/* Table with smooth transition */}
+              <div className={`transition-opacity duration-200 ${isFetching ? 'opacity-50' : 'opacity-100'}`}>
+                <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12">
@@ -560,6 +567,7 @@ export default function EmailContacts() {
                   )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </div>

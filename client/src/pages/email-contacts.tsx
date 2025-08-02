@@ -504,8 +504,8 @@ export default function EmailContacts() {
                         <div className="flex flex-col items-center gap-2 text-gray-500 dark:text-gray-400">
                           <Search className="h-8 w-8" />
                           <p>
-                            {debouncedSearchQuery ? 
-                              `No contacts found matching "${debouncedSearchQuery}"` : 
+                            {searchQuery ? 
+                              `No contacts found matching "${searchQuery}"` : 
                               'No contacts found'
                             }
                           </p>

@@ -288,9 +288,9 @@ export default function EmailContacts() {
   }
 
   return (
-    <div className="p-6">
+    <div className="max-w-6xl mx-auto p-4">
       {/* Page Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Contacts</h1>
@@ -315,7 +315,7 @@ export default function EmailContacts() {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -369,7 +369,7 @@ export default function EmailContacts() {
       </div>
 
       {/* Lists Sidebar + Main Content */}
-      <div className="flex gap-6">
+      <div className="flex gap-4">
         {/* Lists Sidebar */}
         <Card className="w-64 h-fit">
           <CardHeader>

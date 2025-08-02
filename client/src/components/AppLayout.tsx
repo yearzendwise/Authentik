@@ -246,13 +246,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     {item.name}
                   </TooltipContent>
                 </Tooltip>
-                {/* Active pill indicator for first item */}
-                {isActive && isFirstItem && (
-                  <div className="absolute -right-6 top-1/2 transform -translate-y-1/2 bg-indigo-600 text-white px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap z-10 shadow-lg">
-                    {item.name}
-                    <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1 w-2 h-2 bg-indigo-600 rotate-45"></div>
-                  </div>
-                )}
+
               </div>
             );
 

@@ -463,7 +463,7 @@ export default function EmailContacts() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ) : 
+                  ) : (
                     contacts.map((contact) => (
                     <TableRow key={contact.id}>
                       <TableCell>

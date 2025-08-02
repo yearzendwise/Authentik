@@ -124,8 +124,8 @@ export default function CompanyPage() {
       form.reset({
         name: company.name,
         address: company.address || "",
-        companyType: company.industry || "",
-        companyEmail: company.email || "",
+        companyType: company.companyType || "",
+        companyEmail: company.companyEmail || "",
         phone: company.phone || "",
         website: company.website || "",
         description: company.description || "",
@@ -149,8 +149,8 @@ export default function CompanyPage() {
       form.reset({
         name: company.name,
         address: company.address || "",
-        companyType: company.industry || "",
-        companyEmail: company.email || "",
+        companyType: company.companyType || "",
+        companyEmail: company.companyEmail || "",
         phone: company.phone || "",
         website: company.website || "",
         description: company.description || "",
@@ -428,156 +428,191 @@ export default function CompanyPage() {
   }
 
   return (
-    <div className="p-6 bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 min-h-screen">
-      <div className="max-w-4xl mx-auto">
-        {/* Page Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Building2 className="text-blue-600 dark:text-blue-500 w-8 h-8" />
+    <div className="p-6 bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/50 dark:from-gray-950 dark:via-purple-950/20 dark:to-blue-950/30 min-h-screen">
+      <div className="max-w-6xl mx-auto">
+        {/* Hero Section with Company Name */}
+        <div className="relative mb-10 p-8 rounded-3xl bg-gradient-to-r from-purple-600/10 via-blue-600/10 to-indigo-600/10 dark:from-purple-900/30 dark:via-blue-900/30 dark:to-indigo-900/30 backdrop-blur border border-purple-200/50 dark:border-purple-700/50">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-600/5 to-blue-600/5 dark:from-purple-600/10 dark:to-blue-600/10 rounded-3xl"></div>
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-500 to-blue-600 shadow-lg">
+                <Building2 className="text-white w-10 h-10" />
+              </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
-                  Company Information
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-700 via-blue-700 to-indigo-700 dark:from-purple-300 dark:via-blue-300 dark:to-indigo-300 bg-clip-text text-transparent mb-2">
+                  {company.name}
                 </h1>
-                <p className="text-gray-600 dark:text-gray-400 mt-1">
-                  View and manage your company details
-                </p>
+                <div className="flex items-center gap-3">
+                  {company.companyType && (
+                    <Badge variant="outline" className="bg-white/50 dark:bg-gray-800/50 border-purple-200 dark:border-purple-700">
+                      {company.companyType}
+                    </Badge>
+                  )}
+                  <Badge variant={company.isActive ? "default" : "secondary"} className={company.isActive ? "bg-green-500 hover:bg-green-600" : ""}>
+                    {company.isActive ? "Active" : "Inactive"}
+                  </Badge>
+                </div>
               </div>
             </div>
             {canEdit && (
               <Button 
                 onClick={handleEdit}
-                variant="outline" 
-                className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 border-blue-200 dark:border-blue-700/50 hover:from-blue-100 hover:to-blue-200 dark:hover:from-blue-800/40 dark:hover:to-blue-700/40 transition-all duration-300 text-blue-700 dark:text-blue-300"
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 <Edit className="mr-2 h-4 w-4" />
                 Edit Information
               </Button>
             )}
           </div>
+          {company.description && (
+            <p className="relative mt-6 text-gray-700 dark:text-gray-300 text-lg leading-relaxed">
+              {company.description}
+            </p>
+          )}
         </div>
 
-        <div className="grid gap-6">
-        {/* Company Overview Card */}
-        <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <Building2 className="h-8 w-8 text-blue-600 dark:text-blue-500" />
-                <div>
-                  <CardTitle>{company.name}</CardTitle>
-                  {company.industry && (
-                    <CardDescription>
-                      <Badge variant="outline" className="mt-1">
-                        {company.industry}
-                      </Badge>
-                    </CardDescription>
-                  )}
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Contact Information - Left Column */}
+          <div className="lg:col-span-1 space-y-6">
+            <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-0 shadow-xl shadow-purple-100/50 dark:shadow-purple-900/20">
+              <CardHeader className="pb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30">
+                    <Mail className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  </div>
+                  <CardTitle className="text-lg">Contact Details</CardTitle>
                 </div>
-              </div>
-              <Badge variant={company.isActive ? "default" : "secondary"}>
-                {company.isActive ? "Active" : "Inactive"}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {company.description && (
-              <p className="text-sm text-muted-foreground mb-6">
-                {company.description}
-              </p>
-            )}
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Contact Information */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-sm">Contact Information</h3>
-                
-                {company.email && (
-                  <div className="flex items-center space-x-3 text-sm">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <a href={`mailto:${company.email}`} className="hover:underline">
-                      {company.email}
-                    </a>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {company.companyEmail ? (
+                  <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                    <div className="flex items-center space-x-3">
+                      <Mail className="h-4 w-4 text-gray-500" />
+                      <a href={`mailto:${company.companyEmail}`} className="text-sm hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
+                        {company.companyEmail}
+                      </a>
+                    </div>
                   </div>
-                )}
+                ) : null}
                 
-                {company.phone && (
-                  <div className="flex items-center space-x-3 text-sm">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span>{company.phone}</span>
+                {company.phone ? (
+                  <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                    <div className="flex items-center space-x-3">
+                      <Phone className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm">{company.phone}</span>
+                    </div>
                   </div>
-                )}
+                ) : null}
                 
-                {company.website && (
-                  <div className="flex items-center space-x-3 text-sm">
-                    <Globe className="h-4 w-4 text-muted-foreground" />
-                    <a 
-                      href={company.website} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="hover:underline"
-                    >
-                      {company.website}
-                    </a>
+                {company.website ? (
+                  <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                    <div className="flex items-center space-x-3">
+                      <Globe className="h-4 w-4 text-gray-500" />
+                      <a 
+                        href={company.website} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-sm hover:text-purple-600 dark:hover:text-purple-400 transition-colors truncate"
+                      >
+                        {company.website}
+                      </a>
+                    </div>
                   </div>
-                )}
+                ) : null}
 
                 {!company.companyEmail && !company.phone && !company.website && (
-                  <p className="text-sm text-muted-foreground">
-                    No contact information available
-                  </p>
-                )}
-              </div>
-
-              {/* Location & Owner */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-sm">Details</h3>
-                
-                {company.address && (
-                  <div className="flex items-start space-x-3 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                    <span className="whitespace-pre-line">{company.address}</span>
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <Mail className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No contact information available</p>
                   </div>
                 )}
-                
-                <div className="space-y-2">
-                  <div className="text-sm">
-                    <span className="font-medium">Owner:</span>{" "}
+              </CardContent>
+            </Card>
+
+            {/* Owner Information */}
+            <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-0 shadow-xl shadow-blue-100/50 dark:shadow-blue-900/20">
+              <CardHeader className="pb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30">
+                    <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <CardTitle className="text-lg">Owner</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="p-4 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
+                  <div className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">
                     {company.owner.firstName} {company.owner.lastName}
                   </div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
                     {company.owner.email}
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </div>
 
-                {!company.address && (
-                  <div className="text-sm text-muted-foreground">
-                    No address specified
+          {/* Location & Company Info - Right Columns */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Location Card */}
+            {company.address && (
+              <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-0 shadow-xl shadow-orange-100/50 dark:shadow-orange-900/20">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 rounded-lg bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/30 dark:to-red-900/30">
+                      <MapPin className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                    </div>
+                    <CardTitle className="text-lg">Location</CardTitle>
                   </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                </CardHeader>
+                <CardContent>
+                  <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                    <p className="whitespace-pre-line text-gray-700 dark:text-gray-300 leading-relaxed">
+                      {company.address}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-        {/* Additional Information Card */}
-        <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300">
-          <CardHeader>
-            <CardTitle className="text-base text-gray-900 dark:text-gray-100">Account Information</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="font-medium">Created:</span>{" "}
-                {company.createdAt ? new Date(company.createdAt).toLocaleDateString() : "Unknown"}
-              </div>
-              <div>
-                <span className="font-medium">Last Updated:</span>{" "}
-                {company.updatedAt ? new Date(company.updatedAt).toLocaleDateString() : "Unknown"}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            {/* Account Information */}
+            <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-0 shadow-xl shadow-gray-100/50 dark:shadow-gray-900/20">
+              <CardHeader className="pb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-gray-100 to-slate-100 dark:from-gray-800 dark:to-slate-800">
+                    <Activity className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                  </div>
+                  <CardTitle className="text-lg">Account Information</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Created</div>
+                    <div className="font-medium">
+                      {company.createdAt ? new Date(company.createdAt).toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      }) : "Unknown"}
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Last Updated</div>
+                    <div className="font-medium">
+                      {company.updatedAt ? new Date(company.updatedAt).toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      }) : "Unknown"}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>

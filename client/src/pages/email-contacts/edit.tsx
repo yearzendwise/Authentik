@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Save, Loader2, X } from "lucide-react";
+import { ArrowLeft, Save, Loader2, X, Mail, CheckCircle2, UserCheck, Tag, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 // Schema for the form
@@ -68,7 +68,7 @@ export default function EditEmailContact() {
 
   // Fetch available tags
   const { data: tagsData } = useQuery({
-    queryKey: ["/api/email-contacts/tags"],
+    queryKey: ["/api/contact-tags"],
     queryFn: async ({ queryKey }) => {
       const res = await apiRequest("GET", queryKey[0]);
       return res.json();
@@ -210,33 +210,40 @@ export default function EditEmailContact() {
   const availableLists = (listsData as any)?.lists || [];
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="mb-6">
-        <Button
-          variant="ghost"
-          onClick={() => setLocation("/email-contacts")}
-          className="mb-4"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Contacts
-        </Button>
-        <h1 className="text-3xl font-bold">Edit Contact</h1>
-        <p className="text-muted-foreground">
-          Update contact information and manage their subscription status.
-        </p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-slate-950 dark:via-blue-950/30 dark:to-indigo-950/20">
+      <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-8">
+          <Button
+            variant="ghost"
+            onClick={() => setLocation("/email-contacts")}
+            className="mb-6 group hover:bg-white/60 dark:hover:bg-slate-800/60 backdrop-blur-sm border border-white/20 dark:border-slate-700/50"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2 transition-transform group-hover:-translate-x-0.5" />
+            Back to Contacts
+          </Button>
+          
+          <div className="space-y-2">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-blue-800 to-indigo-800 dark:from-slate-100 dark:via-blue-200 dark:to-indigo-200 bg-clip-text text-transparent">
+              Edit Contact
+            </h1>
+            <p className="text-lg text-slate-600 dark:text-slate-400">
+              Update contact information and manage their subscription status
+            </p>
+          </div>
+        </div>
 
-      <div className="grid gap-8 lg:grid-cols-3">
-        {/* Main Form */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Contact Information</CardTitle>
-              <CardDescription>
-                Update the contact's details and subscription status.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+        <div className="grid gap-8 lg:grid-cols-3">
+          {/* Main Form */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="border-0 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl shadow-xl shadow-slate-200/20 dark:shadow-slate-900/20">
+              <CardHeader className="border-b border-slate-200/50 dark:border-slate-700/50 bg-gradient-to-r from-white/50 to-slate-50/50 dark:from-slate-800/50 dark:to-slate-900/50">
+                <CardTitle className="text-xl font-semibold text-slate-800 dark:text-slate-200">Contact Information</CardTitle>
+                <CardDescription className="text-slate-600 dark:text-slate-400">
+                  Update the contact's details and subscription status
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-6">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   {/* Email */}
@@ -391,72 +398,215 @@ export default function EditEmailContact() {
                   )}
 
                   {/* Form Actions */}
-                  <div className="flex items-center gap-3 pt-6">
-                    <Button 
-                      type="submit" 
-                      disabled={updateContactMutation.isPending}
-                      className="flex items-center gap-2"
-                    >
-                      {updateContactMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Save className="h-4 w-4" />
-                      )}
-                      {updateContactMutation.isPending ? "Updating..." : "Update Contact"}
-                    </Button>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
+                  <div className="flex justify-end gap-3 pt-6 border-t border-slate-200/50 dark:border-slate-700/50">
+                    <Button
+                      type="button"
+                      variant="outline"
                       onClick={() => setLocation("/email-contacts")}
+                      className="border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800"
                     >
                       Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={updateContactMutation.isPending}
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25"
+                    >
+                      {updateContactMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Save Changes
+                        </>
+                      )}
                     </Button>
                   </div>
                 </form>
               </Form>
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
 
-        {/* Sidebar - Contact Details */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Contact Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Created</p>
-                <p className="text-sm">
-                  {new Date(contact.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-              {contact.updatedAt && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Last Updated</p>
-                  <p className="text-sm">
-                    {new Date(contact.updatedAt).toLocaleDateString()}
-                  </p>
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Contact Summary */}
+            <Card className="border-0 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl shadow-xl shadow-slate-200/20 dark:shadow-slate-900/20">
+              <CardHeader className="border-b border-slate-200/50 dark:border-slate-700/50 bg-gradient-to-r from-white/50 to-slate-50/50 dark:from-slate-800/50 dark:to-slate-900/50">
+                <CardTitle className="text-lg text-slate-800 dark:text-slate-200">Contact Summary</CardTitle>
+                <CardDescription className="text-slate-600 dark:text-slate-400">
+                  Current contact information
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                      <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{contact?.email}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Email Address</p>
+                    </div>
+                  </div>
+                  
+                  {(contact?.firstName || contact?.lastName) && (
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                        <UserCheck className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                          {[contact?.firstName, contact?.lastName].filter(Boolean).join(' ')}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Full Name</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div>
+                      <Badge 
+                        variant={contact?.status === 'active' ? 'default' : 'secondary'}
+                        className={
+                          contact?.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                          contact?.status === 'unsubscribed' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400' :
+                          contact?.status === 'bounced' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                          contact?.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' : ''
+                        }
+                      >
+                        {contact?.status}
+                      </Badge>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Status</p>
+                    </div>
+                  </div>
                 </div>
-              )}
-              {contact.consentDate && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Consent Date</p>
-                  <p className="text-sm">
-                    {new Date(contact.consentDate).toLocaleDateString()}
-                  </p>
+              </CardContent>
+            </Card>
+
+            {/* Tags Section */}
+            <Card className="border-0 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl shadow-xl shadow-slate-200/20 dark:shadow-slate-900/20">
+              <CardHeader className="border-b border-slate-200/50 dark:border-slate-700/50 bg-gradient-to-r from-white/50 to-slate-50/50 dark:from-slate-800/50 dark:to-slate-900/50">
+                <CardTitle className="text-lg text-slate-800 dark:text-slate-200">Current Tags</CardTitle>
+                <CardDescription className="text-slate-600 dark:text-slate-400">
+                  Tags assigned to this contact
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-6">
+                {contact?.tags && contact.tags.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {contact.tags.map((tag: any) => (
+                      <Badge 
+                        key={tag.id} 
+                        variant="outline"
+                        style={{ 
+                          backgroundColor: `${tag.color}20`,
+                          borderColor: tag.color,
+                          color: tag.color 
+                        }}
+                        className="border-2"
+                      >
+                        <Tag className="h-3 w-3 mr-1" />
+                        {tag.name}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500 dark:text-slate-400">No tags assigned</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Lists Section */}
+            <Card className="border-0 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl shadow-xl shadow-slate-200/20 dark:shadow-slate-900/20">
+              <CardHeader className="border-b border-slate-200/50 dark:border-slate-700/50 bg-gradient-to-r from-white/50 to-slate-50/50 dark:from-slate-800/50 dark:to-slate-900/50">
+                <CardTitle className="text-lg text-slate-800 dark:text-slate-200">Current Lists</CardTitle>
+                <CardDescription className="text-slate-600 dark:text-slate-400">
+                  Email lists this contact belongs to
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-6">
+                {contact?.lists && contact.lists.length > 0 ? (
+                  <div className="space-y-2">
+                    {contact.lists.map((list: any) => (
+                      <div key={list.id} className="flex items-center gap-3 p-2 rounded-lg bg-slate-50/50 dark:bg-slate-800/50">
+                        <div className="p-1 rounded bg-blue-100 dark:bg-blue-900/30">
+                          <Mail className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{list.name}</p>
+                          {list.description && (
+                            <p className="text-xs text-slate-500 dark:text-slate-400">{list.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Not subscribed to any lists</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Contact Details */}
+            <Card className="border-0 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl shadow-xl shadow-slate-200/20 dark:shadow-slate-900/20">
+              <CardHeader className="border-b border-slate-200/50 dark:border-slate-700/50 bg-gradient-to-r from-white/50 to-slate-50/50 dark:from-slate-800/50 dark:to-slate-900/50">
+                <CardTitle className="text-lg text-slate-800 dark:text-slate-200">Contact Details</CardTitle>
+                <CardDescription className="text-slate-600 dark:text-slate-400">
+                  Additional contact information
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
+                      <Calendar className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                        {new Date(contact.createdAt).toLocaleDateString()}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Date Added</p>
+                    </div>
+                  </div>
+                  
+                  {contact.consentDate && (
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                        <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                          {new Date(contact.consentDate).toLocaleDateString()}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Consent Date</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {contact.consentMethod && (
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/30">
+                        <CheckCircle2 className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200 capitalize">
+                          {contact.consentMethod.replace('_', ' ')}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Consent Method</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-              {contact.consentMethod && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Consent Method</p>
-                  <p className="text-sm capitalize">
-                    {contact.consentMethod.replace('_', ' ')}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>

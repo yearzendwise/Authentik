@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ContactSearch } from "@/components/ContactSearch";
 import { 
   Users, 
   Plus, 
@@ -93,25 +94,17 @@ interface EmailListWithCount extends EmailList {
 
 export default function EmailContacts() {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
-  const [searchInput, setSearchInput] = useState(""); // Separate input state
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(""); // Debounced search
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [listFilter, setListFilter] = useState("all");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Debounce search input
-  useEffect(() => {
-    console.log('🔤 [Search Input] Changed:', searchInput, 'Length:', searchInput.length);
-    
-    const timer = setTimeout(() => {
-      console.log('⏱️ [Search Debounce] Setting debounced query:', searchInput);
-      setDebouncedSearchQuery(searchInput);
-    }, 300); // Wait 300ms after user stops typing
-
-    return () => clearTimeout(timer);
-  }, [searchInput]);
+  // Handle search changes from ContactSearch component
+  const handleSearchChange = useCallback((search: string) => {
+    setDebouncedSearchQuery(search);
+  }, []);
 
 
 
@@ -129,22 +122,13 @@ export default function EmailContacts() {
   const { data: contactsData, isLoading: contactsLoading, error: contactsError, isFetching } = useQuery({
     queryKey: ['/api/email-contacts', { search: debouncedSearchQuery, status: statusFilter, listId: listFilter !== 'all' ? listFilter : undefined }],
     queryFn: async () => {
-      console.log('🔍 [Search] Executing search query:', { debouncedSearchQuery, statusFilter, listFilter });
-      
       const params = new URLSearchParams();
       if (debouncedSearchQuery) params.append('search', debouncedSearchQuery);
       if (statusFilter !== 'all') params.append('status', statusFilter);
       if (listFilter !== 'all') params.append('listId', listFilter);
       
-      try {
-        const response = await apiRequest('GET', `/api/email-contacts?${params.toString()}`);
-        const data = await response.json();
-        console.log('✅ [Search] Query successful, contacts count:', data.contacts?.length || 0);
-        return data;
-      } catch (error) {
-        console.error('❌ [Search] Query failed:', error);
-        throw error;
-      }
+      const response = await apiRequest('GET', `/api/email-contacts?${params.toString()}`);
+      return response.json();
     },
     staleTime: 0, // Always refetch when params change
     refetchOnWindowFocus: false, // Prevent refetch on window focus
@@ -389,32 +373,11 @@ export default function EmailContacts() {
         {/* Main Content */}
         <div className="flex-1">
           {/* Filters and Search */}
-          <form 
-            onSubmit={(e) => e.preventDefault()}
-            className="flex flex-col sm:flex-row gap-4 mb-6"
-          >
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <Input
-                type="text"
-                placeholder="Search contacts..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }
-                }}
-                className="pl-10"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck={false}
-                data-lpignore="true"
-                data-form-type="other"
-              />
-            </div>
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <ContactSearch 
+              onSearchChange={handleSearchChange}
+              placeholder="Search contacts..."
+            />
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[180px]">
                 <Filter className="w-4 h-4 mr-2" />
@@ -431,12 +394,11 @@ export default function EmailContacts() {
             <Button 
               type="button"
               variant="outline"
-              onClick={(e) => e.preventDefault()}
             >
               <Download className="w-4 h-4 mr-2" />
               Export
             </Button>
-          </form>
+          </div>
 
           {/* Bulk Actions */}
           {selectedContacts.length > 0 && (

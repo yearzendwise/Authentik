@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
@@ -95,26 +95,23 @@ interface EmailListWithCount extends EmailList {
 export default function EmailContacts() {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [listFilter, setListFilter] = useState("all");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Store search params in a ref to use in query function without changing dependencies
+  const searchParamsRef = useRef({
+    search: "",
+    status: "all",
+    listId: undefined as string | undefined
+  });
 
   // Handle search changes from ContactSearch component
   const handleSearchChange = useCallback((search: string) => {
     setSearchQuery(search);
   }, []);
-
-  // Debounce the search query for API calls
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
 
 
 
@@ -128,24 +125,48 @@ export default function EmailContacts() {
     staleTime: 5 * 60 * 1000, // Cache stats for 5 minutes
   });
 
-  // Fetch email contacts (with search and filters)
-  const { data: contactsData, isLoading: contactsLoading, error: contactsError, isFetching } = useQuery({
-    queryKey: ['/api/email-contacts', { search: debouncedSearchQuery, status: statusFilter, listId: listFilter !== 'all' ? listFilter : undefined }],
+  // Initialize search params ref on first render
+  useEffect(() => {
+    searchParamsRef.current = {
+      search: "",
+      status: "all",
+      listId: undefined
+    };
+  }, []);
+
+  // Fetch email contacts with stable query key - no search params in key
+  const { data: contactsData, isLoading: contactsLoading, error: contactsError, isFetching, refetch } = useQuery({
+    queryKey: ['/api/email-contacts'],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (debouncedSearchQuery) params.append('search', debouncedSearchQuery);
-      if (statusFilter !== 'all') params.append('status', statusFilter);
-      if (listFilter !== 'all') params.append('listId', listFilter);
+      const currentParams = searchParamsRef.current;
+      
+      if (currentParams.search) params.append('search', currentParams.search);
+      if (currentParams.status !== 'all') params.append('status', currentParams.status);
+      if (currentParams.listId) params.append('listId', currentParams.listId);
       
       const response = await apiRequest('GET', `/api/email-contacts?${params.toString()}`);
       return response.json();
     },
-    staleTime: 30 * 1000, // Cache results for 30 seconds
+    staleTime: 5 * 60 * 1000, // Cache results for 5 minutes
+    gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false, // Prevent refetch on window focus
-    retry: 1, // Only retry once on failure
-    refetchOnMount: false, // Prevent automatic refetch on mount
-    refetchOnReconnect: false, // Prevent refetch on reconnect
+    refetchInterval: false,
   });
+
+  // Debounced search effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      searchParamsRef.current = {
+        search: searchQuery,
+        status: statusFilter,
+        listId: listFilter !== 'all' ? listFilter : undefined
+      };
+      refetch();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, statusFilter, listFilter, refetch]);
 
   // Fetch email lists
   const { data: listsData } = useQuery({

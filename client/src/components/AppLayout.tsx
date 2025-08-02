@@ -214,9 +214,6 @@ export function AppLayout({ children }: AppLayoutProps) {
               (item.href === "/dashboard" && location === "/");
             const Icon = item.icon;
 
-            // Special styling for the first item (Dashboard) to match the "Portfolios" style
-            const isFirstItem = index === 0;
-
             const navButton = (
               <Button
                 key={item.name}
@@ -224,10 +221,8 @@ export function AppLayout({ children }: AppLayoutProps) {
                 size="sm"
                 className={cn(
                   "w-12 h-12 p-0 rounded-2xl justify-center transition-all duration-200 hover:bg-gray-700",
-                  isActive && isFirstItem 
+                  isActive 
                     ? "bg-indigo-600 text-white hover:bg-indigo-700" 
-                    : isActive 
-                    ? "bg-gray-700 text-gray-200" 
                     : "text-gray-400 hover:text-gray-200"
                 )}
                 asChild

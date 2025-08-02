@@ -133,6 +133,7 @@ function Router() {
                 <Route path="/campaigns" component={CampaignsPage} />
                 <Route path="/email-contacts" component={EmailContactsPage} />
                 <Route path="/email-contacts/new" component={NewEmailContactPage} />
+                <Route path="/email-contacts/edit/:id" component={lazy(() => import("@/pages/email-contacts/edit"))} />
                 <Route path="/shops" component={ShopsPage} />
                 <Route path="/shops/new" component={NewShopPage} />
                 <Route path="/shops/:id" component={ShopDetailsPage} />

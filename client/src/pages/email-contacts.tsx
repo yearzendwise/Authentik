@@ -499,7 +499,7 @@ export default function EmailContacts() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setLocation(`/email-contacts/edit/${contact.id}`)}>
                               <Edit className="w-4 h-4 mr-2" />
                               Edit Contact
                             </DropdownMenuItem>

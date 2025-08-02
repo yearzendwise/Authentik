@@ -3329,6 +3329,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const contactData = req.body;
+      
+      const contact = await storage.updateEmailContact(id, contactData, req.user.tenantId);
+
+      if (!contact) {
+        return res.status(404).json({ message: "Contact not found" });
+      }
+
+      res.json({
+        message: "Email contact updated successfully",
+        contact,
+      });
+    } catch (error: any) {
+      console.error("Update email contact error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Update email contact
+  app.put("/api/email-contacts/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const contactData = req.body;
 
       // Check if contact exists and belongs to tenant
       const existingContact = await storage.getEmailContact(id, req.user.tenantId);

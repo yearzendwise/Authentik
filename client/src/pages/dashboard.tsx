@@ -170,14 +170,11 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-6 bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 min-h-screen">
+    <div className="max-w-6xl mx-auto p-4 bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 min-h-screen">
       {/* Page Header with Free Trial Panel */}
-      <div className="mb-8">
+      <div className="mb-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 dark:from-blue-500 dark:to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-              <Mail className="text-white w-7 h-7" />
-            </div>
+          <div className="flex items-center space-x-4">       
             <div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
                 Email Marketing Dashboard
@@ -200,7 +197,7 @@ export default function Dashboard() {
 
         {/* Subscription Info for Non-Owners */}
         {!subscription?.subscription && user?.role !== "Owner" && (
-          <Card className="mb-8 border-l-4 border-l-blue-500 dark:border-l-blue-400 bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm shadow-lg">
+          <Card className="mb-6 border-l-4 border-l-blue-500 dark:border-l-blue-400 bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center text-gray-900 dark:text-gray-100">
                 <CreditCard className="mr-2 h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -219,7 +216,7 @@ export default function Dashboard() {
         )}
 
         {/* Email Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
           <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-blue-200/50 dark:border-blue-700/30 hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -288,7 +285,7 @@ export default function Dashboard() {
         </div>
 
         {/* Quick Actions */}
-        <Card className="mb-8 bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30">
+        <Card className="mb-6 bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30">
           <CardHeader>
             <CardTitle className="text-gray-900 dark:text-gray-100 flex items-center">
               <span className="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
@@ -369,7 +366,7 @@ export default function Dashboard() {
         </Card>
 
         {/* User Info Section */}
-        <Card className="mt-6 bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30">
+        <Card className="mt-4 bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30">
           <CardHeader>
             <CardTitle className="text-gray-900 dark:text-gray-100 flex items-center">
               <User className="mr-2 h-5 w-5 text-blue-600 dark:text-blue-400" />

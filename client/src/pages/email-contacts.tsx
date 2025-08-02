@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
@@ -94,16 +94,23 @@ interface EmailListWithCount extends EmailList {
 
 export default function EmailContacts() {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [listFilter, setListFilter] = useState("all");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Store search params in a ref to use in query function without changing dependencies
+  const searchParamsRef = useRef({
+    search: "",
+    status: "all",
+    listId: undefined as string | undefined
+  });
 
   // Handle search changes from ContactSearch component
   const handleSearchChange = useCallback((search: string) => {
-    setDebouncedSearchQuery(search);
+    setSearchQuery(search);
   }, []);
 
 
@@ -118,24 +125,48 @@ export default function EmailContacts() {
     staleTime: 5 * 60 * 1000, // Cache stats for 5 minutes
   });
 
-  // Fetch email contacts (with search and filters)
-  const { data: contactsData, isLoading: contactsLoading, error: contactsError, isFetching } = useQuery({
-    queryKey: ['/api/email-contacts', { search: debouncedSearchQuery, status: statusFilter, listId: listFilter !== 'all' ? listFilter : undefined }],
+  // Initialize search params ref on first render
+  useEffect(() => {
+    searchParamsRef.current = {
+      search: "",
+      status: "all",
+      listId: undefined
+    };
+  }, []);
+
+  // Fetch email contacts with stable query key - no search params in key
+  const { data: contactsData, isLoading: contactsLoading, error: contactsError, isFetching, refetch } = useQuery({
+    queryKey: ['/api/email-contacts'],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (debouncedSearchQuery) params.append('search', debouncedSearchQuery);
-      if (statusFilter !== 'all') params.append('status', statusFilter);
-      if (listFilter !== 'all') params.append('listId', listFilter);
+      const currentParams = searchParamsRef.current;
+      
+      if (currentParams.search) params.append('search', currentParams.search);
+      if (currentParams.status !== 'all') params.append('status', currentParams.status);
+      if (currentParams.listId) params.append('listId', currentParams.listId);
       
       const response = await apiRequest('GET', `/api/email-contacts?${params.toString()}`);
       return response.json();
     },
-    staleTime: 0, // Always refetch when params change
+    staleTime: 5 * 60 * 1000, // Cache results for 5 minutes
+    gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false, // Prevent refetch on window focus
-    retry: false, // Disable retries to prevent unexpected behavior
-    refetchOnMount: false, // Prevent automatic refetch on mount
-    refetchOnReconnect: false, // Prevent refetch on reconnect
+    refetchInterval: false,
   });
+
+  // Debounced search effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      searchParamsRef.current = {
+        search: searchQuery,
+        status: statusFilter,
+        listId: listFilter !== 'all' ? listFilter : undefined
+      };
+      refetch();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, statusFilter, listFilter, refetch]);
 
   // Fetch email lists
   const { data: listsData } = useQuery({
@@ -235,8 +266,14 @@ export default function EmailContacts() {
           <p className="text-gray-600 mb-4">
             There was an error loading your email contacts. Please try again.
           </p>
-          <Button onClick={() => window.location.reload()} variant="outline">
-            Refresh Page
+          <Button 
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ['/api/email-contacts'] });
+              queryClient.invalidateQueries({ queryKey: ['/api/email-contacts-stats'] });
+            }} 
+            variant="outline"
+          >
+            Retry
           </Button>
         </div>
       </div>
@@ -375,6 +412,8 @@ export default function EmailContacts() {
           {/* Filters and Search */}
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <ContactSearch 
+              key="contact-search"
+              value={searchQuery}
               onSearchChange={handleSearchChange}
               placeholder="Search contacts..."
             />
@@ -465,8 +504,8 @@ export default function EmailContacts() {
                         <div className="flex flex-col items-center gap-2 text-gray-500 dark:text-gray-400">
                           <Search className="h-8 w-8" />
                           <p>
-                            {debouncedSearchQuery ? 
-                              `No contacts found matching "${debouncedSearchQuery}"` : 
+                            {searchQuery ? 
+                              `No contacts found matching "${searchQuery}"` : 
                               'No contacts found'
                             }
                           </p>

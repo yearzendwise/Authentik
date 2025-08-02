@@ -1282,7 +1282,8 @@ export class DatabaseStorage implements IStorage {
           or(
             ilike(emailContacts.email, `%${filters.search}%`),
             ilike(emailContacts.firstName, `%${filters.search}%`),
-            ilike(emailContacts.lastName, `%${filters.search}%`)
+            ilike(emailContacts.lastName, `%${filters.search}%`),
+            ilike(sql`${emailContacts.firstName} || ' ' || ${emailContacts.lastName}`, `%${filters.search}%`)
           )!
         );
       }

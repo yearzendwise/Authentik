@@ -191,45 +191,31 @@ export function AppLayout({ children }: AppLayoutProps) {
       {/* Sidebar */}
       <div
         className={cn(
-          "flex flex-col bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 transition-all duration-200",
-          isCollapsed ? "w-16" : "w-64",
+          "flex flex-col bg-gray-800 transition-all duration-200",
+          isCollapsed ? "w-20" : "w-20",
         )}
       >
         {/* Header */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-          <div className={cn(
-            "flex items-center",
-            isCollapsed ? "justify-center" : "gap-3"
-          )}>
+        <div className="p-4 flex justify-center">
+          <div className="bg-indigo-600 rounded-2xl p-2 flex items-center justify-center">
             <img 
               src={logoUrl} 
               alt="Company Logo" 
-              className={cn(
-                "object-contain",
-                isCollapsed ? "w-8 h-8" : "w-10 h-10"
-              )}
+              className="w-8 h-8 object-contain filter brightness-0 invert"
             />
-            {!isCollapsed && (
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                SaaS Auth
-              </h1>
-            )}
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className={cn(
-          "flex-1 space-y-2 pt-4",
-          isCollapsed ? "flex flex-col items-center px-2" : "px-4"
-        )}>
+        <nav className="flex-1 flex flex-col items-center space-y-3 pt-6 px-3">
           {navigation.map((item, index) => {
             const isActive =
               location === item.href ||
               (item.href === "/dashboard" && location === "/");
             const Icon = item.icon;
 
-            // Add separator before Profile
-            const showSeparator = item.name === "Profile" && index > 0;
+            // Special styling for the first item (Dashboard) to match the "Portfolios" style
+            const isFirstItem = index === 0;
 
             const navButton = (
               <Button
@@ -237,85 +223,71 @@ export function AppLayout({ children }: AppLayoutProps) {
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "h-10 hover:bg-purple-100 hover:text-purple-600 dark:hover:bg-purple-900/20 dark:hover:text-purple-400",
-                  isActive && "bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400",
-                  isCollapsed ? "w-10 p-0 rounded-lg justify-center" : "w-full justify-start rounded-lg"
+                  "w-12 h-12 p-0 rounded-2xl justify-center transition-all duration-200 hover:bg-gray-700",
+                  isActive && isFirstItem 
+                    ? "bg-indigo-600 text-white hover:bg-indigo-700" 
+                    : isActive 
+                    ? "bg-gray-700 text-gray-200" 
+                    : "text-gray-400 hover:text-gray-200"
                 )}
                 asChild
               >
                 <Link href={item.href}>
-                  <Icon className="h-5 w-5" />
-                  {!isCollapsed && <span className="ml-3">{item.name}</span>}
+                  <Icon className="h-6 w-6" />
                 </Link>
               </Button>
             );
 
-            const buttonElement = isCollapsed ? (
-              <Tooltip key={item.name}>
-                <TooltipTrigger asChild>{navButton}</TooltipTrigger>
-                <TooltipContent side="right">{item.name}</TooltipContent>
-              </Tooltip>
-            ) : (
-              navButton
-            );
-
-            return (
-              <div key={`nav-${item.name}`}>
-                {showSeparator && (
-                  <div className="my-2 mx-2 border-t border-gray-200 dark:border-gray-800" />
+            const buttonElement = (
+              <div key={item.name} className="relative group">
+                <Tooltip>
+                  <TooltipTrigger asChild>{navButton}</TooltipTrigger>
+                  <TooltipContent side="right" className="bg-gray-900 text-white border-gray-700">
+                    {item.name}
+                  </TooltipContent>
+                </Tooltip>
+                {/* Active pill indicator for first item */}
+                {isActive && isFirstItem && (
+                  <div className="absolute -right-6 top-1/2 transform -translate-y-1/2 bg-indigo-600 text-white px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap z-10 shadow-lg">
+                    {item.name}
+                    <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1 w-2 h-2 bg-indigo-600 rotate-45"></div>
+                  </div>
                 )}
-                {buttonElement}
               </div>
             );
+
+            return buttonElement;
           })}
         </nav>
 
         {/* User Profile Menu */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+        <div className="p-4 flex justify-center">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className={cn(
-                  "hover:bg-purple-100 dark:hover:bg-purple-900/20",
-                  isCollapsed 
-                    ? "w-10 h-10 p-0 rounded-full justify-center" 
-                    : "w-full justify-start h-12 rounded-lg"
-                )}
+                className="w-12 h-12 p-0 rounded-2xl justify-center hover:bg-gray-700"
               >
                 <CustomAvatar 
                   user={user}
                   size="sm"
-                  className={cn(
-                    "flex-shrink-0",
-                    isCollapsed ? "w-8 h-8" : "w-8 h-8"
-                  )}
+                  className="w-8 h-8"
                 />
-                {!isCollapsed && (
-                  <div className="ml-3 text-left">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {user.firstName} {user.lastName}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                      {user.email}
-                    </p>
-                  </div>
-                )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem onClick={() => setLocation('/profile')} className="cursor-pointer">
+            <DropdownMenuContent align="end" className="w-56 bg-gray-900 border-gray-700">
+              <DropdownMenuItem onClick={() => setLocation('/profile')} className="cursor-pointer text-gray-200 hover:bg-gray-800">
                 <User className="mr-2 h-5 w-5" />
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLocation('/sessions')} className="cursor-pointer">
+              <DropdownMenuItem onClick={() => setLocation('/sessions')} className="cursor-pointer text-gray-200 hover:bg-gray-800">
                 <Activity className="mr-2 h-5 w-5" />
                 Sessions
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
+              <DropdownMenuSeparator className="bg-gray-700" />
               <div
                 onClick={handleThemeToggle}
-                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-gray-800 text-gray-200"
                 role="menuitem"
               >
                 {theme === 'light' ? (
@@ -330,10 +302,10 @@ export function AppLayout({ children }: AppLayoutProps) {
                   </>
                 )}
               </div>
-              <DropdownMenuSeparator />
+              <DropdownMenuSeparator className="bg-gray-700" />
               <DropdownMenuItem
                 onClick={handleLogout}
-                className="cursor-pointer text-red-600 dark:text-red-400"
+                className="cursor-pointer text-red-400 hover:bg-gray-800"
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign out

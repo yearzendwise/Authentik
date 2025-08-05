@@ -367,21 +367,21 @@ export function AppLayout({ children }: AppLayoutProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent 
               align={isCollapsed ? "end" : "start"} 
-              className="w-80 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-lg rounded-2xl p-0"
+              className="w-64 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-lg rounded-2xl p-0"
               sideOffset={8}
             >
               {/* User Profile Header */}
-              <div className="flex items-center gap-3 p-6 border-b border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-3 p-4 border-b border-gray-100 dark:border-gray-700">
                 <CustomAvatar 
                   user={user}
-                  size="md"
-                  className="w-12 h-12 ring-2 ring-gray-100 dark:ring-gray-700"
+                  size="sm"
+                  className="w-10 h-10 ring-2 ring-gray-100 dark:ring-gray-700"
                 />
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-base">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
                     {user.firstName} {user.lastName}
                   </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     {subscriptionData?.subscription?.plan?.displayName || 'Basic Plan'}
                   </p>
                 </div>
@@ -391,44 +391,44 @@ export function AppLayout({ children }: AppLayoutProps) {
               <div className="py-2">
                 <DropdownMenuItem 
                   onClick={() => setLocation('/profile')} 
-                  className="cursor-pointer flex items-center gap-3 px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none"
+                  className="cursor-pointer flex items-center gap-3 px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none"
                 >
-                  <User className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                  <span className="text-base">Profile</span>
+                  <User className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  <span className="text-sm">Profile</span>
                 </DropdownMenuItem>
                 
                 <DropdownMenuItem 
                   onClick={() => setLocation('/company')} 
-                  className="cursor-pointer flex items-center gap-3 px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none"
+                  className="cursor-pointer flex items-center gap-3 px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none"
                 >
-                  <Building2 className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                  <span className="text-base">Company</span>
+                  <Building2 className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  <span className="text-sm">Company</span>
                 </DropdownMenuItem>
                 
                 <DropdownMenuItem 
                   onClick={() => setLocation('/sessions')} 
-                  className="cursor-pointer flex items-center gap-3 px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none"
+                  className="cursor-pointer flex items-center gap-3 px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none"
                 >
-                  <Activity className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                  <span className="text-base">Sessions</span>
+                  <Activity className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  <span className="text-sm">Sessions</span>
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator className="bg-gray-100 dark:bg-gray-700" />
 
                 <div
                   onClick={handleThemeToggle}
-                  className="relative flex cursor-pointer select-none items-center gap-3 px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none"
+                  className="relative flex cursor-pointer select-none items-center gap-3 px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none"
                   role="menuitem"
                 >
                   {theme === 'light' ? (
                     <>
-                      <Moon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                      <span className="text-base">Dark mode</span>
+                      <Moon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                      <span className="text-sm">Dark mode</span>
                     </>
                   ) : (
                     <>
-                      <Sun className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                      <span className="text-base">Light mode</span>
+                      <Sun className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                      <span className="text-sm">Light mode</span>
                     </>
                   )}
                 </div>
@@ -437,13 +437,13 @@ export function AppLayout({ children }: AppLayoutProps) {
               <DropdownMenuSeparator className="bg-gray-100 dark:bg-gray-700" />
 
               {/* Plan Section */}
-              <div className="px-6 py-5 bg-gray-50 dark:bg-gray-800/50">
-                <div className="flex items-center justify-between gap-4">
+              <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800/50">
+                <div className="flex items-center justify-between gap-3">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
                       {subscriptionData?.subscription?.plan?.displayName || 'Basic Plan'}
                     </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       12,000 views
                     </p>
                   </div>
@@ -451,16 +451,16 @@ export function AppLayout({ children }: AppLayoutProps) {
                     <Button 
                       onClick={() => setLocation('/subscribe')}
                       size="sm" 
-                      className="relative overflow-hidden bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 hover:from-violet-500 hover:via-purple-500 hover:to-blue-500 text-white px-5 py-2 text-sm font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 group"
+                      className="relative overflow-hidden bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 hover:from-violet-500 hover:via-purple-500 hover:to-blue-500 text-white px-3 py-1.5 text-xs font-semibold rounded-md shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 group"
                     >
-                      <span className="relative z-10 flex items-center gap-1.5">
+                      <span className="relative z-10 flex items-center gap-1">
                         <span className="text-white">
                           ✦ Upgrade
                         </span>
                       </span>
                       <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </Button>
-                    <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full animate-pulse" />
+                    <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full animate-pulse" />
                   </div>
                 </div>
               </div>
@@ -471,10 +471,10 @@ export function AppLayout({ children }: AppLayoutProps) {
               <div className="py-2">
                 <DropdownMenuItem
                   onClick={handleLogout}
-                  className="cursor-pointer flex items-center gap-3 px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none"
+                  className="cursor-pointer flex items-center gap-3 px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none"
                 >
-                  <LogOut className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                  <span className="text-base">Logout</span>
+                  <LogOut className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  <span className="text-sm">Logout</span>
                 </DropdownMenuItem>
               </div>
             </DropdownMenuContent>

@@ -58,10 +58,7 @@ const getNavigation = (userRole?: string) => {
     { name: "Sessions", href: "/sessions", icon: Activity },
   ];
 
-  // Add subscription menu only for Owner role
-  if (userRole === "Owner") {
-    baseNavigation.splice(8, 0, { name: "Subscription", href: "/subscribe", icon: CreditCard });
-  }
+
 
   // Add Users management for Owner, Admin and Manager roles
   if (userRole === "Owner" || userRole === "Administrator" || userRole === "Manager") {

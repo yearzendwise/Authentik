@@ -144,7 +144,7 @@ function Router() {
                 <Route path="/sessions" component={SessionsPage} />
                 <Route path="/users" component={UsersPage} />
                 <Route path="/table-example" component={TableExamplePage} />
-                <Route path="/subscribe" component={Subscribe} />
+
                 <Route component={NotFound} />
               </Switch>
             </Suspense>
@@ -157,7 +157,7 @@ function Router() {
               <Route path="/auth" component={AuthPage} />
               <Route path="/pending-verification" component={PendingVerificationPage} />
               <Route path="/verify-email" component={VerifyEmailPage} />
-              <Route path="/subscribe" component={Subscribe} />
+
               <Route component={NotFound} />
             </Switch>
           </Suspense>

@@ -22,6 +22,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Newspaper,
+  Settings,
+  Grid3X3,
+  HelpCircle,
+  ExternalLink,
 } from "lucide-react";
 import logoUrl from "@assets/logo.png";
 import { cn } from "@/lib/utils";
@@ -46,6 +50,8 @@ import {
 } from "@/hooks/useReduxAuth";
 import { useUpdateTheme, useUpdateMenuPreference } from "@/hooks/useAuth";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useQuery } from "@tanstack/react-query";
+import type { UserSubscriptionResponse } from "@shared/schema";
 
 const getNavigation = (userRole?: string) => {
   const baseNavigation = [
@@ -84,6 +90,12 @@ export function AppLayout({ children }: AppLayoutProps) {
   const updateThemeMutation = useUpdateTheme();
   const updateMenuPreferenceMutation = useUpdateMenuPreference();
   const [isThemeChanging, setIsThemeChanging] = useState(false);
+
+  // Fetch subscription data for the user's plan
+  const { data: subscriptionData } = useQuery<UserSubscriptionResponse>({
+    queryKey: ["/api/my-subscription"],
+    enabled: !!user && user.role === "Owner",
+  });
   
   // Initialize menu state
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -355,46 +367,94 @@ export function AppLayout({ children }: AppLayoutProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent 
               align={isCollapsed ? "end" : "start"} 
-              className="w-56 bg-gray-900 dark:bg-gray-800 border-gray-700 dark:border-gray-600"
+              className="w-80 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-lg rounded-2xl p-0"
+              sideOffset={8}
             >
-              <DropdownMenuItem onClick={() => setLocation('/profile')} className="cursor-pointer text-gray-200 dark:text-gray-100 hover:bg-gray-800 dark:hover:bg-gray-700">
-                <User className="mr-2 h-5 w-5" />
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLocation('/company')} className="cursor-pointer text-gray-200 dark:text-gray-100 hover:bg-gray-800 dark:hover:bg-gray-700">
-                <Building2 className="mr-2 h-5 w-5" />
-                Company
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLocation('/sessions')} className="cursor-pointer text-gray-200 dark:text-gray-100 hover:bg-gray-800 dark:hover:bg-gray-700">
-                <Activity className="mr-2 h-5 w-5" />
-                Sessions
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-gray-700 dark:bg-gray-600" />
-              <div
-                onClick={handleThemeToggle}
-                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-gray-800 dark:hover:bg-gray-700 text-gray-200 dark:text-gray-100"
-                role="menuitem"
-              >
-                {theme === 'light' ? (
-                  <>
-                    <Moon className="mr-2 h-4 w-4" />
-                    Dark mode
-                  </>
-                ) : (
-                  <>
-                    <Sun className="mr-2 h-4 w-4" />
-                    Light mode
-                  </>
-                )}
+              {/* User Profile Header */}
+              <div className="flex items-center gap-3 p-6 border-b border-gray-100 dark:border-gray-700">
+                <CustomAvatar 
+                  user={user}
+                  size="md"
+                  className="w-12 h-12 ring-2 ring-gray-100 dark:ring-gray-700"
+                />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-base">
+                    {user.firstName} {user.lastName}
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {subscriptionData?.subscription?.plan?.displayName || 'Basic Plan'}
+                  </p>
+                </div>
               </div>
-              <DropdownMenuSeparator className="bg-gray-700 dark:bg-gray-600" />
-              <DropdownMenuItem
-                onClick={handleLogout}
-                className="cursor-pointer text-red-400 dark:text-red-400 hover:bg-gray-800 dark:hover:bg-gray-700"
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Sign out
-              </DropdownMenuItem>
+
+              {/* Menu Items */}
+              <div className="py-2">
+                <DropdownMenuItem 
+                  onClick={() => setLocation('/profile')} 
+                  className="cursor-pointer flex items-center gap-3 px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none"
+                >
+                  <Settings className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                  <span className="text-base">Account Settings</span>
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem 
+                  onClick={() => setLocation('/sessions')} 
+                  className="cursor-pointer flex items-center gap-3 px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none"
+                >
+                  <Activity className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                  <span className="text-base">Activity</span>
+                  <ExternalLink className="h-4 w-4 text-gray-400 dark:text-gray-500 ml-auto" />
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem 
+                  onClick={() => setLocation('/company')} 
+                  className="cursor-pointer flex items-center gap-3 px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none"
+                >
+                  <Grid3X3 className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                  <span className="text-base">Integrations</span>
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem className="cursor-pointer flex items-center gap-3 px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none">
+                  <HelpCircle className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                  <span className="text-base">Help Center</span>
+                </DropdownMenuItem>
+              </div>
+
+              <DropdownMenuSeparator className="bg-gray-100 dark:bg-gray-700" />
+
+              {/* Plan Section */}
+              <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800/50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {subscriptionData?.subscription?.plan?.displayName || 'Basic Plan'}
+                    </p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      12,000 views
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={() => setLocation('/subscribe')}
+                    size="sm" 
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-sm font-medium rounded-lg"
+                  >
+                    Upgrade
+                  </Button>
+                </div>
+              </div>
+
+              <DropdownMenuSeparator className="bg-gray-100 dark:bg-gray-700" />
+
+              {/* Logout */}
+              <div className="py-2">
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="cursor-pointer flex items-center gap-3 px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none"
+                >
+                  <LogOut className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                  <span className="text-base">Logout</span>
+                </DropdownMenuItem>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

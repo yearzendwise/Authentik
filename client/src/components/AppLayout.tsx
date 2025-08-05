@@ -18,6 +18,10 @@ import {
   UserCheck,
   BarChart3,
   PenTool,
+  Menu,
+  ChevronLeft,
+  ChevronRight,
+  Newspaper,
 } from "lucide-react";
 import logoUrl from "@assets/logo.png";
 import { cn } from "@/lib/utils";
@@ -40,28 +44,23 @@ import {
   useReduxLogout,
   useReduxUpdateProfile,
 } from "@/hooks/useReduxAuth";
-import { useUpdateTheme } from "@/hooks/useAuth";
+import { useUpdateTheme, useUpdateMenuPreference } from "@/hooks/useAuth";
 import { useTheme } from "@/contexts/ThemeContext";
 
 const getNavigation = (userRole?: string) => {
   const baseNavigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Company", href: "/company", icon: Building2 },
+    { name: "Newsletter", href: "/newsletter", icon: Newspaper },
+    { name: "Forms", href: "/forms", icon: ClipboardList },
     { name: "Email Campaigns", href: "/email-campaigns", icon: Mail },
     { name: "Templates", href: "/email-templates", icon: FileText },
     { name: "Contacts", href: "/email-contacts", icon: UserCheck },
     { name: "Analytics", href: "/email-analytics", icon: BarChart3 },
     { name: "Compose", href: "/email-compose", icon: PenTool },
     { name: "Shops", href: "/shops", icon: Store },
-    { name: "Forms", href: "/forms", icon: ClipboardList },
-    { name: "Profile", href: "/profile", icon: User },
-    { name: "Sessions", href: "/sessions", icon: Activity },
   ];
 
-  // Add subscription menu only for Owner role
-  if (userRole === "Owner") {
-    baseNavigation.splice(8, 0, { name: "Subscription", href: "/subscribe", icon: CreditCard });
-  }
+
 
   // Add Users management for Owner, Admin and Manager roles
   if (userRole === "Owner" || userRole === "Administrator" || userRole === "Manager") {
@@ -83,6 +82,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const navigation = getNavigation(user?.role);
   const { updateProfile } = useReduxUpdateProfile();
   const updateThemeMutation = useUpdateTheme();
+  const updateMenuPreferenceMutation = useUpdateMenuPreference();
   const [isThemeChanging, setIsThemeChanging] = useState(false);
   
   // Initialize menu state
@@ -181,6 +181,21 @@ export function AppLayout({ children }: AppLayoutProps) {
     }
   };
 
+  const handleMenuToggle = () => {
+    const newExpanded = isCollapsed; // If collapsed, we want to expand (true)
+    
+    // Update localStorage immediately for instant UI feedback
+    localStorage.setItem('menuExpanded', JSON.stringify(newExpanded));
+    
+    // Dispatch custom event for immediate UI update in same tab
+    window.dispatchEvent(new CustomEvent('menuPreferenceChanged', { 
+      detail: { menuExpanded: newExpanded } 
+    }));
+    
+    // Update backend preference
+    updateMenuPreferenceMutation.mutate({ menuExpanded: newExpanded });
+  };
+
   if (!user) {
     return <>{children}</>;
   }
@@ -191,36 +206,58 @@ export function AppLayout({ children }: AppLayoutProps) {
       {/* Sidebar */}
       <div
         className={cn(
-          "flex flex-col bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 transition-all duration-200",
-          isCollapsed ? "w-16" : "w-64",
+          "flex flex-col bg-gray-800 dark:bg-gray-900 transition-all duration-300 ease-in-out",
+          isCollapsed ? "w-20" : "w-64",
         )}
       >
         {/* Header */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-          <div className={cn(
-            "flex items-center",
-            isCollapsed ? "justify-center" : "gap-3"
-          )}>
-            <img 
-              src={logoUrl} 
-              alt="Company Logo" 
-              className={cn(
-                "object-contain",
-                isCollapsed ? "w-8 h-8" : "w-10 h-10"
-              )}
-            />
+        <div className={cn(
+          "p-4 flex items-center transition-all duration-300",
+          isCollapsed ? "justify-center" : "justify-between"
+        )}>
+          <div className="flex items-center">
+            <div className="bg-indigo-600 dark:bg-indigo-500 rounded-2xl p-2 flex items-center justify-center">
+              <img 
+                src={logoUrl} 
+                alt="Company Logo" 
+                className="w-8 h-8 object-contain filter brightness-0 invert"
+              />
+            </div>
             {!isCollapsed && (
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                SaaS Auth
-              </h1>
+              <div className="ml-3 flex flex-col">
+                <span className="text-white dark:text-gray-100 font-semibold text-lg">
+                  SaaS Platform
+                </span>
+                <span className="text-gray-300 dark:text-gray-400 text-sm">
+                  Management Suite
+                </span>
+              </div>
             )}
           </div>
+          
+          {/* Menu Toggle Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleMenuToggle}
+            className={cn(
+              "p-2 rounded-xl hover:bg-gray-700 dark:hover:bg-gray-800 text-gray-400 dark:text-gray-500 hover:text-gray-200 dark:hover:text-gray-300 transition-all duration-200",
+              isCollapsed ? "absolute top-4 right-4" : "ml-2"
+            )}
+            disabled={updateMenuPreferenceMutation.isPending}
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-5 w-5" />
+            ) : (
+              <ChevronLeft className="h-5 w-5" />
+            )}
+          </Button>
         </div>
 
         {/* Navigation */}
         <nav className={cn(
-          "flex-1 space-y-2 pt-4",
-          isCollapsed ? "flex flex-col items-center px-2" : "px-4"
+          "flex-1 flex flex-col pt-6 transition-all duration-300",
+          isCollapsed ? "items-center space-y-3 px-3" : "px-4 space-y-2"
         )}>
           {navigation.map((item, index) => {
             const isActive =
@@ -228,94 +265,114 @@ export function AppLayout({ children }: AppLayoutProps) {
               (item.href === "/dashboard" && location === "/");
             const Icon = item.icon;
 
-            // Add separator before Profile
-            const showSeparator = item.name === "Profile" && index > 0;
+            if (isCollapsed) {
+              // Collapsed menu - show only icons with tooltips
+              const navButton = (
+                <Button
+                  key={item.name}
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "w-12 h-12 p-0 rounded-2xl justify-center transition-all duration-200 hover:bg-gray-700 dark:hover:bg-gray-800",
+                    isActive 
+                      ? "bg-indigo-600 dark:bg-indigo-500 text-white hover:bg-indigo-700 dark:hover:bg-indigo-600" 
+                      : "text-gray-400 dark:text-gray-500 hover:text-gray-200 dark:hover:text-gray-300"
+                  )}
+                  asChild
+                >
+                  <Link href={item.href}>
+                    <Icon className="h-6 w-6" />
+                  </Link>
+                </Button>
+              );
 
-            const navButton = (
-              <Button
-                key={item.name}
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "h-10 hover:bg-purple-100 hover:text-purple-600 dark:hover:bg-purple-900/20 dark:hover:text-purple-400",
-                  isActive && "bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400",
-                  isCollapsed ? "w-10 p-0 rounded-lg justify-center" : "w-full justify-start rounded-lg"
-                )}
-                asChild
-              >
-                <Link href={item.href}>
-                  <Icon className="h-5 w-5" />
-                  {!isCollapsed && <span className="ml-3">{item.name}</span>}
-                </Link>
-              </Button>
-            );
-
-            const buttonElement = isCollapsed ? (
-              <Tooltip key={item.name}>
-                <TooltipTrigger asChild>{navButton}</TooltipTrigger>
-                <TooltipContent side="right">{item.name}</TooltipContent>
-              </Tooltip>
-            ) : (
-              navButton
-            );
-
-            return (
-              <div key={`nav-${item.name}`}>
-                {showSeparator && (
-                  <div className="my-2 mx-2 border-t border-gray-200 dark:border-gray-800" />
-                )}
-                {buttonElement}
-              </div>
-            );
+              return (
+                <div key={item.name} className="relative group">
+                  <Tooltip>
+                    <TooltipTrigger asChild>{navButton}</TooltipTrigger>
+                    <TooltipContent side="right" className="bg-gray-900 dark:bg-gray-800 text-white dark:text-gray-100 border-gray-700 dark:border-gray-600">
+                      {item.name}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              );
+            } else {
+              // Expanded menu - show icons with labels
+              return (
+                <Button
+                  key={item.name}
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start h-12 px-4 rounded-2xl transition-all duration-200 hover:bg-gray-700 dark:hover:bg-gray-800",
+                    isActive 
+                      ? "bg-indigo-600 dark:bg-indigo-500 text-white hover:bg-indigo-700 dark:hover:bg-indigo-600" 
+                      : "text-gray-400 dark:text-gray-500 hover:text-gray-200 dark:hover:text-gray-300"
+                  )}
+                  asChild
+                >
+                  <Link href={item.href} className="flex items-center space-x-3">
+                    <Icon className="h-6 w-6 flex-shrink-0" />
+                    <span className="font-medium">{item.name}</span>
+                  </Link>
+                </Button>
+              );
+            }
           })}
         </nav>
 
         {/* User Profile Menu */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+        <div className={cn(
+          "p-4 border-t border-gray-700 dark:border-gray-600 transition-all duration-300",
+          isCollapsed ? "flex justify-center" : "flex items-center"
+        )}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 className={cn(
-                  "hover:bg-purple-100 dark:hover:bg-purple-900/20",
+                  "rounded-2xl transition-all duration-200 hover:bg-gray-700 dark:hover:bg-gray-800",
                   isCollapsed 
-                    ? "w-10 h-10 p-0 rounded-full justify-center" 
-                    : "w-full justify-start h-12 rounded-lg"
+                    ? "w-12 h-12 p-0 justify-center" 
+                    : "w-full h-12 px-4 justify-start"
                 )}
               >
                 <CustomAvatar 
                   user={user}
                   size="sm"
-                  className={cn(
-                    "flex-shrink-0",
-                    isCollapsed ? "w-8 h-8" : "w-8 h-8"
-                  )}
+                  className="w-8 h-8 flex-shrink-0"
                 />
                 {!isCollapsed && (
-                  <div className="ml-3 text-left">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  <div className="ml-3 flex flex-col items-start">
+                    <span className="text-gray-200 dark:text-gray-100 font-medium text-sm">
                       {user.firstName} {user.lastName}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    </span>
+                    <span className="text-gray-400 dark:text-gray-500 text-xs">
                       {user.email}
-                    </p>
+                    </span>
                   </div>
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem onClick={() => setLocation('/profile')} className="cursor-pointer">
+            <DropdownMenuContent 
+              align={isCollapsed ? "end" : "start"} 
+              className="w-56 bg-gray-900 dark:bg-gray-800 border-gray-700 dark:border-gray-600"
+            >
+              <DropdownMenuItem onClick={() => setLocation('/profile')} className="cursor-pointer text-gray-200 dark:text-gray-100 hover:bg-gray-800 dark:hover:bg-gray-700">
                 <User className="mr-2 h-5 w-5" />
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLocation('/sessions')} className="cursor-pointer">
+              <DropdownMenuItem onClick={() => setLocation('/company')} className="cursor-pointer text-gray-200 dark:text-gray-100 hover:bg-gray-800 dark:hover:bg-gray-700">
+                <Building2 className="mr-2 h-5 w-5" />
+                Company
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setLocation('/sessions')} className="cursor-pointer text-gray-200 dark:text-gray-100 hover:bg-gray-800 dark:hover:bg-gray-700">
                 <Activity className="mr-2 h-5 w-5" />
                 Sessions
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
+              <DropdownMenuSeparator className="bg-gray-700 dark:bg-gray-600" />
               <div
                 onClick={handleThemeToggle}
-                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-gray-800 dark:hover:bg-gray-700 text-gray-200 dark:text-gray-100"
                 role="menuitem"
               >
                 {theme === 'light' ? (
@@ -330,10 +387,10 @@ export function AppLayout({ children }: AppLayoutProps) {
                   </>
                 )}
               </div>
-              <DropdownMenuSeparator />
+              <DropdownMenuSeparator className="bg-gray-700 dark:bg-gray-600" />
               <DropdownMenuItem
                 onClick={handleLogout}
-                className="cursor-pointer text-red-600 dark:text-red-400"
+                className="cursor-pointer text-red-400 dark:text-red-400 hover:bg-gray-800 dark:hover:bg-gray-700"
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign out

@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocation } from "wouter";
-import { ArrowLeft, Save, Send, Eye, Users, Tag, User } from "lucide-react";
+import { ArrowLeft, Save, Send, Eye, Users, Tag, User, Edit } from "lucide-react";
 import { CustomerSegmentationModal } from "@/components/CustomerSegmentationModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -134,36 +134,42 @@ export default function NewsletterCreatePage() {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setLocation('/newsletter')}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Newsletters
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Create Newsletter
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Design and send your newsletter to engage with subscribers
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+      <div className="container mx-auto p-6 max-w-4xl">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setLocation('/newsletter')}
+            className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Newsletters
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
+              Create Newsletter
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              Design and send your newsletter to engage with subscribers
+            </p>
+          </div>
         </div>
-      </div>
 
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Newsletter Details Card */}
-            <Card>
+            <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300">
               <CardHeader>
-                <CardTitle>Newsletter Details</CardTitle>
+                <CardTitle className="text-gray-900 dark:text-gray-100 flex items-center">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500 rounded-lg flex items-center justify-center mr-3">
+                    <Eye className="h-4 w-4 text-white" />
+                  </div>
+                  Newsletter Details
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -199,9 +205,14 @@ export default function NewsletterCreatePage() {
             </Card>
 
             {/* Content Card */}
-            <Card>
+            <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300">
               <CardHeader>
-                <CardTitle>Newsletter Content</CardTitle>
+                <CardTitle className="text-gray-900 dark:text-gray-100 flex items-center">
+                  <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 dark:from-green-400 dark:to-green-500 rounded-lg flex items-center justify-center mr-3">
+                    <Edit className="h-4 w-4 text-white" />
+                  </div>
+                  Newsletter Content
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div>
@@ -228,16 +239,18 @@ export default function NewsletterCreatePage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Preview Card */}
-            <Card>
+            <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-purple-200/50 dark:border-purple-700/30 hover:shadow-lg transition-all duration-300">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Eye className="h-4 w-4" />
+                <CardTitle className="text-gray-900 dark:text-gray-100 flex items-center">
+                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 dark:from-purple-400 dark:to-purple-500 rounded-lg flex items-center justify-center mr-3">
+                    <Eye className="h-4 w-4 text-white" />
+                  </div>
                   Preview
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
-                  <div className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+                <div className="p-4 border border-gray-200/50 dark:border-gray-600/50 rounded-lg bg-gray-50/70 dark:bg-gray-800/70 backdrop-blur-sm">
+                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
                     Subject: {form.watch("subject") || "Your subject line will appear here"}
                   </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400 max-h-32 overflow-y-auto">
@@ -248,18 +261,20 @@ export default function NewsletterCreatePage() {
             </Card>
 
             {/* Customer Segmentation Card */}
-            <Card>
+            <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-blue-200/50 dark:border-blue-700/30 hover:shadow-lg transition-all duration-300">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
+                <CardTitle className="text-gray-900 dark:text-gray-100 flex items-center">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500 rounded-lg flex items-center justify-center mr-3">
+                    <Users className="h-4 w-4 text-white" />
+                  </div>
                   Recipients
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label>Target Audience</Label>
+                  <Label className="text-gray-900 dark:text-gray-100">Target Audience</Label>
                   <div 
-                    className="mt-2 p-3 border rounded-lg bg-gray-50 dark:bg-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    className="mt-2 p-3 border border-gray-200/50 dark:border-gray-600/50 rounded-lg bg-gray-50/70 dark:bg-gray-800/70 backdrop-blur-sm cursor-pointer hover:bg-gray-100/70 dark:hover:bg-gray-700/70 transition-colors duration-200"
                     onClick={() => setIsSegmentationModalOpen(true)}
                   >
                     <div className="flex items-center justify-between">
@@ -269,20 +284,20 @@ export default function NewsletterCreatePage() {
                           const IconComponent = summary.icon;
                           return (
                             <>
-                              <IconComponent className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                              <IconComponent className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                 {summary.text}
                               </span>
                             </>
                           );
                         })()}
                       </div>
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className="text-xs bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700">
                         Click to modify
                       </Badge>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                     Choose who will receive this newsletter
                   </p>
                 </div>
@@ -290,9 +305,14 @@ export default function NewsletterCreatePage() {
             </Card>
 
             {/* Settings Card */}
-            <Card>
+            <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-orange-200/50 dark:border-orange-700/30 hover:shadow-lg transition-all duration-300">
               <CardHeader>
-                <CardTitle>Settings</CardTitle>
+                <CardTitle className="text-gray-900 dark:text-gray-100 flex items-center">
+                  <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 dark:from-orange-400 dark:to-orange-500 rounded-lg flex items-center justify-center mr-3">
+                    <Save className="h-4 w-4 text-white" />
+                  </div>
+                  Settings
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -329,16 +349,21 @@ export default function NewsletterCreatePage() {
             </Card>
 
             {/* Action Buttons */}
-            <Card>
+            <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-green-200/50 dark:border-green-700/30 hover:shadow-lg transition-all duration-300">
               <CardHeader>
-                <CardTitle>Actions</CardTitle>
+                <CardTitle className="text-gray-900 dark:text-gray-100 flex items-center">
+                  <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 dark:from-green-400 dark:to-green-500 rounded-lg flex items-center justify-center mr-3">
+                    <Send className="h-4 w-4 text-white" />
+                  </div>
+                  Actions
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button
                   type="button"
                   onClick={handleSaveAsDraft}
                   variant="outline"
-                  className="w-full"
+                  className="w-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-700/50 border-gray-300 dark:border-gray-600 hover:from-gray-100 hover:to-gray-200 dark:hover:from-gray-700/60 dark:hover:to-gray-600/60 transition-all duration-300"
                   disabled={createNewsletterMutation.isPending}
                 >
                   <Save className="h-4 w-4 mr-2" />
@@ -349,7 +374,7 @@ export default function NewsletterCreatePage() {
                   type="button"
                   onClick={handleSchedule}
                   variant="outline"
-                  className="w-full"
+                  className="w-full bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/30 border-orange-300 dark:border-orange-600 hover:from-orange-100 hover:to-orange-200 dark:hover:from-orange-800/40 dark:hover:to-orange-700/40 transition-all duration-300"
                   disabled={createNewsletterMutation.isPending}
                 >
                   <Send className="h-4 w-4 mr-2" />
@@ -359,7 +384,7 @@ export default function NewsletterCreatePage() {
                 <Button
                   type="button"
                   onClick={handleSendNow}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg transition-all duration-300"
                   disabled={createNewsletterMutation.isPending}
                 >
                   <Send className="h-4 w-4 mr-2" />
@@ -367,9 +392,14 @@ export default function NewsletterCreatePage() {
                 </Button>
 
                 {createNewsletterMutation.isPending && (
-                  <p className="text-sm text-gray-500 text-center">
-                    Creating newsletter...
-                  </p>
+                  <div className="flex items-center justify-center p-2">
+                    <div className="w-4 h-4 bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500 rounded-lg flex items-center justify-center mr-2">
+                      <div className="animate-spin rounded-full h-2 w-2 border border-white border-t-transparent"></div>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Creating newsletter...
+                    </p>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -377,15 +407,16 @@ export default function NewsletterCreatePage() {
         </div>
       </form>
 
-      {/* Customer Segmentation Modal */}
-      <CustomerSegmentationModal
-        isOpen={isSegmentationModalOpen}
-        onClose={() => setIsSegmentationModalOpen(false)}
-        recipientType={segmentationData.recipientType}
-        selectedContactIds={segmentationData.selectedContactIds}
-        selectedTagIds={segmentationData.selectedTagIds}
-        onSave={handleSegmentationSave}
-      />
+        {/* Customer Segmentation Modal */}
+        <CustomerSegmentationModal
+          isOpen={isSegmentationModalOpen}
+          onClose={() => setIsSegmentationModalOpen(false)}
+          recipientType={segmentationData.recipientType}
+          selectedContactIds={segmentationData.selectedContactIds}
+          selectedTagIds={segmentationData.selectedTagIds}
+          onSave={handleSegmentationSave}
+        />
+      </div>
     </div>
   );
 }

@@ -43,6 +43,18 @@ The application adopts a monorepo architecture, separating client, server, and s
 -   **Security benefit**: Provides immediate token invalidation across all devices, eliminating the security vulnerability where tokens could remain valid for up to 15 minutes after logout.
 -   **User experience**: Users can confidently secure their account by instantly revoking access from all other devices/browsers.
 
+### Comprehensive Tenant Isolation (August 5, 2025)
+-   **Strict Data Filtering**: All database operations now enforce tenant-specific filtering to prevent cross-tenant data exposure.
+-   **Enhanced Security Methods**: Updated storage interface methods to require tenantId parameters:
+    - `updateRefreshToken`: Now includes tenantId for secure token management
+    - `refreshTokenExists`: Enhanced with tenant-specific validation
+    - `getUserSubscription`: Tenant-scoped subscription retrieval
+    - `updateUserStripeInfo`: Secure user Stripe information updates
+    - `getSubscription` & `updateSubscription`: Optional tenant filtering for additional security
+    - `getUserByEmailVerificationToken`: Optional tenant filtering for email verification
+-   **Multi-Tenant Database Security**: All CRUD operations across users, subscriptions, forms, shops, email contacts, newsletters, and related entities now enforce strict tenant boundaries.
+-   **Security Audit Completion**: Comprehensive review and hardening of all backend API endpoints to ensure proper tenant filtering and data isolation.
+
 ## External Dependencies
 
 -   **@neondatabase/serverless**: PostgreSQL database connection.

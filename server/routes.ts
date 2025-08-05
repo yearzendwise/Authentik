@@ -2544,7 +2544,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "User not authenticated" });
       }
 
-      const subscription = await storage.getUserSubscription(userId);
+      const subscription = await storage.getUserSubscription(userId, req.user.tenantId);
       if (!subscription) {
         return res.json({ subscription: null });
       }
@@ -2575,7 +2575,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const user = req.user;
 
         // Get current subscription
-        const currentSubscription = await storage.getUserSubscription(user.id);
+        const currentSubscription = await storage.getUserSubscription(user.id, user.tenantId);
         if (!currentSubscription) {
           return res
             .status(404)
@@ -2640,7 +2640,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 (updatedStripeSubscription as any).current_period_end,
               ) || new Date(),
             isYearly: billingCycle === "yearly",
-          });
+          }, user.tenantId);
 
           res.json({
             message: "Subscription updated successfully",

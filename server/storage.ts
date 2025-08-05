@@ -112,7 +112,7 @@ export interface IStorage {
   // Refresh token operations with device tracking (tenant-aware)
   createRefreshToken(userId: string, tenantId: string, token: string, expiresAt: Date, deviceInfo?: DeviceInfo): Promise<RefreshToken>;
   getRefreshToken(token: string): Promise<RefreshToken | undefined>;
-  updateRefreshToken(id: string, token: string): Promise<void>;
+  updateRefreshToken(id: string, token: string, tenantId: string): Promise<void>;
   deleteRefreshToken(token: string): Promise<void>;
   deleteUserRefreshTokens(userId: string, tenantId: string): Promise<void>;
   cleanExpiredTokens(): Promise<void>;
@@ -123,11 +123,11 @@ export interface IStorage {
   deleteSession(sessionId: string, userId: string, tenantId: string): Promise<void>;
   deleteAllUserSessions(userId: string, tenantId: string): Promise<void>;
   deleteOtherUserSessions(userId: string, currentRefreshToken: string, tenantId: string): Promise<void>;
-  refreshTokenExists(refreshTokenId: string): Promise<boolean>;
+  refreshTokenExists(refreshTokenId: string, tenantId: string): Promise<boolean>;
   
   // Email verification (tenant-aware)
   setEmailVerificationToken(userId: string, tenantId: string, token: string, expiresAt: Date): Promise<void>;
-  getUserByEmailVerificationToken(token: string): Promise<User | undefined>;
+  getUserByEmailVerificationToken(token: string, tenantId?: string): Promise<User | undefined>;
   verifyUserEmail(userId: string, tenantId: string): Promise<void>;
   updateLastVerificationEmailSent(userId: string, tenantId: string): Promise<void>;
   
@@ -151,10 +151,10 @@ export interface IStorage {
   
   // User subscriptions
   createSubscription(subscription: InsertSubscription): Promise<Subscription>;
-  getSubscription(id: string): Promise<Subscription | undefined>;
-  getUserSubscription(userId: string): Promise<Subscription | undefined>;
-  updateSubscription(id: string, updates: Partial<Subscription>): Promise<Subscription | undefined>;
-  updateUserStripeInfo(userId: string, stripeCustomerId: string, stripeSubscriptionId: string): Promise<void>;
+  getSubscription(id: string, tenantId?: string): Promise<Subscription | undefined>;
+  getUserSubscription(userId: string, tenantId: string): Promise<Subscription | undefined>;
+  updateSubscription(id: string, updates: Partial<Subscription>, tenantId?: string): Promise<Subscription | undefined>;
+  updateUserStripeInfo(userId: string, stripeCustomerId: string, stripeSubscriptionId: string, tenantId: string): Promise<void>;
   
   // SaaS Limits and Validation
   getTenantSubscription(tenantId: string): Promise<(Subscription & { plan: SubscriptionPlan }) | undefined>;
@@ -496,19 +496,20 @@ export class DatabaseStorage implements IStorage {
       ));
   }
 
-  async updateRefreshToken(id: string, token: string): Promise<void> {
+  async updateRefreshToken(id: string, token: string, tenantId: string): Promise<void> {
     await db
       .update(refreshTokens)
       .set({ token })
-      .where(eq(refreshTokens.id, id));
+      .where(and(eq(refreshTokens.id, id), eq(refreshTokens.tenantId, tenantId)));
   }
 
-  async refreshTokenExists(refreshTokenId: string): Promise<boolean> {
+  async refreshTokenExists(refreshTokenId: string, tenantId: string): Promise<boolean> {
     const [token] = await db
       .select({ id: refreshTokens.id })
       .from(refreshTokens)
       .where(and(
         eq(refreshTokens.id, refreshTokenId),
+        eq(refreshTokens.tenantId, tenantId),
         eq(refreshTokens.isActive, true),
         gt(refreshTokens.expiresAt, new Date())
       ))
@@ -529,14 +530,21 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(users.id, userId), eq(users.tenantId, tenantId)));
   }
 
-  async getUserByEmailVerificationToken(token: string): Promise<User | undefined> {
+  async getUserByEmailVerificationToken(token: string, tenantId?: string): Promise<User | undefined> {
+    const conditions = [
+      eq(users.emailVerificationToken, token),
+      gt(users.emailVerificationExpires, new Date())
+    ];
+    
+    // Add tenant filtering if tenantId is provided
+    if (tenantId) {
+      conditions.push(eq(users.tenantId, tenantId));
+    }
+    
     const [user] = await db
       .select()
       .from(users)
-      .where(and(
-        eq(users.emailVerificationToken, token),
-        gt(users.emailVerificationExpires, new Date())
-      ));
+      .where(and(...conditions));
     return user;
   }
 
@@ -595,29 +603,45 @@ export class DatabaseStorage implements IStorage {
     return newSubscription;
   }
 
-  async getSubscription(id: string): Promise<Subscription | undefined> {
-    const [subscription] = await db.select().from(subscriptions).where(eq(subscriptions.id, id));
+  async getSubscription(id: string, tenantId?: string): Promise<Subscription | undefined> {
+    const conditions = [eq(subscriptions.id, id)];
+    
+    // Add tenant filtering if tenantId is provided for security
+    if (tenantId) {
+      conditions.push(eq(subscriptions.tenantId, tenantId));
+    }
+    
+    const [subscription] = await db.select().from(subscriptions).where(and(...conditions));
     return subscription;
   }
 
-  async getUserSubscription(userId: string): Promise<Subscription | undefined> {
-    const [subscription] = await db.select().from(subscriptions).where(eq(subscriptions.userId, userId)).orderBy(desc(subscriptions.createdAt));
+  async getUserSubscription(userId: string, tenantId: string): Promise<Subscription | undefined> {
+    const [subscription] = await db.select().from(subscriptions)
+      .where(and(eq(subscriptions.userId, userId), eq(subscriptions.tenantId, tenantId)))
+      .orderBy(desc(subscriptions.createdAt));
     return subscription;
   }
 
-  async updateSubscription(id: string, updates: Partial<Subscription>): Promise<Subscription | undefined> {
+  async updateSubscription(id: string, updates: Partial<Subscription>, tenantId?: string): Promise<Subscription | undefined> {
+    const conditions = [eq(subscriptions.id, id)];
+    
+    // Add tenant filtering if tenantId is provided for security
+    if (tenantId) {
+      conditions.push(eq(subscriptions.tenantId, tenantId));
+    }
+    
     const [subscription] = await db
       .update(subscriptions)
       .set({
         ...updates,
         updatedAt: new Date(),
       })
-      .where(eq(subscriptions.id, id))
+      .where(and(...conditions))
       .returning();
     return subscription;
   }
 
-  async updateUserStripeInfo(userId: string, stripeCustomerId: string, stripeSubscriptionId: string): Promise<void> {
+  async updateUserStripeInfo(userId: string, stripeCustomerId: string, stripeSubscriptionId: string, tenantId: string): Promise<void> {
     await db
       .update(users)
       .set({
@@ -626,7 +650,7 @@ export class DatabaseStorage implements IStorage {
         subscriptionStatus: 'active',
         updatedAt: new Date(),
       })
-      .where(eq(users.id, userId));
+      .where(and(eq(users.id, userId), eq(users.tenantId, tenantId)));
   }
 
   // Forms operations (tenant-aware)

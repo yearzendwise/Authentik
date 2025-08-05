@@ -43,6 +43,18 @@ The application adopts a monorepo architecture, separating client, server, and s
 -   **Security benefit**: Provides immediate token invalidation across all devices, eliminating the security vulnerability where tokens could remain valid for up to 15 minutes after logout.
 -   **User experience**: Users can confidently secure their account by instantly revoking access from all other devices/browsers.
 
+### Comprehensive Tenant Isolation (August 5, 2025)
+-   **Strict Data Filtering**: All database operations now enforce tenant-specific filtering to prevent cross-tenant data exposure.
+-   **Enhanced Security Methods**: Updated storage interface methods to require tenantId parameters:
+    - `updateRefreshToken`: Now includes tenantId for secure token management
+    - `refreshTokenExists`: Enhanced with tenant-specific validation
+    - `getUserSubscription`: Tenant-scoped subscription retrieval
+    - `updateUserStripeInfo`: Secure user Stripe information updates
+    - `getSubscription` & `updateSubscription`: Optional tenant filtering for additional security
+    - `getUserByEmailVerificationToken`: Optional tenant filtering for email verification
+-   **Multi-Tenant Database Security**: All CRUD operations across users, subscriptions, forms, shops, email contacts, newsletters, and related entities now enforce strict tenant boundaries.
+-   **Security Audit Completion**: Comprehensive review and hardening of all backend API endpoints to ensure proper tenant filtering and data isolation.
+
 ## External Dependencies
 
 -   **@neondatabase/serverless**: PostgreSQL database connection.
@@ -62,19 +74,40 @@ The application adopts a monorepo architecture, separating client, server, and s
 
 ## Database Migration Status
 
-**Last Verified**: July 31, 2025
+**Last Verified**: August 5, 2025
 
 All database migrations are up-to-date and include current schema columns:
 
 ### Applied Migrations
 - **001_make_location_fields_optional.sql**: Made address and city fields optional in shops table
 - **002_add_shop_limits_to_subscriptions.sql**: Added max_shops column to subscription_plans table
+- **003_add_avatar_url_column.sql**: Added avatar_url column to users table
+- **004_add_newsletter_table.sql**: Added newsletters table with full CRUD functionality
 
-### Schema Verification (11 tables)
+### Schema Verification (12 tables)
 - ✅ **users**: 28 columns including menu_expanded, theme, avatar_url, token_valid_after, stripe integration fields
 - ✅ **refresh_tokens**: Complete device tracking (device_id, device_name, user_agent, ip_address, location, last_used, is_active)
 - ✅ **subscription_plans**: All limit columns (max_users, max_projects, max_shops, storage_limit, features array)
 - ✅ **shops**: Full location details with proper nullable constraints
+- ✅ **newsletters**: Complete newsletter management (title, subject, content, status, scheduling, analytics)
 - ✅ **tenants, stores, subscriptions, verification_tokens, companies, forms, form_responses**: All current columns present
+
+## Newsletter System Implementation
+
+**Completed**: August 5, 2025
+
+### Features Implemented
+- **Newsletter Management Page**: Complete CRUD interface with statistics dashboard
+- **Newsletter Creation Form**: Multi-step form with validation and preview functionality
+- **Database Schema**: Full newsletter table with proper relationships and RLS policies
+- **API Routes**: Complete REST API for newsletter operations (GET, POST, PUT, DELETE)
+- **Navigation Integration**: Newsletter functionality integrated into main application navigation
+
+### Technical Details
+- Newsletter creation supports Draft, Scheduled, and Send status options
+- Live preview of newsletter content during creation
+- Statistics tracking for opens, clicks, and recipient counts
+- Multi-tenant data isolation with proper security policies
+- Form validation with Zod schemas and React Hook Form integration
 
 **Database Command**: Use `npm run db:push` for schema changes instead of manual SQL migrations.

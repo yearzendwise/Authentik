@@ -22,6 +22,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Newspaper,
+  Settings,
+  Grid3X3,
+  HelpCircle,
+  ExternalLink,
 } from "lucide-react";
 import logoUrl from "@assets/logo.png";
 import { cn } from "@/lib/utils";
@@ -46,6 +50,8 @@ import {
 } from "@/hooks/useReduxAuth";
 import { useUpdateTheme, useUpdateMenuPreference } from "@/hooks/useAuth";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useQuery } from "@tanstack/react-query";
+import type { UserSubscriptionResponse } from "@shared/schema";
 
 const getNavigation = (userRole?: string) => {
   const baseNavigation = [
@@ -84,6 +90,12 @@ export function AppLayout({ children }: AppLayoutProps) {
   const updateThemeMutation = useUpdateTheme();
   const updateMenuPreferenceMutation = useUpdateMenuPreference();
   const [isThemeChanging, setIsThemeChanging] = useState(false);
+
+  // Fetch subscription data for the user's plan
+  const { data: subscriptionData } = useQuery<UserSubscriptionResponse>({
+    queryKey: ["/api/my-subscription"],
+    enabled: !!user && user.role === "Owner",
+  });
   
   // Initialize menu state
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -355,46 +367,116 @@ export function AppLayout({ children }: AppLayoutProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent 
               align={isCollapsed ? "end" : "start"} 
-              className="w-56 bg-gray-900 dark:bg-gray-800 border-gray-700 dark:border-gray-600"
+              className="w-64 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-lg rounded-2xl p-0"
+              sideOffset={8}
             >
-              <DropdownMenuItem onClick={() => setLocation('/profile')} className="cursor-pointer text-gray-200 dark:text-gray-100 hover:bg-gray-800 dark:hover:bg-gray-700">
-                <User className="mr-2 h-5 w-5" />
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLocation('/company')} className="cursor-pointer text-gray-200 dark:text-gray-100 hover:bg-gray-800 dark:hover:bg-gray-700">
-                <Building2 className="mr-2 h-5 w-5" />
-                Company
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLocation('/sessions')} className="cursor-pointer text-gray-200 dark:text-gray-100 hover:bg-gray-800 dark:hover:bg-gray-700">
-                <Activity className="mr-2 h-5 w-5" />
-                Sessions
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-gray-700 dark:bg-gray-600" />
-              <div
-                onClick={handleThemeToggle}
-                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-gray-800 dark:hover:bg-gray-700 text-gray-200 dark:text-gray-100"
-                role="menuitem"
-              >
-                {theme === 'light' ? (
-                  <>
-                    <Moon className="mr-2 h-4 w-4" />
-                    Dark mode
-                  </>
-                ) : (
-                  <>
-                    <Sun className="mr-2 h-4 w-4" />
-                    Light mode
-                  </>
-                )}
+              {/* User Profile Header */}
+              <div className="flex items-center gap-3 p-4 border-b border-gray-100 dark:border-gray-700">
+                <CustomAvatar 
+                  user={user}
+                  size="sm"
+                  className="w-10 h-10 ring-2 ring-gray-100 dark:ring-gray-700"
+                />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
+                    {user.firstName} {user.lastName}
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {subscriptionData?.subscription?.plan?.displayName || 'Basic Plan'}
+                  </p>
+                </div>
               </div>
-              <DropdownMenuSeparator className="bg-gray-700 dark:bg-gray-600" />
-              <DropdownMenuItem
-                onClick={handleLogout}
-                className="cursor-pointer text-red-400 dark:text-red-400 hover:bg-gray-800 dark:hover:bg-gray-700"
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Sign out
-              </DropdownMenuItem>
+
+              {/* Menu Items */}
+              <div className="py-2">
+                <DropdownMenuItem 
+                  onClick={() => setLocation('/profile')} 
+                  className="cursor-pointer flex items-center gap-3 px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none"
+                >
+                  <User className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  <span className="text-sm">Profile</span>
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem 
+                  onClick={() => setLocation('/company')} 
+                  className="cursor-pointer flex items-center gap-3 px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none"
+                >
+                  <Building2 className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  <span className="text-sm">Company</span>
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem 
+                  onClick={() => setLocation('/sessions')} 
+                  className="cursor-pointer flex items-center gap-3 px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none"
+                >
+                  <Activity className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  <span className="text-sm">Sessions</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator className="bg-gray-100 dark:bg-gray-700" />
+
+                <div
+                  onClick={handleThemeToggle}
+                  className="relative flex cursor-pointer select-none items-center gap-3 px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none"
+                  role="menuitem"
+                >
+                  {theme === 'light' ? (
+                    <>
+                      <Moon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                      <span className="text-sm">Dark mode</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sun className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                      <span className="text-sm">Light mode</span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <DropdownMenuSeparator className="bg-gray-100 dark:bg-gray-700" />
+
+              {/* Plan Section */}
+              <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800/50">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                      {subscriptionData?.subscription?.plan?.displayName || 'Basic Plan'}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      12,000 views
+                    </p>
+                  </div>
+                  <div className="relative">
+                    <Button 
+                      onClick={() => setLocation('/subscribe')}
+                      size="sm" 
+                      className="relative overflow-hidden bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 hover:from-violet-500 hover:via-purple-500 hover:to-blue-500 text-white px-3 py-1.5 text-xs font-semibold rounded-md shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 group"
+                    >
+                      <span className="relative z-10 flex items-center gap-1">
+                        <span className="text-white">
+                          ✦ Upgrade
+                        </span>
+                      </span>
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    </Button>
+                    <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full animate-pulse" />
+                  </div>
+                </div>
+              </div>
+
+              <DropdownMenuSeparator className="bg-gray-100 dark:bg-gray-700" />
+
+              {/* Logout */}
+              <div className="py-2">
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="cursor-pointer flex items-center gap-3 px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none"
+                >
+                  <LogOut className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  <span className="text-sm">Logout</span>
+                </DropdownMenuItem>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

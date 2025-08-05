@@ -157,6 +157,8 @@ export default function EditEmailContact() {
       ...data,
       tags: selectedTags,
       lists: selectedLists,
+      // Convert Date object to ISO string for API
+      consentDate: data.consentDate ? data.consentDate.toISOString() : null,
     };
     updateContactMutation.mutate(formData);
   };

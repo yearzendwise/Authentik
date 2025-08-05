@@ -1394,10 +1394,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateEmailContact(id: string, updates: UpdateEmailContactData, tenantId: string): Promise<EmailContact | undefined> {
+    // Handle date field properly
+    const processedUpdates = { ...updates };
+    if ('consentDate' in processedUpdates && processedUpdates.consentDate) {
+      // Ensure consentDate is properly formatted as a Date object
+      if (typeof processedUpdates.consentDate === 'string') {
+        processedUpdates.consentDate = new Date(processedUpdates.consentDate);
+      }
+    }
+
     const [contact] = await db
       .update(emailContacts)
       .set({
-        ...updates,
+        ...processedUpdates,
         updatedAt: new Date(),
       })
       .where(and(eq(emailContacts.id, id), eq(emailContacts.tenantId, tenantId)))

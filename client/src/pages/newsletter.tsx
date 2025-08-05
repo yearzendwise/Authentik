@@ -112,216 +112,246 @@ export default function NewsletterPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+        <div className="container mx-auto p-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500 rounded-2xl flex items-center justify-center shadow-lg">
+              <div className="animate-spin rounded-full h-8 w-8 border-4 border-white border-t-transparent"></div>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Newsletters
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Create and manage your email newsletters to engage with your subscribers
-          </p>
-        </div>
-        <Button 
-          onClick={() => setLocation('/newsletter/create')} 
-          className="bg-blue-600 hover:bg-blue-700 text-white"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Create Newsletter
-        </Button>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                  Total Newsletters
-                </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {stats.totalNewsletters}
-                </p>
-              </div>
-              <FileText className="h-8 w-8 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                  Draft
-                </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {stats.draftNewsletters}
-                </p>
-              </div>
-              <Edit className="h-8 w-8 text-gray-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                  Scheduled
-                </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {stats.scheduledNewsletters}
-                </p>
-              </div>
-              <Clock className="h-8 w-8 text-orange-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                  Sent
-                </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {stats.sentNewsletters}
-                </p>
-              </div>
-              <Send className="h-8 w-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Newsletters List */}
-      {newsletters.length === 0 ? (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <Mail className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              No newsletters yet
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
-              Get started by creating your first newsletter. You can design beautiful emails 
-              to engage with your subscribers and grow your audience.
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+      <div className="container mx-auto p-6 space-y-8">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
+              Email Newsletters
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              Create and manage your email newsletters to engage with your subscribers
             </p>
-            <Button 
-              onClick={() => window.location.href = '/newsletter/create'}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create Your First Newsletter
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4">
-          {newsletters.map((newsletter) => (
-            <Card key={newsletter.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {newsletter.title}
-                      </h3>
-                      {getStatusBadge(newsletter.status)}
-                    </div>
-                    
-                    <p className="text-gray-600 dark:text-gray-400 mb-2">
-                      Subject: {newsletter.subject}
-                    </p>
-                    
-                    <div className="flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        Created {format(new Date(newsletter.createdAt || new Date()), 'MMM d, yyyy')}
-                      </div>
-                      
-                      <div className="flex items-center gap-1">
-                        <Eye className="h-4 w-4" />
-                        {newsletter.openCount} opens
-                      </div>
-                      
-                      <div className="flex items-center gap-1">
-                        <Mail className="h-4 w-4" />
-                        {newsletter.recipientCount} recipients
-                      </div>
-                      
-                      <div>
-                        By {newsletter.user.firstName} {newsletter.user.lastName}
-                      </div>
-                    </div>
-                  </div>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => window.location.href = `/newsletters/${newsletter.id}`}>
-                        <Eye className="h-4 w-4 mr-2" />
-                        View
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => window.location.href = `/newsletters/${newsletter.id}/edit`}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        onClick={() => handleDeleteNewsletter(newsletter.id)}
-                        className="text-red-600 dark:text-red-400"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          </div>
+          <Button 
+            onClick={() => setLocation('/newsletter/create')} 
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg transition-all duration-300"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Create Newsletter
+          </Button>
         </div>
-      )}
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Newsletter</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this newsletter? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-red-600 hover:bg-red-700"
-              disabled={deleteNewsletterMutation.isPending}
-            >
-              {deleteNewsletterMutation.isPending ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+          <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-blue-200/50 dark:border-blue-700/30 hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                    Total Newsletters
+                  </p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                    {stats.totalNewsletters}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    All campaigns
+                  </p>
+                </div>
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <FileText className="text-white w-6 h-6" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    Draft
+                  </p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                    {stats.draftNewsletters}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    In progress
+                  </p>
+                </div>
+                <div className="w-12 h-12 bg-gradient-to-br from-gray-500 to-gray-600 dark:from-gray-400 dark:to-gray-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <Edit className="text-white w-6 h-6" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-orange-200/50 dark:border-orange-700/30 hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-orange-600 dark:text-orange-400">
+                    Scheduled
+                  </p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                    {stats.scheduledNewsletters}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Ready to send
+                  </p>
+                </div>
+                <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 dark:from-orange-400 dark:to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <Clock className="text-white w-6 h-6" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-green-200/50 dark:border-green-700/30 hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                    Sent
+                  </p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                    {stats.sentNewsletters}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Delivered campaigns
+                  </p>
+                </div>
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 dark:from-green-400 dark:to-green-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <Send className="text-white w-6 h-6" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Newsletters List */}
+        {newsletters.length === 0 ? (
+          <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30">
+            <CardContent className="p-12 text-center">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                <Mail className="h-10 w-10 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                No newsletters yet
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
+                Get started by creating your first newsletter. You can design beautiful emails 
+                to engage with your subscribers and grow your audience.
+              </p>
+              <Button 
+                onClick={() => setLocation('/newsletter/create')}
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg transition-all duration-300"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create Your First Newsletter
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {newsletters.map((newsletter) => (
+              <Card key={newsletter.id} className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                          {newsletter.title}
+                        </h3>
+                        {getStatusBadge(newsletter.status)}
+                      </div>
+                      
+                      <p className="text-gray-600 dark:text-gray-400 mb-3">
+                        Subject: {newsletter.subject}
+                      </p>
+                      
+                      <div className="flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                          Created {format(new Date(newsletter.createdAt || new Date()), 'MMM d, yyyy')}
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <Eye className="h-4 w-4 text-green-500 dark:text-green-400" />
+                          {newsletter.openCount} opens
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+                          {newsletter.recipientCount} recipients
+                        </div>
+                        
+                        <div className="text-gray-600 dark:text-gray-300">
+                          By {newsletter.user.firstName} {newsletter.user.lastName}
+                        </div>
+                      </div>
+                    </div>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30">
+                        <DropdownMenuItem onClick={() => setLocation(`/newsletters/${newsletter.id}`)} className="hover:bg-blue-50 dark:hover:bg-blue-900/30">
+                          <Eye className="h-4 w-4 mr-2 text-blue-500" />
+                          View
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setLocation(`/newsletters/${newsletter.id}/edit`)} className="hover:bg-green-50 dark:hover:bg-green-900/30">
+                          <Edit className="h-4 w-4 mr-2 text-green-500" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator className="bg-gray-200/50 dark:bg-gray-600/50" />
+                        <DropdownMenuItem 
+                          onClick={() => handleDeleteNewsletter(newsletter.id)}
+                          className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-gray-900 dark:text-gray-100">Delete Newsletter</AlertDialogTitle>
+              <AlertDialogDescription className="text-gray-600 dark:text-gray-400">
+                Are you sure you want to delete this newsletter? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDelete}
+                className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-lg transition-all duration-300"
+                disabled={deleteNewsletterMutation.isPending}
+              >
+                {deleteNewsletterMutation.isPending ? "Deleting..." : "Delete"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </div>
   );
 }

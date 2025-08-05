@@ -38,7 +38,7 @@ export default function NewsletterCreatePage() {
   // Create newsletter mutation
   const createNewsletterMutation = useMutation({
     mutationFn: (data: CreateNewsletterData) => 
-      apiRequest('/api/newsletters', 'POST', data),
+      apiRequest('POST', '/api/newsletters', data).then(res => res.json()),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['/api/newsletters'] });
       queryClient.invalidateQueries({ queryKey: ['/api/newsletter-stats'] });

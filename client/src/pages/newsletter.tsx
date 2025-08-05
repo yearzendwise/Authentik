@@ -55,7 +55,8 @@ export default function NewsletterPage() {
 
   // Delete newsletter mutation
   const deleteNewsletterMutation = useMutation({
-    mutationFn: (id: string) => apiRequest(`/api/newsletters/${id}`, 'DELETE'),
+    mutationFn: (id: string) => 
+      apiRequest('DELETE', `/api/newsletters/${id}`).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/newsletters'] });
       queryClient.invalidateQueries({ queryKey: ['/api/newsletter-stats'] });

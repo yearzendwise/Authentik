@@ -473,13 +473,21 @@ export default function EmailContacts() {
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-medium text-gray-900 dark:text-white">
+                            <p 
+                              className="font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors"
+                              onClick={() => setLocation(`/email-contacts/view/${contact.id}`)}
+                            >
                               {contact.firstName || contact.lastName 
                                 ? `${contact.firstName || ''} ${contact.lastName || ''}`.trim()
                                 : contact.email.split('@')[0]
                               }
                             </p>
-                            <p className="text-sm text-gray-500">{contact.email}</p>
+                            <p 
+                              className="text-sm text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors"
+                              onClick={() => setLocation(`/email-contacts/view/${contact.id}`)}
+                            >
+                              {contact.email}
+                            </p>
                           </div>
                         </div>
                       </TableCell>
@@ -528,6 +536,10 @@ export default function EmailContacts() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setLocation(`/email-contacts/view/${contact.id}`)}>
+                              <UserCheck className="w-4 h-4 mr-2" />
+                              View Contact
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => setLocation(`/email-contacts/edit/${contact.id}`)}>
                               <Edit className="w-4 h-4 mr-2" />
                               Edit Contact

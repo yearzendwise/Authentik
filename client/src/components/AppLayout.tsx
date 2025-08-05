@@ -57,7 +57,6 @@ const getNavigation = (userRole?: string) => {
     { name: "Compose", href: "/email-compose", icon: PenTool },
     { name: "Shops", href: "/shops", icon: Store },
     { name: "Forms", href: "/forms", icon: ClipboardList },
-    { name: "Profile", href: "/profile", icon: User },
   ];
 
 

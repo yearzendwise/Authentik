@@ -58,7 +58,6 @@ const getNavigation = (userRole?: string) => {
     { name: "Shops", href: "/shops", icon: Store },
     { name: "Forms", href: "/forms", icon: ClipboardList },
     { name: "Profile", href: "/profile", icon: User },
-    { name: "Sessions", href: "/sessions", icon: Activity },
   ];
 
 

@@ -63,15 +63,21 @@ export default function ViewContact() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
 
-  const { data: contact, isLoading, error } = useQuery({
+  const { data: response, isLoading, error } = useQuery({
     queryKey: ['/api/email-contacts', id],
     queryFn: async () => {
-      const response = await apiRequest('GET', `/api/email-contacts/${id}`);
-      const data = await response.json();
-      return data as Contact;
+      const apiResponse = await apiRequest('GET', `/api/email-contacts/${id}`);
+      const data = await apiResponse.json();
+      console.log('API response for contact:', data);
+      return data;
     },
     enabled: !!id,
   });
+
+  // Extract contact from response - the API might return { contact: ... } or just the contact directly
+  const contact: Contact | undefined = response?.contact || response;
+  
+  console.log('Processed contact data:', contact);
 
   const getStatusBadge = (status: Contact["status"]) => {
     const statusConfig = {
@@ -130,7 +136,7 @@ export default function ViewContact() {
     if (contact.firstName || contact.lastName) {
       return `${contact.firstName || ''} ${contact.lastName || ''}`.trim();
     }
-    return contact.email.split('@')[0];
+    return contact.email?.split('@')[0] || 'Unknown Contact';
   };
 
   if (isLoading) {
@@ -144,7 +150,7 @@ export default function ViewContact() {
     );
   }
 
-  if (error || !contact) {
+  if (error || !contact || !contact.email) {
     return (
       <div className="max-w-4xl mx-auto p-6">
         <div className="text-center">

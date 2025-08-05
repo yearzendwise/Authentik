@@ -3773,6 +3773,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all contact tags for newsletter segmentation
+  app.get("/api/contact-tags", authenticateToken, async (req: any, res) => {
+    try {
+      const tags = await storage.getAllContactTags(req.user.tenantId);
+      res.json({ tags });
+    } catch (error) {
+      console.error("Get contact tags error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

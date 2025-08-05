@@ -3,7 +3,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocation } from "wouter";
-import { ArrowLeft, Save, Send, Eye } from "lucide-react";
+import { ArrowLeft, Save, Send, Eye, Users, Tag, User } from "lucide-react";
+import { CustomerSegmentationModal } from "@/components/CustomerSegmentationModal";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,6 +26,12 @@ export default function NewsletterCreatePage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isSegmentationModalOpen, setIsSegmentationModalOpen] = useState(false);
+  const [segmentationData, setSegmentationData] = useState({
+    recipientType: 'all' as 'all' | 'selected' | 'tags',
+    selectedContactIds: [] as string[],
+    selectedTagIds: [] as string[],
+  });
 
   const form = useForm<CreateNewsletterData>({
     resolver: zodResolver(createNewsletterSchema),
@@ -32,6 +40,9 @@ export default function NewsletterCreatePage() {
       subject: "",
       content: "",
       status: "draft",
+      recipientType: "all",
+      selectedContactIds: [],
+      selectedTagIds: [],
     },
   });
 
@@ -58,25 +69,68 @@ export default function NewsletterCreatePage() {
   });
 
   const onSubmit = (data: CreateNewsletterData) => {
-    createNewsletterMutation.mutate(data);
+    const newsletterData = {
+      ...data,
+      ...segmentationData,
+    };
+    createNewsletterMutation.mutate(newsletterData);
   };
 
   const handleSaveAsDraft = () => {
     const data = form.getValues();
-    data.status = "draft";
-    createNewsletterMutation.mutate(data);
+    const newsletterData = {
+      ...data,
+      ...segmentationData,
+      status: "draft" as const,
+    };
+    createNewsletterMutation.mutate(newsletterData);
   };
 
   const handleSchedule = () => {
     const data = form.getValues();
-    data.status = "scheduled";
-    createNewsletterMutation.mutate(data);
+    const newsletterData = {
+      ...data,
+      ...segmentationData,
+      status: "scheduled" as const,
+    };
+    createNewsletterMutation.mutate(newsletterData);
   };
 
   const handleSendNow = () => {
     const data = form.getValues();
-    data.status = "sent";
-    createNewsletterMutation.mutate(data);
+    const newsletterData = {
+      ...data,
+      ...segmentationData,
+      status: "sent" as const,
+    };
+    createNewsletterMutation.mutate(newsletterData);
+  };
+
+  const handleSegmentationSave = (data: {
+    recipientType: 'all' | 'selected' | 'tags';
+    selectedContactIds: string[];
+    selectedTagIds: string[];
+  }) => {
+    setSegmentationData(data);
+  };
+
+  const getSegmentationSummary = () => {
+    switch (segmentationData.recipientType) {
+      case 'all':
+        return { text: 'All customers', icon: Users };
+      case 'selected':
+        return { 
+          text: `${segmentationData.selectedContactIds.length} selected customers`, 
+          icon: User 
+        };
+      case 'tags':
+        return { 
+          text: `${segmentationData.selectedTagIds.length} selected tags`, 
+          icon: Tag 
+        };
+      default:
+        return { text: 'All customers', icon: Users };
+    }
   };
 
   return (
@@ -193,6 +247,48 @@ export default function NewsletterCreatePage() {
               </CardContent>
             </Card>
 
+            {/* Customer Segmentation Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Recipients
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Target Audience</Label>
+                  <div 
+                    className="mt-2 p-3 border rounded-lg bg-gray-50 dark:bg-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    onClick={() => setIsSegmentationModalOpen(true)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const summary = getSegmentationSummary();
+                          const IconComponent = summary.icon;
+                          return (
+                            <>
+                              <IconComponent className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                {summary.text}
+                              </span>
+                            </>
+                          );
+                        })()}
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        Click to modify
+                      </Badge>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Choose who will receive this newsletter
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Settings Card */}
             <Card>
               <CardHeader>
@@ -280,6 +376,16 @@ export default function NewsletterCreatePage() {
           </div>
         </div>
       </form>
+
+      {/* Customer Segmentation Modal */}
+      <CustomerSegmentationModal
+        isOpen={isSegmentationModalOpen}
+        onClose={() => setIsSegmentationModalOpen(false)}
+        recipientType={segmentationData.recipientType}
+        selectedContactIds={segmentationData.selectedContactIds}
+        selectedTagIds={segmentationData.selectedTagIds}
+        onSave={handleSegmentationSave}
+      />
     </div>
   );
 }

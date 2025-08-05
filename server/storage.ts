@@ -1767,6 +1767,8 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(newsletters.id, id), eq(newsletters.tenantId, tenantId)));
   }
 
+
+
   async getNewsletterStats(tenantId: string): Promise<{
     totalNewsletters: number;
     draftNewsletters: number;

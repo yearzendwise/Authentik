@@ -276,6 +276,10 @@ export const newsletters = pgTable("newsletters", {
   status: text("status").notNull().default('draft'), // draft, scheduled, sent
   scheduledAt: timestamp("scheduled_at"),
   sentAt: timestamp("sent_at"),
+  // Customer segmentation fields
+  recipientType: text("recipient_type").notNull().default('all'), // all, selected, tags
+  selectedContactIds: text("selected_contact_ids").array(), // Array of contact IDs
+  selectedTagIds: text("selected_tag_ids").array(), // Array of tag IDs
   recipientCount: integer("recipient_count").default(0),
   openCount: integer("open_count").default(0),
   clickCount: integer("click_count").default(0),
@@ -935,6 +939,9 @@ export const createNewsletterSchema = z.object({
   content: z.string().min(1, "Content is required"),
   status: z.enum(['draft', 'scheduled', 'sent']).default('draft'),
   scheduledAt: z.date().optional(),
+  recipientType: z.enum(['all', 'selected', 'tags']).default('all'),
+  selectedContactIds: z.array(z.string()).optional(),
+  selectedTagIds: z.array(z.string()).optional(),
 });
 
 export const updateNewsletterSchema = z.object({
@@ -943,6 +950,9 @@ export const updateNewsletterSchema = z.object({
   content: z.string().min(1, "Content is required").optional(),
   status: z.enum(['draft', 'scheduled', 'sent']).optional(),
   scheduledAt: z.date().optional(),
+  recipientType: z.enum(['all', 'selected', 'tags']).optional(),
+  selectedContactIds: z.array(z.string()).optional(),
+  selectedTagIds: z.array(z.string()).optional(),
 });
 
 export const insertNewsletterSchema = createInsertSchema(newsletters).omit({

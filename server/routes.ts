@@ -3701,7 +3701,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = createNewsletterSchema.parse(req.body);
       const newsletter = await storage.createNewsletter(
         validatedData,
-        req.user.userId,
+        req.user.id,
         req.user.tenantId
       );
 

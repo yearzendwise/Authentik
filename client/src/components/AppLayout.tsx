@@ -51,6 +51,7 @@ const getNavigation = (userRole?: string) => {
   const baseNavigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Newsletter", href: "/newsletter", icon: Newspaper },
+    { name: "Forms", href: "/forms", icon: ClipboardList },
     { name: "Company", href: "/company", icon: Building2 },
     { name: "Email Campaigns", href: "/email-campaigns", icon: Mail },
     { name: "Templates", href: "/email-templates", icon: FileText },
@@ -58,7 +59,6 @@ const getNavigation = (userRole?: string) => {
     { name: "Analytics", href: "/email-analytics", icon: BarChart3 },
     { name: "Compose", href: "/email-compose", icon: PenTool },
     { name: "Shops", href: "/shops", icon: Store },
-    { name: "Forms", href: "/forms", icon: ClipboardList },
   ];
 
 

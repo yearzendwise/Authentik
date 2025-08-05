@@ -14,6 +14,7 @@ import { lazy, Suspense, useEffect } from "react";
 // Lazy load components for code splitting
 const AuthPage = lazy(() => import("@/pages/auth"));
 const Dashboard = lazy(() => import("@/pages/dashboard"));
+const NewsletterPage = lazy(() => import("@/pages/newsletter"));
 const ProfilePage = lazy(() => import("@/pages/profile"));
 const SessionsPage = lazy(() => import("@/pages/sessions"));
 const UsersPage = lazy(() => import("@/pages/users"));
@@ -130,6 +131,7 @@ function Router() {
               <Switch>
                 <Route path="/" component={Dashboard} />
                 <Route path="/dashboard" component={Dashboard} />
+                <Route path="/newsletter" component={NewsletterPage} />
                 <Route path="/company" component={CompanyPage} />
                 <Route path="/campaigns" component={CampaignsPage} />
                 <Route path="/email-contacts" component={EmailContactsPage} />

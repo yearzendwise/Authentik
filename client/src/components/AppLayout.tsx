@@ -21,6 +21,7 @@ import {
   Menu,
   ChevronLeft,
   ChevronRight,
+  Newspaper,
 } from "lucide-react";
 import logoUrl from "@assets/logo.png";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 const getNavigation = (userRole?: string) => {
   const baseNavigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Newsletter", href: "/newsletter", icon: Newspaper },
     { name: "Company", href: "/company", icon: Building2 },
     { name: "Email Campaigns", href: "/email-campaigns", icon: Mail },
     { name: "Templates", href: "/email-templates", icon: FileText },

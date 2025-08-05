@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { 
   Plus, 
   Mail, 
@@ -42,6 +43,7 @@ export default function NewsletterPage() {
   const [newsletterToDelete, setNewsletterToDelete] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [location, setLocation] = useLocation();
 
   // Fetch newsletters
   const { data: newslettersData, isLoading } = useQuery({
@@ -131,7 +133,7 @@ export default function NewsletterPage() {
           </p>
         </div>
         <Button 
-          onClick={() => window.location.href = '/newsletter/create'} 
+          onClick={() => setLocation('/newsletter/create')} 
           className="bg-blue-600 hover:bg-blue-700 text-white"
         >
           <Plus className="h-4 w-4 mr-2" />

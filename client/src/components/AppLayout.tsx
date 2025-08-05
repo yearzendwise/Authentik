@@ -393,8 +393,16 @@ export function AppLayout({ children }: AppLayoutProps) {
                   onClick={() => setLocation('/profile')} 
                   className="cursor-pointer flex items-center gap-3 px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none"
                 >
-                  <Settings className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                  <span className="text-base">Account Settings</span>
+                  <User className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                  <span className="text-base">Profile</span>
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem 
+                  onClick={() => setLocation('/company')} 
+                  className="cursor-pointer flex items-center gap-3 px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none"
+                >
+                  <Building2 className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                  <span className="text-base">Company</span>
                 </DropdownMenuItem>
                 
                 <DropdownMenuItem 
@@ -402,22 +410,28 @@ export function AppLayout({ children }: AppLayoutProps) {
                   className="cursor-pointer flex items-center gap-3 px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none"
                 >
                   <Activity className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                  <span className="text-base">Activity</span>
-                  <ExternalLink className="h-4 w-4 text-gray-400 dark:text-gray-500 ml-auto" />
+                  <span className="text-base">Sessions</span>
                 </DropdownMenuItem>
-                
-                <DropdownMenuItem 
-                  onClick={() => setLocation('/company')} 
-                  className="cursor-pointer flex items-center gap-3 px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none"
+
+                <DropdownMenuSeparator className="bg-gray-100 dark:bg-gray-700" />
+
+                <div
+                  onClick={handleThemeToggle}
+                  className="relative flex cursor-pointer select-none items-center gap-3 px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none"
+                  role="menuitem"
                 >
-                  <Grid3X3 className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                  <span className="text-base">Integrations</span>
-                </DropdownMenuItem>
-                
-                <DropdownMenuItem className="cursor-pointer flex items-center gap-3 px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 rounded-none">
-                  <HelpCircle className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                  <span className="text-base">Help Center</span>
-                </DropdownMenuItem>
+                  {theme === 'light' ? (
+                    <>
+                      <Moon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                      <span className="text-base">Dark mode</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sun className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                      <span className="text-base">Light mode</span>
+                    </>
+                  )}
+                </div>
               </div>
 
               <DropdownMenuSeparator className="bg-gray-100 dark:bg-gray-700" />

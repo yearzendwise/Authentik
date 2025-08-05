@@ -17,10 +17,8 @@ import {
   FileText,
   UserCheck,
   BarChart3,
-  PenTool,
   Menu,
-  ChevronLeft,
-  ChevronRight,
+
   Newspaper,
   Settings,
   Grid3X3,
@@ -62,7 +60,6 @@ const getNavigation = (userRole?: string) => {
     { name: "Templates", href: "/email-templates", icon: FileText },
     { name: "Contacts", href: "/email-contacts", icon: UserCheck },
     { name: "Analytics", href: "/email-analytics", icon: BarChart3 },
-    { name: "Compose", href: "/email-compose", icon: PenTool },
     { name: "Shops", href: "/shops", icon: Store },
   ];
 
@@ -193,20 +190,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     }
   };
 
-  const handleMenuToggle = () => {
-    const newExpanded = isCollapsed; // If collapsed, we want to expand (true)
-    
-    // Update localStorage immediately for instant UI feedback
-    localStorage.setItem('menuExpanded', JSON.stringify(newExpanded));
-    
-    // Dispatch custom event for immediate UI update in same tab
-    window.dispatchEvent(new CustomEvent('menuPreferenceChanged', { 
-      detail: { menuExpanded: newExpanded } 
-    }));
-    
-    // Update backend preference
-    updateMenuPreferenceMutation.mutate({ menuExpanded: newExpanded });
-  };
+
 
   if (!user) {
     return <>{children}</>;
@@ -224,8 +208,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       >
         {/* Header */}
         <div className={cn(
-          "p-4 flex items-center transition-all duration-300",
-          isCollapsed ? "justify-center" : "justify-between"
+          "p-4 flex items-center justify-center transition-all duration-300"
         )}>
           <div className="flex items-center">
             <div className="bg-indigo-600 dark:bg-indigo-500 rounded-2xl p-2 flex items-center justify-center">
@@ -246,24 +229,6 @@ export function AppLayout({ children }: AppLayoutProps) {
               </div>
             )}
           </div>
-          
-          {/* Menu Toggle Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleMenuToggle}
-            className={cn(
-              "p-2 rounded-xl hover:bg-gray-700 dark:hover:bg-gray-800 text-gray-400 dark:text-gray-500 hover:text-gray-200 dark:hover:text-gray-300 transition-all duration-200",
-              isCollapsed ? "absolute top-4 right-4" : "ml-2"
-            )}
-            disabled={updateMenuPreferenceMutation.isPending}
-          >
-            {isCollapsed ? (
-              <ChevronRight className="h-5 w-5" />
-            ) : (
-              <ChevronLeft className="h-5 w-5" />
-            )}
-          </Button>
         </div>
 
         {/* Navigation */}

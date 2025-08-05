@@ -26,8 +26,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Save, Loader2, X, Mail, CheckCircle2, UserCheck, Tag, Calendar } from "lucide-react";
+import { ArrowLeft, Save, Loader2, X, Mail, CheckCircle2, UserCheck, Tag, Calendar, Shield, AlertTriangle, CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 // Schema for the form
 const editContactSchema = z.object({
@@ -37,6 +41,10 @@ const editContactSchema = z.object({
   status: z.enum(['active', 'unsubscribed', 'bounced', 'pending']),
   tags: z.array(z.string()).optional(),
   lists: z.array(z.string()).optional(),
+  consentGiven: z.boolean().optional(),
+  consentMethod: z.string().optional(),
+  consentIpAddress: z.string().optional(),
+  consentDate: z.date().optional(),
 });
 
 type EditContactForm = z.infer<typeof editContactSchema>;
@@ -93,6 +101,10 @@ export default function EditEmailContact() {
       status: "active",
       tags: [],
       lists: [],
+      consentGiven: false,
+      consentMethod: "",
+      consentIpAddress: "",
+      consentDate: undefined,
     },
   });
 
@@ -107,6 +119,10 @@ export default function EditEmailContact() {
         status: contact.status || "active",
         tags: contact.tags?.map((tag: any) => tag.id) || [],
         lists: contact.lists?.map((list: any) => list.id) || [],
+        consentGiven: contact.consentGiven || false,
+        consentMethod: contact.consentMethod || "",
+        consentIpAddress: contact.consentIpAddress || "",
+        consentDate: contact.consentDate ? new Date(contact.consentDate) : undefined,
       });
       setSelectedTags(contact.tags?.map((tag: any) => tag.id) || []);
       setSelectedLists(contact.lists?.map((list: any) => list.id) || []);
@@ -141,6 +157,8 @@ export default function EditEmailContact() {
       ...data,
       tags: selectedTags,
       lists: selectedLists,
+      // Convert Date object to ISO string for API
+      consentDate: data.consentDate ? data.consentDate.toISOString() : undefined,
     };
     updateContactMutation.mutate(formData);
   };
@@ -163,7 +181,7 @@ export default function EditEmailContact() {
 
   if (isContactLoading) {
     return (
-      <div className="container mx-auto py-8">
+      <div className="max-w-6xl mx-auto p-4">
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
@@ -173,7 +191,7 @@ export default function EditEmailContact() {
 
   if (contactError || !(contactData as any)?.contact) {
     return (
-      <div className="container mx-auto py-8">
+      <div className="max-w-6xl mx-auto p-4">
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
@@ -197,8 +215,7 @@ export default function EditEmailContact() {
   const availableLists = (listsData as any)?.lists || [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-slate-950 dark:via-blue-950/30 dark:to-indigo-950/20">
-      <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div className="max-w-6xl mx-auto p-4">
         {/* Header */}
         <div className="mb-8">
           <Button
@@ -383,6 +400,151 @@ export default function EditEmailContact() {
                       )}
                     </div>
                   )}
+
+                  {/* Consent Information */}
+                  <div className="space-y-4 border-t border-slate-200/50 dark:border-slate-700/50 pt-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200">Consent Information</h3>
+                    </div>
+                    
+                    {/* Consent Given */}
+                    <FormField
+                      control={form.control}
+                      name="consentGiven"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                          <FormControl>
+                            <Checkbox 
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel className="text-sm font-medium">
+                              Marketing consent given
+                            </FormLabel>
+                            <FormDescription className="text-xs">
+                              This contact has explicitly given consent to receive marketing communications
+                            </FormDescription>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Consent Method */}
+                    <FormField
+                      control={form.control}
+                      name="consentMethod"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Consent Method</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select how consent was obtained" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="web_form">Web Form</SelectItem>
+                              <SelectItem value="email_signup">Email Signup</SelectItem>
+                              <SelectItem value="manual_entry">Manual Entry</SelectItem>
+                              <SelectItem value="import">Import</SelectItem>
+                              <SelectItem value="api">API</SelectItem>
+                              <SelectItem value="double_opt_in">Double Opt-in</SelectItem>
+                              <SelectItem value="phone">Phone</SelectItem>
+                              <SelectItem value="in_person">In Person</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormDescription className="text-xs">
+                            How this contact's consent was originally obtained
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Consent IP Address */}
+                    <FormField
+                      control={form.control}
+                      name="consentIpAddress"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Consent IP Address</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="192.168.1.1" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormDescription className="text-xs">
+                            IP address from which consent was given (for compliance tracking)
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Consent Date */}
+                    <FormField
+                      control={form.control}
+                      name="consentDate"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Consent Date</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant={"outline"}
+                                  className={cn(
+                                    "w-full pl-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  {field.value ? (
+                                    format(field.value, "PPP")
+                                  ) : (
+                                    <span>Pick consent date</span>
+                                  )}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <CalendarComponent
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={(date) =>
+                                  date > new Date() || date < new Date("1900-01-01")
+                                }
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormDescription className="text-xs">
+                            Date when marketing consent was originally given
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Compliance Warning */}
+                    <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                      <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                          Compliance Notice
+                        </p>
+                        <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                          Ensure all consent information is accurate and complies with GDPR, CAN-SPAM, and other applicable regulations. 
+                          Only send marketing emails to contacts who have explicitly consented.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
                   {/* Form Actions */}
                   <div className="flex justify-end gap-3 pt-6 border-t border-slate-200/50 dark:border-slate-700/50">
@@ -593,9 +755,64 @@ export default function EditEmailContact() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Consent Status */}
+            <Card className="border-0 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl shadow-xl shadow-slate-200/20 dark:shadow-slate-900/20">
+              <CardHeader className="border-b border-slate-200/50 dark:border-slate-700/50 bg-gradient-to-r from-white/50 to-slate-50/50 dark:from-slate-800/50 dark:to-slate-900/50">
+                <CardTitle className="text-lg text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  Consent Status
+                </CardTitle>
+                <CardDescription className="text-slate-600 dark:text-slate-400">
+                  Marketing consent and compliance information
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${contact.consentGiven ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
+                      <CheckCircle2 className={`h-4 w-4 ${contact.consentGiven ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`} />
+                    </div>
+                    <div>
+                      <p className={`text-sm font-medium ${contact.consentGiven ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'}`}>
+                        {contact.consentGiven ? 'Consent Given' : 'No Consent'}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Marketing Permission</p>
+                    </div>
+                  </div>
+                  
+                  {contact.consentIpAddress && (
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                        <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200 font-mono">
+                          {contact.consentIpAddress}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Consent IP Address</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {!contact.consentGiven && (
+                    <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                      <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs font-medium text-amber-800 dark:text-amber-200">
+                          Compliance Warning
+                        </p>
+                        <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                          This contact has not given consent for marketing emails. Sending marketing content may violate regulations.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
-      </div>
     </div>
   );
 }

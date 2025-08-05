@@ -35,6 +35,7 @@ const CampaignsPage = lazy(() => import("@/pages/campaigns").then(module => ({ d
 const EmailContactsPage = lazy(() => import("@/pages/email-contacts"));
 const NewEmailContactPage = lazy(() => import("@/pages/email-contacts/new"));
 const ViewEmailContactPage = lazy(() => import("@/pages/email-contacts/view"));
+const EmailAnalyticsPage = lazy(() => import("@/pages/email-analytics"));
 
 // Loading component for Suspense fallback
 const PageLoader = () => (
@@ -140,6 +141,7 @@ function Router() {
                 <Route path="/email-contacts/new" component={NewEmailContactPage} />
                 <Route path="/email-contacts/view/:id" component={ViewEmailContactPage} />
                 <Route path="/email-contacts/edit/:id" component={lazy(() => import("@/pages/email-contacts/edit"))} />
+                <Route path="/email-analytics" component={EmailAnalyticsPage} />
                 <Route path="/shops" component={ShopsPage} />
                 <Route path="/shops/new" component={NewShopPage} />
                 <Route path="/shops/:id" component={ShopDetailsPage} />

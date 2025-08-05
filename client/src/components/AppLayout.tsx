@@ -436,9 +436,15 @@ export function AppLayout({ children }: AppLayoutProps) {
                   <Button 
                     onClick={() => setLocation('/subscribe')}
                     size="sm" 
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-sm font-medium rounded-lg"
+                    className="relative overflow-hidden bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 hover:from-violet-500 hover:via-purple-500 hover:to-blue-500 text-white px-6 py-2 text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 group"
                   >
-                    Upgrade
+                    <span className="relative z-10 flex items-center gap-2">
+                      <span className="bg-gradient-to-r from-white to-gray-100 bg-clip-text text-transparent">
+                        ✦ Upgrade
+                      </span>
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full animate-pulse" />
                   </Button>
                 </div>
               </div>

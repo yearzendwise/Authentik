@@ -423,9 +423,9 @@ export function AppLayout({ children }: AppLayoutProps) {
               <DropdownMenuSeparator className="bg-gray-100 dark:bg-gray-700" />
 
               {/* Plan Section */}
-              <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800/50">
-                <div className="flex items-center justify-between">
-                  <div>
+              <div className="px-6 py-5 bg-gray-50 dark:bg-gray-800/50">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1">
                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       {subscriptionData?.subscription?.plan?.displayName || 'Basic Plan'}
                     </p>
@@ -433,19 +433,21 @@ export function AppLayout({ children }: AppLayoutProps) {
                       12,000 views
                     </p>
                   </div>
-                  <Button 
-                    onClick={() => setLocation('/subscribe')}
-                    size="sm" 
-                    className="relative overflow-hidden bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 hover:from-violet-500 hover:via-purple-500 hover:to-blue-500 text-white px-6 py-2 text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 group"
-                  >
-                    <span className="relative z-10 flex items-center gap-2">
-                      <span className="bg-gradient-to-r from-white to-gray-100 bg-clip-text text-transparent">
-                        ✦ Upgrade
+                  <div className="relative">
+                    <Button 
+                      onClick={() => setLocation('/subscribe')}
+                      size="sm" 
+                      className="relative overflow-hidden bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 hover:from-violet-500 hover:via-purple-500 hover:to-blue-500 text-white px-5 py-2 text-sm font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 group"
+                    >
+                      <span className="relative z-10 flex items-center gap-1.5">
+                        <span className="text-white">
+                          ✦ Upgrade
+                        </span>
                       </span>
-                    </span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full animate-pulse" />
-                  </Button>
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    </Button>
+                    <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full animate-pulse" />
+                  </div>
                 </div>
               </div>
 

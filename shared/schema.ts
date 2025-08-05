@@ -265,6 +265,24 @@ export const formResponses = pgTable("form_responses", {
   userAgent: text("user_agent"),
 });
 
+// Newsletters table for newsletter management
+export const newsletters = pgTable("newsletters", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  title: text("title").notNull(),
+  subject: text("subject").notNull(),
+  content: text("content").notNull(), // HTML content of the newsletter
+  status: text("status").notNull().default('draft'), // draft, scheduled, sent
+  scheduledAt: timestamp("scheduled_at"),
+  sentAt: timestamp("sent_at"),
+  recipientCount: integer("recipient_count").default(0),
+  openCount: integer("open_count").default(0),
+  clickCount: integer("click_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations
 export const tenantRelations = relations(tenants, ({ many }) => ({
   users: many(users),
@@ -279,6 +297,7 @@ export const tenantRelations = relations(tenants, ({ many }) => ({
   contactTags: many(contactTags),
   contactListMemberships: many(contactListMemberships),
   contactTagAssignments: many(contactTagAssignments),
+  newsletters: many(newsletters),
 }));
 
 export const userRelations = relations(users, ({ one, many }) => ({
@@ -290,6 +309,7 @@ export const userRelations = relations(users, ({ one, many }) => ({
   forms: many(forms),
   verificationTokens: many(verificationTokens),
   ownedCompanies: many(companies),
+  newsletters: many(newsletters),
   subscription: one(subscriptions, {
     fields: [users.id],
     references: [subscriptions.userId],
@@ -894,4 +914,51 @@ export interface ContactFilters {
   status?: 'active' | 'unsubscribed' | 'bounced' | 'pending' | 'all';
   listId?: string;
   tagId?: string;
+}
+
+// Newsletter relations
+export const newsletterRelations = relations(newsletters, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [newsletters.tenantId],
+    references: [tenants.id],
+  }),
+  user: one(users, {
+    fields: [newsletters.userId],
+    references: [users.id],
+  }),
+}));
+
+// Newsletter schemas
+export const createNewsletterSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  subject: z.string().min(1, "Subject is required"),
+  content: z.string().min(1, "Content is required"),
+  status: z.enum(['draft', 'scheduled', 'sent']).default('draft'),
+  scheduledAt: z.date().optional(),
+});
+
+export const updateNewsletterSchema = z.object({
+  title: z.string().min(1, "Title is required").optional(),
+  subject: z.string().min(1, "Subject is required").optional(),
+  content: z.string().min(1, "Content is required").optional(),
+  status: z.enum(['draft', 'scheduled', 'sent']).optional(),
+  scheduledAt: z.date().optional(),
+});
+
+export const insertNewsletterSchema = createInsertSchema(newsletters).omit({
+  id: true,
+  tenantId: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Newsletter types
+export type Newsletter = typeof newsletters.$inferSelect;
+export type InsertNewsletter = z.infer<typeof insertNewsletterSchema>;
+export type CreateNewsletterData = z.infer<typeof createNewsletterSchema>;
+export type UpdateNewsletterData = z.infer<typeof updateNewsletterSchema>;
+
+export interface NewsletterWithUser extends Newsletter {
+  user: User;
 }

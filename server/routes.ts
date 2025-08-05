@@ -21,6 +21,8 @@ import {
   billingInfoSchema,
   createCompanySchema,
   updateCompanySchema,
+  createNewsletterSchema,
+  updateNewsletterSchema,
   type UserRole,
   type ShopFilters,
   createShopSchema,
@@ -3657,6 +3659,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: `Tag added to ${contactIds.length} contacts successfully` });
     } catch (error) {
       console.error("Bulk add tag to contacts error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // ====================================
+  // NEWSLETTER ROUTES
+  // ====================================
+
+  // Get all newsletters
+  app.get("/api/newsletters", authenticateToken, async (req: any, res) => {
+    try {
+      const newsletters = await storage.getAllNewsletters(req.user.tenantId);
+      res.json({ newsletters });
+    } catch (error) {
+      console.error("Get newsletters error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get single newsletter
+  app.get("/api/newsletters/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const newsletter = await storage.getNewsletterWithUser(id, req.user.tenantId);
+
+      if (!newsletter) {
+        return res.status(404).json({ message: "Newsletter not found" });
+      }
+
+      res.json({ newsletter });
+    } catch (error) {
+      console.error("Get newsletter error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Create newsletter
+  app.post("/api/newsletters", authenticateToken, async (req: any, res) => {
+    try {
+      const validatedData = createNewsletterSchema.parse(req.body);
+      const newsletter = await storage.createNewsletter(
+        validatedData,
+        req.user.userId,
+        req.user.tenantId
+      );
+
+      res.status(201).json({ newsletter });
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.errors 
+        });
+      }
+      console.error("Create newsletter error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Update newsletter
+  app.put("/api/newsletters/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = updateNewsletterSchema.parse(req.body);
+      
+      const newsletter = await storage.updateNewsletter(id, validatedData, req.user.tenantId);
+
+      if (!newsletter) {
+        return res.status(404).json({ message: "Newsletter not found" });
+      }
+
+      res.json({ newsletter });
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.errors 
+        });
+      }
+      console.error("Update newsletter error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Delete newsletter
+  app.delete("/api/newsletters/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Check if newsletter exists first
+      const newsletter = await storage.getNewsletter(id, req.user.tenantId);
+      if (!newsletter) {
+        return res.status(404).json({ message: "Newsletter not found" });
+      }
+
+      await storage.deleteNewsletter(id, req.user.tenantId);
+      res.json({ message: "Newsletter deleted successfully" });
+    } catch (error) {
+      console.error("Delete newsletter error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get newsletter statistics
+  app.get("/api/newsletter-stats", authenticateToken, async (req: any, res) => {
+    try {
+      const stats = await storage.getNewsletterStats(req.user.tenantId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Get newsletter stats error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

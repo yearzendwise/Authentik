@@ -14,6 +14,7 @@ import {
   contactTags,
   contactListMemberships,
   contactTagAssignments,
+  newsletters,
   type User, 
   type InsertUser, 
   type RefreshToken, 
@@ -60,7 +61,12 @@ import {
   type CreateContactTagData,
   type EmailContactWithDetails,
   type EmailListWithCount,
-  type ContactFilters
+  type ContactFilters,
+  type Newsletter,
+  type InsertNewsletter,
+  type CreateNewsletterData,
+  type UpdateNewsletterData,
+  type NewsletterWithUser
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gt, lt, desc, ne, or, ilike, count, sql } from "drizzle-orm";
@@ -213,6 +219,20 @@ export interface IStorage {
     averageEngagementRate: number;
   }>;
   getShopStats(tenantId: string): Promise<{ totalShops: number; activeShops: number; shopsByCategory: Record<string, number> }>;
+  
+  // Newsletter operations (tenant-aware)
+  getNewsletter(id: string, tenantId: string): Promise<Newsletter | undefined>;
+  getNewsletterWithUser(id: string, tenantId: string): Promise<NewsletterWithUser | undefined>;
+  getAllNewsletters(tenantId: string): Promise<NewsletterWithUser[]>;
+  createNewsletter(newsletter: CreateNewsletterData, userId: string, tenantId: string): Promise<Newsletter>;
+  updateNewsletter(id: string, updates: UpdateNewsletterData, tenantId: string): Promise<Newsletter | undefined>;
+  deleteNewsletter(id: string, tenantId: string): Promise<void>;
+  getNewsletterStats(tenantId: string): Promise<{
+    totalNewsletters: number;
+    draftNewsletters: number;
+    scheduledNewsletters: number;
+    sentNewsletters: number;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1670,6 +1690,123 @@ export class DatabaseStorage implements IStorage {
       pendingContacts: pendingResult.count,
       totalLists: listsResult.count,
       averageEngagementRate,
+    };
+  }
+
+  // Newsletter operations
+  async getNewsletter(id: string, tenantId: string): Promise<Newsletter | undefined> {
+    const [newsletter] = await db
+      .select()
+      .from(newsletters)
+      .where(and(eq(newsletters.id, id), eq(newsletters.tenantId, tenantId)));
+    return newsletter;
+  }
+
+  async getNewsletterWithUser(id: string, tenantId: string): Promise<NewsletterWithUser | undefined> {
+    const [result] = await db
+      .select({
+        newsletter: newsletters,
+        user: users,
+      })
+      .from(newsletters)
+      .innerJoin(users, eq(newsletters.userId, users.id))
+      .where(and(eq(newsletters.id, id), eq(newsletters.tenantId, tenantId)));
+
+    if (!result) return undefined;
+
+    return {
+      ...result.newsletter,
+      user: result.user,
+    };
+  }
+
+  async getAllNewsletters(tenantId: string): Promise<NewsletterWithUser[]> {
+    const results = await db
+      .select({
+        newsletter: newsletters,
+        user: users,
+      })
+      .from(newsletters)
+      .innerJoin(users, eq(newsletters.userId, users.id))
+      .where(eq(newsletters.tenantId, tenantId))
+      .orderBy(desc(newsletters.createdAt));
+
+    return results.map((result) => ({
+      ...result.newsletter,
+      user: result.user,
+    }));
+  }
+
+  async createNewsletter(newsletterData: CreateNewsletterData, userId: string, tenantId: string): Promise<Newsletter> {
+    const [newsletter] = await db
+      .insert(newsletters)
+      .values({
+        ...newsletterData,
+        userId,
+        tenantId,
+      })
+      .returning();
+    return newsletter;
+  }
+
+  async updateNewsletter(id: string, updates: UpdateNewsletterData, tenantId: string): Promise<Newsletter | undefined> {
+    const [newsletter] = await db
+      .update(newsletters)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(newsletters.id, id), eq(newsletters.tenantId, tenantId)))
+      .returning();
+    return newsletter;
+  }
+
+  async deleteNewsletter(id: string, tenantId: string): Promise<void> {
+    await db
+      .delete(newsletters)
+      .where(and(eq(newsletters.id, id), eq(newsletters.tenantId, tenantId)));
+  }
+
+  async getNewsletterStats(tenantId: string): Promise<{
+    totalNewsletters: number;
+    draftNewsletters: number;
+    scheduledNewsletters: number;
+    sentNewsletters: number;
+  }> {
+    const [totalResult] = await db
+      .select({ count: count() })
+      .from(newsletters)
+      .where(eq(newsletters.tenantId, tenantId));
+
+    const [draftResult] = await db
+      .select({ count: count() })
+      .from(newsletters)
+      .where(and(
+        eq(newsletters.tenantId, tenantId),
+        eq(newsletters.status, 'draft')
+      ));
+
+    const [scheduledResult] = await db
+      .select({ count: count() })
+      .from(newsletters)
+      .where(and(
+        eq(newsletters.tenantId, tenantId),
+        eq(newsletters.status, 'scheduled')
+      ));
+
+    const [sentResult] = await db
+      .select({ count: count() })
+      .from(newsletters)
+      .where(and(
+        eq(newsletters.tenantId, tenantId),
+        eq(newsletters.status, 'sent')
+      ));
+
+    return {
+      totalNewsletters: totalResult.count,
+      draftNewsletters: draftResult.count,
+      scheduledNewsletters: scheduledResult.count,
+      sentNewsletters: sentResult.count,
     };
   }
 

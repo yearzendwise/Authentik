@@ -158,7 +158,7 @@ export default function EditEmailContact() {
       tags: selectedTags,
       lists: selectedLists,
       // Convert Date object to ISO string for API
-      consentDate: data.consentDate ? data.consentDate.toISOString() : null,
+      consentDate: data.consentDate ? data.consentDate.toISOString() : undefined,
     };
     updateContactMutation.mutate(formData);
   };
@@ -181,7 +181,7 @@ export default function EditEmailContact() {
 
   if (isContactLoading) {
     return (
-      <div className="p-6">
+      <div className="max-w-6xl mx-auto p-4">
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
@@ -191,7 +191,7 @@ export default function EditEmailContact() {
 
   if (contactError || !(contactData as any)?.contact) {
     return (
-      <div className="p-6">
+      <div className="max-w-6xl mx-auto p-4">
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
@@ -215,7 +215,7 @@ export default function EditEmailContact() {
   const availableLists = (listsData as any)?.lists || [];
 
   return (
-    <div className="p-6">
+    <div className="max-w-6xl mx-auto p-4">
         {/* Header */}
         <div className="mb-8">
           <Button

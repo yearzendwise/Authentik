@@ -141,7 +141,7 @@ export default function ViewContact() {
 
   if (isLoading) {
     return (
-      <div className="p-6">
+      <div className="max-w-6xl mx-auto p-4">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           <span className="ml-4">Loading contact...</span>
@@ -152,7 +152,7 @@ export default function ViewContact() {
 
   if (error || !contact || !contact.email) {
     return (
-      <div className="p-6">
+      <div className="max-w-6xl mx-auto p-4">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Contact Not Found</h1>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
@@ -171,7 +171,7 @@ export default function ViewContact() {
   }
 
   return (
-    <div className="p-6">
+    <div className="max-w-6xl mx-auto p-4">
       {/* Header */}
       <div className="mb-6">
         <Button 

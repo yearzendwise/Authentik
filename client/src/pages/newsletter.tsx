@@ -55,9 +55,7 @@ export default function NewsletterPage() {
 
   // Delete newsletter mutation
   const deleteNewsletterMutation = useMutation({
-    mutationFn: (id: string) => apiRequest(`/api/newsletters/${id}`, {
-      method: 'DELETE',
-    }),
+    mutationFn: (id: string) => apiRequest(`/api/newsletters/${id}`, 'DELETE'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/newsletters'] });
       queryClient.invalidateQueries({ queryKey: ['/api/newsletter-stats'] });
@@ -77,8 +75,8 @@ export default function NewsletterPage() {
     },
   });
 
-  const newsletters: NewsletterWithUser[] = newslettersData?.newsletters || [];
-  const stats = statsData || {
+  const newsletters: NewsletterWithUser[] = (newslettersData as any)?.newsletters || [];
+  const stats = (statsData as any) || {
     totalNewsletters: 0,
     draftNewsletters: 0,
     scheduledNewsletters: 0,
@@ -132,7 +130,7 @@ export default function NewsletterPage() {
           </p>
         </div>
         <Button 
-          onClick={() => window.location.href = '/newsletters/create'} 
+          onClick={() => window.location.href = '/newsletter/create'} 
           className="bg-blue-600 hover:bg-blue-700 text-white"
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -220,7 +218,7 @@ export default function NewsletterPage() {
               to engage with your subscribers and grow your audience.
             </p>
             <Button 
-              onClick={() => window.location.href = '/newsletters/create'}
+              onClick={() => window.location.href = '/newsletter/create'}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -249,7 +247,7 @@ export default function NewsletterPage() {
                     <div className="flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-                        Created {format(new Date(newsletter.createdAt), 'MMM d, yyyy')}
+                        Created {format(new Date(newsletter.createdAt || new Date()), 'MMM d, yyyy')}
                       </div>
                       
                       <div className="flex items-center gap-1">

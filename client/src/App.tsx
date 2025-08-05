@@ -15,6 +15,7 @@ import { lazy, Suspense, useEffect } from "react";
 const AuthPage = lazy(() => import("@/pages/auth"));
 const Dashboard = lazy(() => import("@/pages/dashboard"));
 const NewsletterPage = lazy(() => import("@/pages/newsletter"));
+const NewsletterCreatePage = lazy(() => import("@/pages/newsletter-create"));
 const ProfilePage = lazy(() => import("@/pages/profile"));
 const SessionsPage = lazy(() => import("@/pages/sessions"));
 const UsersPage = lazy(() => import("@/pages/users"));
@@ -132,6 +133,7 @@ function Router() {
                 <Route path="/" component={Dashboard} />
                 <Route path="/dashboard" component={Dashboard} />
                 <Route path="/newsletter" component={NewsletterPage} />
+                <Route path="/newsletter/create" component={NewsletterCreatePage} />
                 <Route path="/company" component={CompanyPage} />
                 <Route path="/campaigns" component={CampaignsPage} />
                 <Route path="/email-contacts" component={EmailContactsPage} />

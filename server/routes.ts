@@ -2514,6 +2514,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           user.id,
           customer.id,
           subscription.id,
+          user.tenantId,
         );
 
         const invoice = subscription.latest_invoice as any;

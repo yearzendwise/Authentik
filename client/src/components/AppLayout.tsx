@@ -18,6 +18,9 @@ import {
   UserCheck,
   BarChart3,
   PenTool,
+  Menu,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import logoUrl from "@assets/logo.png";
 import { cn } from "@/lib/utils";
@@ -40,7 +43,7 @@ import {
   useReduxLogout,
   useReduxUpdateProfile,
 } from "@/hooks/useReduxAuth";
-import { useUpdateTheme } from "@/hooks/useAuth";
+import { useUpdateTheme, useUpdateMenuPreference } from "@/hooks/useAuth";
 import { useTheme } from "@/contexts/ThemeContext";
 
 const getNavigation = (userRole?: string) => {
@@ -80,6 +83,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const navigation = getNavigation(user?.role);
   const { updateProfile } = useReduxUpdateProfile();
   const updateThemeMutation = useUpdateTheme();
+  const updateMenuPreferenceMutation = useUpdateMenuPreference();
   const [isThemeChanging, setIsThemeChanging] = useState(false);
   
   // Initialize menu state
@@ -178,6 +182,21 @@ export function AppLayout({ children }: AppLayoutProps) {
     }
   };
 
+  const handleMenuToggle = () => {
+    const newExpanded = isCollapsed; // If collapsed, we want to expand (true)
+    
+    // Update localStorage immediately for instant UI feedback
+    localStorage.setItem('menuExpanded', JSON.stringify(newExpanded));
+    
+    // Dispatch custom event for immediate UI update in same tab
+    window.dispatchEvent(new CustomEvent('menuPreferenceChanged', { 
+      detail: { menuExpanded: newExpanded } 
+    }));
+    
+    // Update backend preference
+    updateMenuPreferenceMutation.mutate({ menuExpanded: newExpanded });
+  };
+
   if (!user) {
     return <>{children}</>;
   }
@@ -188,92 +207,169 @@ export function AppLayout({ children }: AppLayoutProps) {
       {/* Sidebar */}
       <div
         className={cn(
-          "flex flex-col bg-gray-800 transition-all duration-200",
-          isCollapsed ? "w-20" : "w-20",
+          "flex flex-col bg-gray-800 dark:bg-gray-900 transition-all duration-300 ease-in-out",
+          isCollapsed ? "w-20" : "w-64",
         )}
       >
         {/* Header */}
-        <div className="p-4 flex justify-center">
-          <div className="bg-indigo-600 rounded-2xl p-2 flex items-center justify-center">
-            <img 
-              src={logoUrl} 
-              alt="Company Logo" 
-              className="w-8 h-8 object-contain filter brightness-0 invert"
-            />
+        <div className={cn(
+          "p-4 flex items-center transition-all duration-300",
+          isCollapsed ? "justify-center" : "justify-between"
+        )}>
+          <div className="flex items-center">
+            <div className="bg-indigo-600 dark:bg-indigo-500 rounded-2xl p-2 flex items-center justify-center">
+              <img 
+                src={logoUrl} 
+                alt="Company Logo" 
+                className="w-8 h-8 object-contain filter brightness-0 invert"
+              />
+            </div>
+            {!isCollapsed && (
+              <div className="ml-3 flex flex-col">
+                <span className="text-white dark:text-gray-100 font-semibold text-lg">
+                  SaaS Platform
+                </span>
+                <span className="text-gray-300 dark:text-gray-400 text-sm">
+                  Management Suite
+                </span>
+              </div>
+            )}
           </div>
+          
+          {/* Menu Toggle Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleMenuToggle}
+            className={cn(
+              "p-2 rounded-xl hover:bg-gray-700 dark:hover:bg-gray-800 text-gray-400 dark:text-gray-500 hover:text-gray-200 dark:hover:text-gray-300 transition-all duration-200",
+              isCollapsed ? "absolute top-4 right-4" : "ml-2"
+            )}
+            disabled={updateMenuPreferenceMutation.isPending}
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-5 w-5" />
+            ) : (
+              <ChevronLeft className="h-5 w-5" />
+            )}
+          </Button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 flex flex-col items-center space-y-3 pt-6 px-3">
+        <nav className={cn(
+          "flex-1 flex flex-col pt-6 transition-all duration-300",
+          isCollapsed ? "items-center space-y-3 px-3" : "px-4 space-y-2"
+        )}>
           {navigation.map((item, index) => {
             const isActive =
               location === item.href ||
               (item.href === "/dashboard" && location === "/");
             const Icon = item.icon;
 
-            const navButton = (
-              <Button
-                key={item.name}
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "w-12 h-12 p-0 rounded-2xl justify-center transition-all duration-200 hover:bg-gray-700",
-                  isActive 
-                    ? "bg-indigo-600 text-white hover:bg-indigo-700" 
-                    : "text-gray-400 hover:text-gray-200"
-                )}
-                asChild
-              >
-                <Link href={item.href}>
-                  <Icon className="h-6 w-6" />
-                </Link>
-              </Button>
-            );
+            if (isCollapsed) {
+              // Collapsed menu - show only icons with tooltips
+              const navButton = (
+                <Button
+                  key={item.name}
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "w-12 h-12 p-0 rounded-2xl justify-center transition-all duration-200 hover:bg-gray-700 dark:hover:bg-gray-800",
+                    isActive 
+                      ? "bg-indigo-600 dark:bg-indigo-500 text-white hover:bg-indigo-700 dark:hover:bg-indigo-600" 
+                      : "text-gray-400 dark:text-gray-500 hover:text-gray-200 dark:hover:text-gray-300"
+                  )}
+                  asChild
+                >
+                  <Link href={item.href}>
+                    <Icon className="h-6 w-6" />
+                  </Link>
+                </Button>
+              );
 
-            const buttonElement = (
-              <div key={item.name} className="relative group">
-                <Tooltip>
-                  <TooltipTrigger asChild>{navButton}</TooltipTrigger>
-                  <TooltipContent side="right" className="bg-gray-900 text-white border-gray-700">
-                    {item.name}
-                  </TooltipContent>
-                </Tooltip>
-
-              </div>
-            );
-
-            return buttonElement;
+              return (
+                <div key={item.name} className="relative group">
+                  <Tooltip>
+                    <TooltipTrigger asChild>{navButton}</TooltipTrigger>
+                    <TooltipContent side="right" className="bg-gray-900 dark:bg-gray-800 text-white dark:text-gray-100 border-gray-700 dark:border-gray-600">
+                      {item.name}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              );
+            } else {
+              // Expanded menu - show icons with labels
+              return (
+                <Button
+                  key={item.name}
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start h-12 px-4 rounded-2xl transition-all duration-200 hover:bg-gray-700 dark:hover:bg-gray-800",
+                    isActive 
+                      ? "bg-indigo-600 dark:bg-indigo-500 text-white hover:bg-indigo-700 dark:hover:bg-indigo-600" 
+                      : "text-gray-400 dark:text-gray-500 hover:text-gray-200 dark:hover:text-gray-300"
+                  )}
+                  asChild
+                >
+                  <Link href={item.href} className="flex items-center space-x-3">
+                    <Icon className="h-6 w-6 flex-shrink-0" />
+                    <span className="font-medium">{item.name}</span>
+                  </Link>
+                </Button>
+              );
+            }
           })}
         </nav>
 
         {/* User Profile Menu */}
-        <div className="p-4 flex justify-center">
+        <div className={cn(
+          "p-4 border-t border-gray-700 dark:border-gray-600 transition-all duration-300",
+          isCollapsed ? "flex justify-center" : "flex items-center"
+        )}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="w-12 h-12 p-0 rounded-2xl justify-center hover:bg-gray-700"
+                className={cn(
+                  "rounded-2xl transition-all duration-200 hover:bg-gray-700 dark:hover:bg-gray-800",
+                  isCollapsed 
+                    ? "w-12 h-12 p-0 justify-center" 
+                    : "w-full h-12 px-4 justify-start"
+                )}
               >
                 <CustomAvatar 
                   user={user}
                   size="sm"
-                  className="w-8 h-8"
+                  className="w-8 h-8 flex-shrink-0"
                 />
+                {!isCollapsed && (
+                  <div className="ml-3 flex flex-col items-start">
+                    <span className="text-gray-200 dark:text-gray-100 font-medium text-sm">
+                      {user.firstName} {user.lastName}
+                    </span>
+                    <span className="text-gray-400 dark:text-gray-500 text-xs">
+                      {user.email}
+                    </span>
+                  </div>
+                )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 bg-gray-900 border-gray-700">
-              <DropdownMenuItem onClick={() => setLocation('/profile')} className="cursor-pointer text-gray-200 hover:bg-gray-800">
+            <DropdownMenuContent 
+              align={isCollapsed ? "end" : "start"} 
+              className="w-56 bg-gray-900 dark:bg-gray-800 border-gray-700 dark:border-gray-600"
+            >
+              <DropdownMenuItem onClick={() => setLocation('/profile')} className="cursor-pointer text-gray-200 dark:text-gray-100 hover:bg-gray-800 dark:hover:bg-gray-700">
                 <User className="mr-2 h-5 w-5" />
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLocation('/sessions')} className="cursor-pointer text-gray-200 hover:bg-gray-800">
+              <DropdownMenuItem onClick={() => setLocation('/sessions')} className="cursor-pointer text-gray-200 dark:text-gray-100 hover:bg-gray-800 dark:hover:bg-gray-700">
                 <Activity className="mr-2 h-5 w-5" />
                 Sessions
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-gray-700" />
+              <DropdownMenuSeparator className="bg-gray-700 dark:bg-gray-600" />
               <div
                 onClick={handleThemeToggle}
-                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-gray-800 text-gray-200"
+                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-gray-800 dark:hover:bg-gray-700 text-gray-200 dark:text-gray-100"
                 role="menuitem"
               >
                 {theme === 'light' ? (
@@ -288,10 +384,10 @@ export function AppLayout({ children }: AppLayoutProps) {
                   </>
                 )}
               </div>
-              <DropdownMenuSeparator className="bg-gray-700" />
+              <DropdownMenuSeparator className="bg-gray-700 dark:bg-gray-600" />
               <DropdownMenuItem
                 onClick={handleLogout}
-                className="cursor-pointer text-red-400 hover:bg-gray-800"
+                className="cursor-pointer text-red-400 dark:text-red-400 hover:bg-gray-800 dark:hover:bg-gray-700"
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign out

@@ -17,7 +17,6 @@ import {
   FileText,
   UserCheck,
   BarChart3,
-  PenTool,
   Menu,
 
   Newspaper,
@@ -61,7 +60,6 @@ const getNavigation = (userRole?: string) => {
     { name: "Templates", href: "/email-templates", icon: FileText },
     { name: "Contacts", href: "/email-contacts", icon: UserCheck },
     { name: "Analytics", href: "/email-analytics", icon: BarChart3 },
-    { name: "Compose", href: "/email-compose", icon: PenTool },
     { name: "Shops", href: "/shops", icon: Store },
   ];
 

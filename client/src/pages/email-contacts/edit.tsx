@@ -26,8 +26,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Save, Loader2, X, Mail, CheckCircle2, UserCheck, Tag, Calendar, Shield, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Save, Loader2, X, Mail, CheckCircle2, UserCheck, Tag, Calendar, Shield, AlertTriangle, CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 // Schema for the form
 const editContactSchema = z.object({
@@ -40,6 +44,7 @@ const editContactSchema = z.object({
   consentGiven: z.boolean().optional(),
   consentMethod: z.string().optional(),
   consentIpAddress: z.string().optional(),
+  consentDate: z.date().optional(),
 });
 
 type EditContactForm = z.infer<typeof editContactSchema>;
@@ -99,6 +104,7 @@ export default function EditEmailContact() {
       consentGiven: false,
       consentMethod: "",
       consentIpAddress: "",
+      consentDate: undefined,
     },
   });
 
@@ -116,6 +122,7 @@ export default function EditEmailContact() {
         consentGiven: contact.consentGiven || false,
         consentMethod: contact.consentMethod || "",
         consentIpAddress: contact.consentIpAddress || "",
+        consentDate: contact.consentDate ? new Date(contact.consentDate) : undefined,
       });
       setSelectedTags(contact.tags?.map((tag: any) => tag.id) || []);
       setSelectedLists(contact.lists?.map((list: any) => list.id) || []);
@@ -470,6 +477,52 @@ export default function EditEmailContact() {
                           </FormControl>
                           <FormDescription className="text-xs">
                             IP address from which consent was given (for compliance tracking)
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Consent Date */}
+                    <FormField
+                      control={form.control}
+                      name="consentDate"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Consent Date</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant={"outline"}
+                                  className={cn(
+                                    "w-full pl-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  {field.value ? (
+                                    format(field.value, "PPP")
+                                  ) : (
+                                    <span>Pick consent date</span>
+                                  )}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <CalendarComponent
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={(date) =>
+                                  date > new Date() || date < new Date("1900-01-01")
+                                }
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormDescription className="text-xs">
+                            Date when marketing consent was originally given
                           </FormDescription>
                           <FormMessage />
                         </FormItem>

@@ -52,7 +52,6 @@ const getNavigation = (userRole?: string) => {
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Newsletter", href: "/newsletter", icon: Newspaper },
     { name: "Forms", href: "/forms", icon: ClipboardList },
-    { name: "Company", href: "/company", icon: Building2 },
     { name: "Email Campaigns", href: "/email-campaigns", icon: Mail },
     { name: "Templates", href: "/email-templates", icon: FileText },
     { name: "Contacts", href: "/email-contacts", icon: UserCheck },
@@ -361,6 +360,10 @@ export function AppLayout({ children }: AppLayoutProps) {
               <DropdownMenuItem onClick={() => setLocation('/profile')} className="cursor-pointer text-gray-200 dark:text-gray-100 hover:bg-gray-800 dark:hover:bg-gray-700">
                 <User className="mr-2 h-5 w-5" />
                 Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setLocation('/company')} className="cursor-pointer text-gray-200 dark:text-gray-100 hover:bg-gray-800 dark:hover:bg-gray-700">
+                <Building2 className="mr-2 h-5 w-5" />
+                Company
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setLocation('/sessions')} className="cursor-pointer text-gray-200 dark:text-gray-100 hover:bg-gray-800 dark:hover:bg-gray-700">
                 <Activity className="mr-2 h-5 w-5" />

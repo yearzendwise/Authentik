@@ -135,7 +135,7 @@ export default function NewsletterCreatePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
-      <div className="container mx-auto p-6 max-w-4xl">
+      <div className="container mx-auto p-6 max-w-6xl">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <Button

@@ -20,6 +20,7 @@ interface FormPropertiesProps {
   };
   elements?: any[];
   onClearForm?: () => void;
+  hideClearButton?: boolean;
 }
 
 export function FormProperties({ 
@@ -28,7 +29,8 @@ export function FormProperties({
   onUpdateSettings,
   settings = {},
   elements = [],
-  onClearForm
+  onClearForm,
+  hideClearButton = false
 }: FormPropertiesProps) {
   const [isOpen, setIsOpen] = useState(true);
   
@@ -168,17 +170,19 @@ export function FormProperties({
             </div>
 
             {/* Clear Form Button */}
-            <div className="pt-2 border-t border-neutral-200">
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleClearForm}
-                className="w-full flex items-center gap-2"
-              >
-                <Trash2 className="w-4 h-4" />
-                Clear form
-              </Button>
-            </div>
+            {!hideClearButton && (
+              <div className="pt-2 border-t border-neutral-200">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleClearForm}
+                  className="w-full flex items-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Clear form
+                </Button>
+              </div>
+            )}
           </CardContent>
         </CollapsibleContent>
       </Collapsible>

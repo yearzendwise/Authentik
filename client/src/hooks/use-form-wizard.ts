@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { WizardStep, WizardState, FormTheme, FormElement, CustomColors } from '@/types/form-builder';
 import { applyCustomColors, extractThemeColors } from '@/utils/theme-color-utils';
 
-const defaultThemes: FormTheme[] = [
+export const defaultThemes: FormTheme[] = [
   // Enhanced existing themes
   {
     id: 'minimal',
@@ -51,6 +51,31 @@ const defaultThemes: FormTheme[] = [
       progressBar: {
         container: 'w-full bg-gray-200/60 rounded-xl h-3 mb-8 backdrop-blur-sm',
         fill: 'bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 h-3 rounded-xl transition-all duration-700 ease-out shadow-lg'
+      }
+    }
+  },
+  {
+    id: 'glassmorphism',
+    name: 'Glassmorphism',
+    description: 'Frosted glass effects with translucent layers and subtle blurs',
+    preview: 'bg-gradient-to-br from-white/40 to-white/10 backdrop-blur-xl border border-white/20 shadow-lg',
+    styles: {
+      container: 'max-w-2xl mx-auto p-10 bg-white/20 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-2xl shadow-black/10 relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-tr before:from-white/20 before:to-transparent before:opacity-40 before:pointer-events-none',
+      header: 'text-4xl font-semibold bg-gradient-to-r from-white to-sky-200/90 bg-clip-text text-transparent mb-8 tracking-tight drop-shadow-sm',
+      field: 'mb-6',
+      label: 'block text-sm font-medium text-white/80 mb-2 tracking-wide',
+      input: 'w-full px-4 py-3 h-12 bg-white/15 border border-white/30 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-300/60 focus:border-transparent transition-all duration-300 text-white placeholder-white/60 backdrop-blur-md shadow-inner shadow-black/10',
+      button: 'w-full relative bg-gradient-to-r from-white/80 to-sky-200/70 text-slate-900 py-3 px-6 rounded-2xl hover:from-white hover:to-sky-200 transition-all duration-300 font-semibold shadow-lg shadow-black/10 before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/30 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500 before:rounded-2xl',
+      background: 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900',
+      booleanSwitch: {
+        track: 'border border-white/30 data-[state=unchecked]:bg-white/20 data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-white/80 data-[state=checked]:to-sky-200/80',
+        thumb: 'data-[state=unchecked]:bg-white/60 data-[state=checked]:bg-white shadow-md',
+        activeLabel: 'text-white/90 font-medium',
+        inactiveLabel: 'text-white/60'
+      },
+      progressBar: {
+        container: 'w-full bg-white/20 rounded-2xl h-3 mb-8 border border-white/30 backdrop-blur-sm overflow-hidden',
+        fill: 'bg-gradient-to-r from-white to-sky-200 h-3 rounded-2xl transition-all duration-700 ease-out shadow-sm'
       }
     }
   },
@@ -280,6 +305,31 @@ const defaultThemes: FormTheme[] = [
       }
     }
   },
+  {
+    id: 'aurora',
+    name: 'Aurora',
+    description: 'Flowing aurora gradients with soft light and atmospheric depth',
+    preview: 'bg-[radial-gradient(120%_120%_at_0%_0%,_#7dd3fc_0%,_transparent_40%),_radial-gradient(120%_120%_at_100%_0%,_#c084fc_0%,_transparent_40%),_radial-gradient(120%_120%_at_100%_100%,_#fca5a5_0%,_transparent_40%),_radial-gradient(120%_120%_at_0%_100%,_#86efac_0%,_transparent_40%)]',
+    styles: {
+      container: 'max-w-2xl mx-auto p-10 rounded-3xl shadow-2xl relative overflow-hidden bg-white/70 backdrop-blur-xl border border-white/30 before:absolute before:inset-0 before:bg-[radial-gradient(130%_90%_at_20%_10%,_rgba(125,211,252,0.35)_0%,_transparent_60%),_radial-gradient(120%_100%_at_80%_20%,_rgba(192,132,252,0.3)_0%,_transparent_50%),_radial-gradient(120%_120%_at_90%_90%,_rgba(252,165,165,0.25)_0%,_transparent_60%),_radial-gradient(120%_120%_at_10%_90%,_rgba(134,239,172,0.3)_0%,_transparent_60%)] before:opacity-70 before:pointer-events-none',
+      header: 'text-5xl font-extrabold tracking-tight bg-gradient-to-r from-sky-600 via-fuchsia-600 to-rose-600 bg-clip-text text-transparent mb-8 drop-shadow-sm',
+      field: 'mb-6',
+      label: 'block text-sm font-semibold text-slate-700 mb-2 tracking-wide',
+      input: 'w-full px-5 py-4 h-12 bg-white/80 border border-white/60 rounded-2xl focus:outline-none focus:ring-4 focus:ring-fuchsia-300/40 focus:border-transparent transition-all duration-300 text-slate-900 placeholder-slate-400 shadow-sm',
+      button: 'w-full bg-gradient-to-r from-sky-500 via-fuchsia-500 to-rose-500 text-white py-4 px-8 rounded-2xl hover:from-sky-600 hover:via-fuchsia-600 hover:to-rose-600 transition-all duration-300 font-bold shadow-xl shadow-fuchsia-200',
+      background: 'bg-gradient-to-b from-slate-50 via-white to-slate-50',
+      booleanSwitch: {
+        track: 'border border-white/60 data-[state=unchecked]:bg-white/60 data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-sky-400 data-[state=checked]:to-rose-400',
+        thumb: 'data-[state=unchecked]:bg-white data-[state=checked]:bg-white shadow-md',
+        activeLabel: 'text-slate-800 font-semibold',
+        inactiveLabel: 'text-slate-500'
+      },
+      progressBar: {
+        container: 'w-full bg-white/70 rounded-2xl h-3 mb-8 border border-white/60 overflow-hidden shadow-inner',
+        fill: 'bg-gradient-to-r from-sky-500 via-fuchsia-500 to-rose-500 h-3 rounded-2xl transition-all duration-700 ease-out'
+      }
+    }
+  },
   // New themes added
   {
     id: 'cosmic',
@@ -390,10 +440,12 @@ function saveToStorage(data: WizardState) {
   try {
     // Try localStorage first
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    console.log('💾 Form wizard data saved to localStorage');
   } catch (error) {
     try {
       // Fallback to sessionStorage
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      console.log('💾 Form wizard data saved to sessionStorage (localStorage failed)');
     } catch (fallbackError) {
       console.warn('Failed to save form data to storage:', fallbackError);
     }
@@ -428,15 +480,64 @@ function clearStorage() {
   try {
     localStorage.removeItem(STORAGE_KEY);
     sessionStorage.removeItem(STORAGE_KEY);
+    console.log('🗑️ Form wizard storage cleared from localStorage and sessionStorage');
   } catch (error) {
     console.warn('Failed to clear storage:', error);
   }
 }
 
-export function useFormWizard() {
-  // Initialize state from storage or default values
+interface ExistingFormData {
+  id: string;
+  title: string;
+  description: string;
+  formData: string;
+  theme: string;
+  isActive: boolean;
+  responseCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function useFormWizard(existingForm?: ExistingFormData) {
+  const isEditMode = !!existingForm;
+  // Initialize state from storage, existing form, or default values
   const getInitialState = (): WizardState => {
-    const saved = loadFromStorage();
+    // If editing an existing form, parse its data
+    if (existingForm) {
+      try {
+        const parsedFormData = JSON.parse(existingForm.formData);
+        const parsedTheme = JSON.parse(existingForm.theme);
+        
+        // Find the theme by ID
+        const selectedTheme = defaultThemes.find(t => t.id === parsedTheme.id);
+        
+        return {
+          currentStep: 'build',
+          formData: {
+            title: existingForm.title,
+            elements: parsedFormData.elements || [],
+            settings: {
+              description: existingForm.description || '',
+              showProgressBar: parsedFormData.settings?.showProgressBar || false,
+              allowSaveProgress: parsedFormData.settings?.allowSaveProgress || false,
+              showFormTitle: parsedFormData.settings?.showFormTitle ?? true,
+              compactMode: parsedFormData.settings?.compactMode || false,
+              ...parsedFormData.settings
+            }
+          },
+          selectedTheme: selectedTheme ? {
+            ...selectedTheme,
+            customColors: parsedTheme.customColors || null
+          } : null,
+          isComplete: false
+        };
+      } catch (error) {
+        console.error('Failed to parse existing form data:', error);
+      }
+    }
+    
+    // Fallback to saved state or defaults
+    const saved = !existingForm ? loadFromStorage() : null;
     return saved || {
       currentStep: 'build',
       formData: {
@@ -572,15 +673,40 @@ export function useFormWizard() {
     setWizardState(newState);
   };
 
-  // Save data before page unload
+  // Save or clear data before page unload
   useEffect(() => {
     const handleBeforeUnload = () => {
-      saveToStorage(wizardState);
+      if (isEditMode) {
+        // When editing, do not persist unfinished changes on page unload
+        clearStorage();
+      } else {
+        saveToStorage(wizardState);
+      }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [wizardState]);
+  }, [wizardState, isEditMode]);
+
+  // Debug function to check storage state
+  const checkStorageState = () => {
+    const localData = localStorage.getItem(STORAGE_KEY);
+    const sessionData = sessionStorage.getItem(STORAGE_KEY);
+    console.log('🔍 Storage Debug:', {
+      localStorage: localData ? 'HAS DATA' : 'EMPTY',
+      sessionStorage: sessionData ? 'HAS DATA' : 'EMPTY',
+      localDataPreview: localData ? JSON.parse(localData).formData?.title : null
+    });
+  };
+
+  // Optionally clear storage on unmount when editing and not completed
+  useEffect(() => {
+    return () => {
+      if (isEditMode) {
+        clearStorage();
+      }
+    };
+  }, [isEditMode]);
 
   return {
     wizardState,
@@ -592,6 +718,7 @@ export function useFormWizard() {
     customizeThemeColors,
     resetThemeColors,
     completeWizard,
-    resetWizard
+    resetWizard,
+    checkStorageState
   };
 }

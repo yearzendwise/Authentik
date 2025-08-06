@@ -6,3 +6,22 @@ vite.config.ts.*
 *.tar.gz
 .env
 .env.backup
+.env copy
+
+# Go binaries
+server-go/server
+server-go/worker
+server-go/test-build
+server-go/email-tracking-server
+server-go/email-tracking-worker
+server-go/main
+server-go/email-tracking-test
+
+# Large assets (consider moving to external storage)
+attached_assets/*.png
+attached_assets/*.jpg
+attached_assets/*.jpeg
+
+# Logs
+*.log
+server-go/*.log

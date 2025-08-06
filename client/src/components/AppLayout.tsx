@@ -57,6 +57,7 @@ const getNavigation = (userRole?: string) => {
     { name: "Newsletter", href: "/newsletter", icon: Newspaper },
     { name: "Forms", href: "/forms", icon: ClipboardList },
     { name: "Email Campaigns", href: "/email-campaigns", icon: Mail },
+    { name: "Email Test", href: "/email-test", icon: Settings },
     { name: "Templates", href: "/email-templates", icon: FileText },
     { name: "Contacts", href: "/email-contacts", icon: UserCheck },
     { name: "Analytics", href: "/email-analytics", icon: BarChart3 },
@@ -198,11 +199,11 @@ export function AppLayout({ children }: AppLayoutProps) {
 
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex items-stretch min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Sidebar */}
       <div
         className={cn(
-          "flex flex-col bg-gray-800 dark:bg-gray-900 transition-all duration-300 ease-in-out",
+          "flex flex-col bg-gray-800 dark:bg-gray-900 transition-all duration-300 ease-in-out min-h-full",
           isCollapsed ? "w-20" : "w-64",
         )}
       >
@@ -233,7 +234,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
         {/* Navigation */}
         <nav className={cn(
-          "flex-1 flex flex-col pt-6 transition-all duration-300",
+          "flex-1 min-h-0 flex flex-col pt-6 transition-all duration-300 overflow-y-auto",
           isCollapsed ? "items-center space-y-3 px-3" : "px-4 space-y-2"
         )}>
           {navigation.map((item, index) => {
@@ -448,8 +449,8 @@ export function AppLayout({ children }: AppLayoutProps) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
-        <main className="flex-1 overflow-y-auto">{children}</main>
+      <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900 min-h-full">
+        <main className="flex-1">{children}</main>
       </div>
     </div>
   );

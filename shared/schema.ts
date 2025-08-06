@@ -287,6 +287,39 @@ export const newsletters = pgTable("newsletters", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Campaigns table for campaign management
+export const campaigns = pgTable("campaigns", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: text("type").notNull().default('email'), // email, sms, push, social
+  status: text("status").notNull().default('draft'), // draft, active, paused, completed, cancelled
+  budget: decimal("budget", { precision: 10, scale: 2 }),
+  currency: text("currency").default('USD'),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  targetAudience: text("target_audience"), // JSON string describing target audience
+  goals: text("goals").array(), // Array of campaign goals
+  kpis: text("kpis"), // JSON string of key performance indicators
+  settings: text("settings"), // JSON string of campaign-specific settings
+  // Analytics fields
+  impressions: integer("impressions").default(0),
+  clicks: integer("clicks").default(0),
+  conversions: integer("conversions").default(0),
+  spent: decimal("spent", { precision: 10, scale: 2 }).default('0'),
+  // Reviewer approval fields
+  requiresReviewerApproval: boolean("requires_reviewer_approval").default(false),
+  reviewerId: varchar("reviewer_id").references(() => users.id),
+  reviewStatus: text("review_status").default('pending'), // pending, approved, rejected
+  reviewedAt: timestamp("reviewed_at"),
+  reviewNotes: text("review_notes"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations
 export const tenantRelations = relations(tenants, ({ many }) => ({
   users: many(users),
@@ -302,6 +335,7 @@ export const tenantRelations = relations(tenants, ({ many }) => ({
   contactListMemberships: many(contactListMemberships),
   contactTagAssignments: many(contactTagAssignments),
   newsletters: many(newsletters),
+  campaigns: many(campaigns),
 }));
 
 export const userRelations = relations(users, ({ one, many }) => ({
@@ -314,6 +348,7 @@ export const userRelations = relations(users, ({ one, many }) => ({
   verificationTokens: many(verificationTokens),
   ownedCompanies: many(companies),
   newsletters: many(newsletters),
+  campaigns: many(campaigns),
   subscription: one(subscriptions, {
     fields: [users.id],
     references: [subscriptions.userId],
@@ -968,6 +1003,74 @@ export type Newsletter = typeof newsletters.$inferSelect;
 export type InsertNewsletter = z.infer<typeof insertNewsletterSchema>;
 export type CreateNewsletterData = z.infer<typeof createNewsletterSchema>;
 export type UpdateNewsletterData = z.infer<typeof updateNewsletterSchema>;
+
+// Campaign relations
+export const campaignRelations = relations(campaigns, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [campaigns.tenantId],
+    references: [tenants.id],
+  }),
+  user: one(users, {
+    fields: [campaigns.userId],
+    references: [users.id],
+  }),
+  reviewer: one(users, {
+    fields: [campaigns.reviewerId],
+    references: [users.id],
+  }),
+}));
+
+// Campaign schemas
+export const createCampaignSchema = z.object({
+  name: z.string().min(1, "Campaign name is required"),
+  description: z.string().optional(),
+  type: z.enum(['email', 'sms', 'push', 'social']).default('email'),
+  status: z.enum(['draft', 'active', 'paused', 'completed', 'cancelled']).default('draft'),
+  budget: z.number().positive("Budget must be positive").optional(),
+  currency: z.string().default('USD'),
+  startDate: z.date().optional(),
+  endDate: z.date().optional(),
+  targetAudience: z.string().optional(),
+  goals: z.array(z.string()).optional(),
+  kpis: z.string().optional(),
+  settings: z.string().optional(),
+  requiresReviewerApproval: z.boolean().default(false),
+  reviewerId: z.string().optional(),
+});
+
+export const updateCampaignSchema = z.object({
+  name: z.string().min(1, "Campaign name is required").optional(),
+  description: z.string().optional(),
+  type: z.enum(['email', 'sms', 'push', 'social']).optional(),
+  status: z.enum(['draft', 'active', 'paused', 'completed', 'cancelled']).optional(),
+  budget: z.number().positive("Budget must be positive").optional(),
+  currency: z.string().optional(),
+  startDate: z.date().optional(),
+  endDate: z.date().optional(),
+  targetAudience: z.string().optional(),
+  goals: z.array(z.string()).optional(),
+  kpis: z.string().optional(),
+  settings: z.string().optional(),
+  requiresReviewerApproval: z.boolean().optional(),
+  reviewerId: z.string().optional(),
+  reviewStatus: z.enum(['pending', 'approved', 'rejected']).optional(),
+  reviewNotes: z.string().optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const insertCampaignSchema = createInsertSchema(campaigns).omit({
+  id: true,
+  tenantId: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Campaign types
+export type Campaign = typeof campaigns.$inferSelect;
+export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
+export type CreateCampaignData = z.infer<typeof createCampaignSchema>;
+export type UpdateCampaignData = z.infer<typeof updateCampaignSchema>;
 
 export interface NewsletterWithUser extends Newsletter {
   user: User;

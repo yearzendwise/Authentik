@@ -15,6 +15,7 @@ import {
   contactListMemberships,
   contactTagAssignments,
   newsletters,
+  campaigns,
   type User, 
   type InsertUser, 
   type RefreshToken, 
@@ -66,7 +67,11 @@ import {
   type InsertNewsletter,
   type CreateNewsletterData,
   type UpdateNewsletterData,
-  type NewsletterWithUser
+  type NewsletterWithUser,
+  type Campaign,
+  type InsertCampaign,
+  type CreateCampaignData,
+  type UpdateCampaignData
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gt, lt, desc, ne, or, ilike, count, sql } from "drizzle-orm";
@@ -108,6 +113,7 @@ export interface IStorage {
   updateUserAsAdmin(id: string, userData: UpdateUserData, tenantId: string): Promise<User | undefined>;
   deleteUser(id: string, tenantId: string): Promise<void>;
   toggleUserStatus(id: string, isActive: boolean, tenantId: string): Promise<User | undefined>;
+  getManagerUsers(tenantId: string): Promise<User[]>;
   
   // Refresh token operations with device tracking (tenant-aware)
   createRefreshToken(userId: string, tenantId: string, token: string, expiresAt: Date, deviceInfo?: DeviceInfo): Promise<RefreshToken>;
@@ -232,6 +238,19 @@ export interface IStorage {
     draftNewsletters: number;
     scheduledNewsletters: number;
     sentNewsletters: number;
+  }>;
+
+  // Campaign operations (tenant-aware)
+  getCampaign(id: string, tenantId: string): Promise<Campaign | undefined>;
+  getAllCampaigns(tenantId: string): Promise<Campaign[]>;
+  createCampaign(campaign: CreateCampaignData, userId: string, tenantId: string): Promise<Campaign>;
+  updateCampaign(id: string, updates: UpdateCampaignData, tenantId: string): Promise<Campaign | undefined>;
+  deleteCampaign(id: string, tenantId: string): Promise<void>;
+  getCampaignStats(tenantId: string): Promise<{
+    totalCampaigns: number;
+    activeCampaigns: number;
+    draftCampaigns: number;
+    completedCampaigns: number;
   }>;
 }
 
@@ -861,6 +880,27 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(users.id, id), eq(users.tenantId, tenantId)))
       .returning();
     return user;
+  }
+
+  async getManagerUsers(tenantId: string): Promise<User[]> {
+    const result = await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.tenantId, tenantId),
+          // Include Managers, Administrators, and Owners as eligible reviewers
+          or(
+            eq(users.role, 'Manager'),
+            eq(users.role, 'Administrator'),
+            eq(users.role, 'Owner')
+          ),
+          eq(users.isActive, true)
+        )
+      )
+      .orderBy(users.firstName);
+    
+    return result;
   }
 
   // Company management methods (tenant-aware)
@@ -1842,6 +1882,98 @@ export class DatabaseStorage implements IStorage {
       draftNewsletters: draftResult.count,
       scheduledNewsletters: scheduledResult.count,
       sentNewsletters: sentResult.count,
+    };
+  }
+
+  // Campaign operations
+  async getCampaign(id: string, tenantId: string): Promise<Campaign | undefined> {
+    const [campaign] = await db
+      .select()
+      .from(campaigns)
+      .where(and(eq(campaigns.id, id), eq(campaigns.tenantId, tenantId)));
+    return campaign;
+  }
+
+  async getAllCampaigns(tenantId: string): Promise<Campaign[]> {
+    return await db
+      .select()
+      .from(campaigns)
+      .where(eq(campaigns.tenantId, tenantId))
+      .orderBy(desc(campaigns.createdAt));
+  }
+
+  async createCampaign(campaignData: CreateCampaignData, userId: string, tenantId: string): Promise<Campaign> {
+    const [campaign] = await db
+      .insert(campaigns)
+      .values({
+        ...campaignData,
+        budget: campaignData.budget ? campaignData.budget.toString() : null,
+        userId,
+        tenantId,
+      })
+      .returning();
+    return campaign;
+  }
+
+  async updateCampaign(id: string, updates: UpdateCampaignData, tenantId: string): Promise<Campaign | undefined> {
+    const [campaign] = await db
+      .update(campaigns)
+      .set({
+        ...updates,
+        budget: updates.budget ? updates.budget.toString() : updates.budget,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(campaigns.id, id), eq(campaigns.tenantId, tenantId)))
+      .returning();
+    return campaign;
+  }
+
+  async deleteCampaign(id: string, tenantId: string): Promise<void> {
+    await db
+      .delete(campaigns)
+      .where(and(eq(campaigns.id, id), eq(campaigns.tenantId, tenantId)));
+  }
+
+  async getCampaignStats(tenantId: string): Promise<{
+    totalCampaigns: number;
+    activeCampaigns: number;
+    draftCampaigns: number;
+    completedCampaigns: number;
+  }> {
+    const [totalResult] = await db
+      .select({ count: count() })
+      .from(campaigns)
+      .where(eq(campaigns.tenantId, tenantId));
+
+    const [activeResult] = await db
+      .select({ count: count() })
+      .from(campaigns)
+      .where(and(
+        eq(campaigns.tenantId, tenantId),
+        eq(campaigns.status, 'active')
+      ));
+
+    const [draftResult] = await db
+      .select({ count: count() })
+      .from(campaigns)
+      .where(and(
+        eq(campaigns.tenantId, tenantId),
+        eq(campaigns.status, 'draft')
+      ));
+
+    const [completedResult] = await db
+      .select({ count: count() })
+      .from(campaigns)
+      .where(and(
+        eq(campaigns.tenantId, tenantId),
+        eq(campaigns.status, 'completed')
+      ));
+
+    return {
+      totalCampaigns: totalResult.count,
+      activeCampaigns: activeResult.count,
+      draftCampaigns: draftResult.count,
+      completedCampaigns: completedResult.count,
     };
   }
 

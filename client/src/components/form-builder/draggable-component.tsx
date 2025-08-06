@@ -61,8 +61,8 @@ export function DraggableComponent({ item, onAddElement, isMobile = false }: Dra
         {...attributes}
         className="p-4 cursor-grab active:cursor-grabbing hover:scale-[1.02] active:scale-[0.98] relative"
         onClick={(e) => {
-          // Only trigger click to add on mobile devices when not dragging
-          if (!isDragging && isMobile) {
+          // Allow click-to-add on all devices when not actively dragging
+          if (!isDragging) {
             onAddElement(item.type);
           }
         }}

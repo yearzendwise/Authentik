@@ -212,6 +212,13 @@ func (s *Server) createEmailTracking(w http.ResponseWriter, r *http.Request) {
 
         log.Printf("📧 Created email tracking entry: %s for user %s (status: %s)", entry.ID, userID, req.Status)
 
+        // Start Temporal workflow if connected
+        if s.temporalClient != nil {
+                go s.startEmailWorkflow(entry)
+        } else {
+                log.Printf("⚠️ Temporal client not available, skipping workflow start for entry %s", entry.ID)
+        }
+
         w.Header().Set("Content-Type", "application/json")
         w.WriteHeader(http.StatusCreated)
         json.NewEncoder(w).Encode(entry)
@@ -346,6 +353,72 @@ func getEnvOrDefault(key, defaultValue string) string {
                 return value
         }
         return defaultValue
+}
+
+func (s *Server) startEmailWorkflow(entry EmailTrackingEntry) {
+        log.Printf("🔄 Starting Temporal workflow for email: %s", entry.EmailID)
+        
+        ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+        defer cancel()
+
+        workflowOptions := client.StartWorkflowOptions{
+                ID:        entry.TemporalWorkflow,
+                TaskQueue: "email-task-queue",
+        }
+
+        workflowRun, err := s.temporalClient.ExecuteWorkflow(ctx, workflowOptions, "EmailProcessingWorkflow", entry)
+        if err != nil {
+                log.Printf("❌ Failed to start workflow for email %s: %v", entry.EmailID, err)
+                // Update entry status to failed
+                entry.Status = "workflow_failed"
+                entry.Metadata["error"] = err.Error()
+                emailTrackingStore[entry.ID] = entry
+                return
+        }
+
+        log.Printf("✅ Started workflow for email %s, workflow ID: %s, run ID: %s", 
+                entry.EmailID, workflowRun.GetID(), workflowRun.GetRunID())
+
+        // Update entry with workflow information
+        entry.Status = "workflow_started"
+        if entry.Metadata == nil {
+                entry.Metadata = make(map[string]interface{})
+        }
+        entry.Metadata["workflowRunId"] = workflowRun.GetRunID()
+        entry.Metadata["workflowStatus"] = "started"
+        emailTrackingStore[entry.ID] = entry
+
+        // Asynchronously wait for workflow completion
+        go s.monitorWorkflow(workflowRun, entry)
+}
+
+func (s *Server) monitorWorkflow(workflowRun client.WorkflowRun, entry EmailTrackingEntry) {
+        log.Printf("👀 Monitoring workflow for email: %s", entry.EmailID)
+        
+        var result interface{}
+        err := workflowRun.Get(context.Background(), &result)
+        
+        // Update the entry with final status
+        if err != nil {
+                log.Printf("❌ Workflow failed for email %s: %v", entry.EmailID, err)
+                entry.Status = "workflow_failed"
+                if entry.Metadata == nil {
+                        entry.Metadata = make(map[string]interface{})
+                }
+                entry.Metadata["workflowError"] = err.Error()
+                entry.Metadata["workflowStatus"] = "failed"
+        } else {
+                log.Printf("✅ Workflow completed for email %s", entry.EmailID)
+                entry.Status = "sent"
+                if entry.Metadata == nil {
+                        entry.Metadata = make(map[string]interface{})
+                }
+                entry.Metadata["workflowResult"] = result
+                entry.Metadata["workflowStatus"] = "completed"
+        }
+        
+        entry.Timestamp = time.Now().UTC()
+        emailTrackingStore[entry.ID] = entry
 }
 
 func generateID() string {

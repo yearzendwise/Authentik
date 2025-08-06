@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Send, Mail, Server, Clock, CheckCircle, XCircle, Zap } from "lucide-react";
+import { Send, Mail, Server, Clock, CheckCircle, XCircle, Zap, BarChart3 } from "lucide-react";
 
 interface EmailTrackingEntry {
   id: string;
@@ -162,175 +162,215 @@ export default function EmailCampaignsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Email Campaigns</h1>
-          <p className="text-muted-foreground">
+    <div className="container mx-auto p-6 space-y-8">
+      <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
+        <div className="space-y-2">
+          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Email Campaigns
+          </h1>
+          <p className="text-lg text-muted-foreground">
             Test email campaigns through Go backend and Temporal workflows
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Server className="h-4 w-4" />
-          <span className="text-sm font-medium">Go Server Status:</span>
+        <div className="flex items-center gap-3 px-4 py-2 bg-card rounded-lg border shadow-sm">
+          <Server className="h-5 w-5 text-blue-600" />
+          <span className="text-sm font-medium">Go Server:</span>
           {healthLoading ? (
-            <Badge variant="outline">Checking...</Badge>
+            <Badge variant="outline" className="gap-1">
+              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600" />
+              Checking...
+            </Badge>
           ) : healthError ? (
-            <Badge variant="destructive">Offline</Badge>
+            <Badge variant="destructive" className="gap-1">
+              <XCircle className="h-3 w-3" />
+              Offline
+            </Badge>
           ) : serverHealth ? (
-            <Badge variant="default" className="bg-green-600">Online</Badge>
+            <Badge variant="default" className="bg-green-600 gap-1">
+              <CheckCircle className="h-3 w-3" />
+              Online
+            </Badge>
           ) : (
             <Badge variant="outline">Unknown</Badge>
           )}
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Campaign Composer */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
+      <div className="grid gap-8 xl:grid-cols-3">
+        {/* Campaign Composer - Larger card */}
+        <Card className="xl:col-span-2 shadow-lg border-l-4 border-l-blue-500">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20">
+            <CardTitle className="flex items-center gap-3 text-xl">
+              <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                <Mail className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              </div>
               Campaign Composer
             </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Create and send test email campaigns through the Go backend
+            </p>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="recipient">Recipient Email</Label>
-              <Input
-                id="recipient"
-                type="email"
-                value={campaignData.recipient}
-                onChange={(e) => setCampaignData(prev => ({ ...prev, recipient: e.target.value }))}
-                placeholder="Enter recipient email"
-              />
+          <CardContent className="space-y-6 p-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-3">
+                <Label htmlFor="recipient" className="text-sm font-semibold">Recipient Email</Label>
+                <Input
+                  id="recipient"
+                  type="email"
+                  value={campaignData.recipient}
+                  onChange={(e) => setCampaignData(prev => ({ ...prev, recipient: e.target.value }))}
+                  placeholder="Enter recipient email"
+                  className="h-11"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <Label htmlFor="subject" className="text-sm font-semibold">Subject Line</Label>
+                <Input
+                  id="subject"
+                  value={campaignData.subject}
+                  onChange={(e) => setCampaignData(prev => ({ ...prev, subject: e.target.value }))}
+                  placeholder="Enter email subject"
+                  className="h-11"
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="subject">Subject Line</Label>
-              <Input
-                id="subject"
-                value={campaignData.subject}
-                onChange={(e) => setCampaignData(prev => ({ ...prev, subject: e.target.value }))}
-                placeholder="Enter email subject"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="content">Email Content</Label>
+            <div className="space-y-3">
+              <Label htmlFor="content" className="text-sm font-semibold">Email Content</Label>
               <Textarea
                 id="content"
                 value={campaignData.content}
                 onChange={(e) => setCampaignData(prev => ({ ...prev, content: e.target.value }))}
                 placeholder="Enter email content"
-                className="min-h-[120px]"
+                className="min-h-[140px] resize-none"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="template">Template Type</Label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-3">
+                <Label htmlFor="template" className="text-sm font-semibold">Template Type</Label>
                 <select
                   id="template"
                   value={campaignData.templateType}
                   onChange={(e) => setCampaignData(prev => ({ ...prev, templateType: e.target.value }))}
-                  className="w-full px-3 py-2 border border-input bg-background rounded-md"
+                  className="w-full px-4 py-3 border border-input bg-background rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="marketing">Marketing</option>
-                  <option value="transactional">Transactional</option>
-                  <option value="newsletter">Newsletter</option>
-                  <option value="notification">Notification</option>
+                  <option value="marketing">📈 Marketing</option>
+                  <option value="transactional">🔄 Transactional</option>
+                  <option value="newsletter">📰 Newsletter</option>
+                  <option value="notification">🔔 Notification</option>
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="priority">Priority</Label>
+              <div className="space-y-3">
+                <Label htmlFor="priority" className="text-sm font-semibold">Priority Level</Label>
                 <select
                   id="priority"
                   value={campaignData.priority}
                   onChange={(e) => setCampaignData(prev => ({ ...prev, priority: e.target.value }))}
-                  className="w-full px-3 py-2 border border-input bg-background rounded-md"
+                  className="w-full px-4 py-3 border border-input bg-background rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="low">Low</option>
-                  <option value="normal">Normal</option>
-                  <option value="high">High</option>
-                  <option value="urgent">Urgent</option>
+                  <option value="low">🔹 Low</option>
+                  <option value="normal">🔸 Normal</option>
+                  <option value="high">🔶 High</option>
+                  <option value="urgent">🔴 Urgent</option>
                 </select>
               </div>
             </div>
 
-            <Separator />
+            <Separator className="my-6" />
 
-            <Button
-              onClick={handleSendCampaign}
-              disabled={sendCampaignMutation.isPending || !serverHealth}
-              className="w-full"
-            >
-              {sendCampaignMutation.isPending ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  Sending Campaign...
-                </>
-              ) : (
-                <>
-                  <Zap className="h-4 w-4 mr-2" />
-                  Send Campaign to Temporal
-                </>
+            <div className="space-y-4">
+              <Button
+                onClick={handleSendCampaign}
+                disabled={sendCampaignMutation.isPending || !serverHealth}
+                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg"
+              >
+                {sendCampaignMutation.isPending ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3" />
+                    Sending Campaign...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="h-5 w-5 mr-3" />
+                    Send Campaign to Temporal
+                  </>
+                )}
+              </Button>
+
+              {!serverHealth && (
+                <div className="flex items-center justify-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                  <XCircle className="h-4 w-4 text-amber-600" />
+                  <p className="text-sm text-amber-700 dark:text-amber-300">
+                    Go server must be online to send campaigns
+                  </p>
+                </div>
               )}
-            </Button>
-
-            {!serverHealth && (
-              <p className="text-sm text-muted-foreground text-center">
-                Go server must be online to send campaigns
-              </p>
-            )}
+            </div>
           </CardContent>
         </Card>
 
         {/* Server Status & Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Server className="h-5 w-5" />
-              Go Backend Status
+        <Card className="shadow-lg border-l-4 border-l-green-500">
+          <CardHeader className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20">
+            <CardTitle className="flex items-center gap-3 text-lg">
+              <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                <Server className="h-5 w-5 text-green-600 dark:text-green-400" />
+              </div>
+              Backend Status
             </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Go server and Temporal connectivity
+            </p>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-5 p-6">
             {healthLoading ? (
-              <div className="flex items-center justify-center py-4">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
+              <div className="flex flex-col items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-3" />
+                <p className="text-sm text-muted-foreground">Checking server status...</p>
               </div>
             ) : healthError ? (
-              <div className="text-center py-4">
-                <XCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">
+              <div className="text-center py-6">
+                <div className="p-3 bg-red-50 dark:bg-red-950/20 rounded-full w-fit mx-auto mb-4">
+                  <XCircle className="h-8 w-8 text-red-500 mx-auto" />
+                </div>
+                <p className="text-sm font-medium text-red-700 dark:text-red-300 mb-1">
                   Go server is offline or unreachable
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground">
                   Make sure the server is running on port 8083
                 </p>
               </div>
             ) : serverHealth ? (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Status:</span>
-                  <Badge variant="default" className="bg-green-600">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                  <span className="text-sm font-semibold">Server Status:</span>
+                  <Badge variant="default" className="bg-green-600 text-white">
+                    <CheckCircle className="h-3 w-3 mr-1" />
                     {serverHealth.status}
                   </Badge>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Temporal:</span>
-                  <Badge variant={serverHealth.temporal === "connected" ? "default" : "secondary"}>
+                <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                  <span className="text-sm font-semibold">Temporal:</span>
+                  <Badge variant={serverHealth.temporal?.includes("connected") ? "default" : "secondary"} className="gap-1">
+                    {serverHealth.temporal?.includes("connected") ? (
+                      <CheckCircle className="h-3 w-3" />
+                    ) : (
+                      <Clock className="h-3 w-3" />
+                    )}
                     {serverHealth.temporal}
                   </Badge>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Mode:</span>
-                  <Badge variant="outline">
+                <div className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
+                  <span className="text-sm font-semibold">Mode:</span>
+                  <Badge variant="outline" className="gap-1">
+                    <Server className="h-3 w-3" />
                     {serverHealth.mode || "production"}
                   </Badge>
                 </div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-xs text-center text-muted-foreground pt-2 border-t">
                   Last checked: {new Date(serverHealth.time).toLocaleTimeString()}
                 </div>
               </div>
@@ -340,77 +380,106 @@ export default function EmailCampaignsPage() {
       </div>
 
       {/* Email Tracking Entries */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5" />
+      <Card className="shadow-lg border-l-4 border-l-purple-500">
+        <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20">
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+              <Mail className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+            </div>
             Email Tracking Entries
             {entriesLoading && (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 ml-2" />
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600 ml-2" />
             )}
           </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Real-time tracking of email campaign status and workflow execution
+          </p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           {entriesLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mb-4" />
+              <p className="text-sm text-muted-foreground">Loading tracking entries...</p>
             </div>
           ) : trackingEntries?.entries?.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {trackingEntries.entries.map((entry: EmailTrackingEntry) => (
                 <div
                   key={entry.id}
-                  className="flex items-center justify-between p-4 border rounded-lg"
+                  className="p-5 border border-gray-200 dark:border-gray-700 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 hover:shadow-lg transition-all duration-200"
                 >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Badge className={getStatusColor(entry.status)}>
-                        {getStatusIcon(entry.status)}
-                        <span className="ml-1">{entry.status}</span>
-                      </Badge>
-                      <span className="text-sm font-medium">ID: {entry.emailId}</span>
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <Badge className={`${getStatusColor(entry.status)} gap-1 px-3 py-1`}>
+                          {getStatusIcon(entry.status)}
+                          <span className="font-medium">{entry.status}</span>
+                        </Badge>
+                        <span className="text-sm font-mono bg-white dark:bg-gray-800 px-2 py-1 rounded border">
+                          {entry.emailId}
+                        </span>
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {entry.metadata?.recipient && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">TO:</span>
+                            <p className="text-sm text-gray-700 dark:text-gray-300">
+                              {entry.metadata.recipient}
+                            </p>
+                          </div>
+                        )}
+                        {entry.metadata?.subject && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">SUBJECT:</span>
+                            <p className="text-sm text-gray-700 dark:text-gray-300 truncate">
+                              {entry.metadata.subject}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      {entry.temporalWorkflow && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-purple-500">WORKFLOW:</span>
+                          <p className="text-xs font-mono text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/20 px-2 py-1 rounded">
+                            {entry.temporalWorkflow}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                    {entry.metadata?.recipient && (
-                      <p className="text-sm text-muted-foreground">
-                        To: {entry.metadata.recipient}
-                      </p>
-                    )}
-                    {entry.metadata?.subject && (
-                      <p className="text-sm text-muted-foreground">
-                        Subject: {entry.metadata.subject}
-                      </p>
-                    )}
-                    {entry.temporalWorkflow && (
+                    <div className="text-right space-y-1">
                       <p className="text-xs text-muted-foreground">
-                        Workflow: {entry.temporalWorkflow}
+                        {new Date(entry.timestamp).toLocaleDateString()}
                       </p>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(entry.timestamp).toLocaleString()}
-                    </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(entry.timestamp).toLocaleTimeString()}
+                      </p>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8">
-              <Mail className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">
+            <div className="text-center py-12">
+              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-full w-fit mx-auto mb-4">
+                <Mail className="h-12 w-12 text-gray-400 mx-auto" />
+              </div>
+              <p className="text-lg font-medium text-gray-600 dark:text-gray-300 mb-2">
                 No email tracking entries found
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-sm text-muted-foreground">
                 Send a campaign to see tracking entries appear here
               </p>
             </div>
           )}
           
           {trackingEntries && (
-            <div className="mt-4 pt-4 border-t">
-              <p className="text-sm text-muted-foreground text-center">
-                Total entries: {trackingEntries.count || 0}
-              </p>
+            <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                <BarChart3 className="h-4 w-4 text-blue-600" />
+                <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                  Total tracking entries: {trackingEntries.count || 0}
+                </p>
+              </div>
             </div>
           )}
         </CardContent>

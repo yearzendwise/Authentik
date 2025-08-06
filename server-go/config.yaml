@@ -1,0 +1,30 @@
+# Email Tracking Go Server Configuration
+
+server:
+  port: 8080
+  host: "0.0.0.0"
+  
+temporal:
+  host: "10.100.0.2:7233"
+  namespace: "default"
+  retry_attempts: 5
+  retry_delay: "2s"
+  connection_timeout: "10s"
+
+security:
+  jwt:
+    secret_env: "JWT_SECRET"
+    algorithm: "HS256"
+  
+  cors:
+    allowed_origins: ["*"]
+    allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    allowed_headers: ["Content-Type", "Authorization"]
+
+logging:
+  level: "info"
+  format: "json"
+
+email_tracking:
+  storage: "memory" # In production, this would be "database"
+  retention_days: 30

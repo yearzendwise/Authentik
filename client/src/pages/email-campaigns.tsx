@@ -30,6 +30,9 @@ interface EmailCampaignData {
   content: string;
   templateType: string;
   priority: string;
+  scheduledAt?: string;
+  isScheduled?: boolean;
+  timezone?: string;
 }
 
 export default function EmailCampaignsPage() {
@@ -40,7 +43,10 @@ export default function EmailCampaignsPage() {
     subject: "Test Email Campaign",
     content: "This is a test email sent through the Go backend and Temporal workflow system.",
     templateType: "marketing",
-    priority: "normal"
+    priority: "normal",
+    isScheduled: false,
+    scheduledAt: "",
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
   });
 
   // Query to check Go server health
@@ -99,24 +105,93 @@ export default function EmailCampaignsPage() {
       
       const emailId = `campaign-${Date.now()}`;
       
+      // Handle datetime-local timezone conversion properly
+      let scheduledAtISO = undefined;
+      if (campaignData.isScheduled && campaignData.scheduledAt) {
+        // Parse the datetime-local input and convert to the selected timezone
+        const inputDateTime = campaignData.scheduledAt; // Format: "2025-08-07T15:30"
+        const selectedTimezone = campaignData.timezone || 'UTC';
+        
+        // Create a date object treating the input as being in the selected timezone
+        // We need to use a library like date-fns-tz or manually handle timezone conversion
+        // For now, let's create the date and adjust for timezone offset
+        const localDate = new Date(inputDateTime);
+        
+        // Convert datetime-local input to UTC considering the selected timezone
+         try {
+           // Parse the input datetime components
+           const [datePart, timePart] = inputDateTime.split('T');
+           const [year, month, day] = datePart.split('-').map(Number);
+           const [hour, minute] = timePart.split(':').map(Number);
+           
+           // Create a date string that represents the time in the selected timezone
+           // We'll use a trick: create the date as if it's UTC, then adjust
+           const tempDate = new Date(`${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00.000Z`);
+           
+           // Get the offset for the selected timezone at this date
+           const testDate = new Date(tempDate.getTime());
+           const utcTime = testDate.getTime();
+           
+           // Use Intl.DateTimeFormat to get the actual time in the target timezone
+           const targetFormatter = new Intl.DateTimeFormat('en-CA', {
+             timeZone: selectedTimezone,
+             year: 'numeric',
+             month: '2-digit', 
+             day: '2-digit',
+             hour: '2-digit',
+             minute: '2-digit',
+             second: '2-digit',
+             hour12: false
+           });
+           
+           // Create a reference date to calculate offset
+           const now = new Date();
+           const utcNow = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
+           const targetNow = new Date(targetFormatter.format(now));
+           const offset = utcNow.getTime() - targetNow.getTime();
+           
+           // Apply the offset to our target time
+           const adjustedTime = new Date(utcTime + offset);
+           scheduledAtISO = adjustedTime.toISOString();
+           
+         } catch (error) {
+           console.error('Timezone conversion error:', error);
+           // Fallback: treat input as local time and convert to UTC
+           scheduledAtISO = new Date(inputDateTime).toISOString();
+         }
+        
+        console.log('🕐 [Campaign] Scheduling time conversion:', {
+           originalInput: campaignData.scheduledAt,
+           selectedTimezone: selectedTimezone,
+           localDate: localDate,
+           finalScheduledAtISO: scheduledAtISO,
+           currentTime: new Date().toISOString()
+         });
+      }
+
       const payload = {
         emailId,
-        status: "queued",
+        status: campaignData.isScheduled ? "scheduled" : "queued",
         temporalWorkflow: `email-workflow-${emailId}`,
+        scheduledAt: scheduledAtISO,
+        timezone: campaignData.timezone,
         metadata: {
           recipient: campaignData.recipient,
           subject: campaignData.subject,
           content: campaignData.content,
           templateType: campaignData.templateType,
           priority: campaignData.priority,
-          sentAt: new Date().toISOString(),
+          sentAt: scheduledAtISO || new Date().toISOString(),
         }
       };
 
       console.log('🚀 [Campaign] Sending request to Go server:', {
         url: 'https://tengine.zendwise.work/api/email-tracking',
         tokenLength: token.length,
-        emailId: emailId
+        emailId: emailId,
+        payload: payload,
+        isScheduled: campaignData.isScheduled,
+        scheduledAt: campaignData.scheduledAt
       });
 
       const response = await fetch('https://tengine.zendwise.work/api/email-tracking', {
@@ -149,8 +224,10 @@ export default function EmailCampaignsPage() {
     },
     onSuccess: (data) => {
       toast({
-        title: "Campaign Sent Successfully",
-        description: `Email campaign queued with ID: ${data.id}`,
+        title: campaignData.isScheduled ? "Campaign Scheduled Successfully" : "Campaign Sent Successfully",
+        description: campaignData.isScheduled 
+          ? `Email campaign scheduled with ID: ${data.id}`
+          : `Email campaign queued with ID: ${data.id}`,
       });
       // Refresh tracking entries
       queryClient.invalidateQueries({ queryKey: ['/go-server-tracking'] });
@@ -173,12 +250,38 @@ export default function EmailCampaignsPage() {
       });
       return;
     }
+
+    if (campaignData.isScheduled) {
+      if (!campaignData.scheduledAt) {
+        toast({
+          variant: "destructive",
+          title: "Missing Schedule Time",
+          description: "Please select a date and time for scheduled sending.",
+        });
+        return;
+      }
+
+      const scheduledTime = new Date(campaignData.scheduledAt);
+      const now = new Date();
+      
+      if (scheduledTime <= now) {
+        toast({
+          variant: "destructive",
+          title: "Invalid Schedule Time",
+          description: "Scheduled time must be in the future.",
+        });
+        return;
+      }
+    }
+
     sendCampaignMutation.mutate(campaignData);
   };
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'queued': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+      case 'scheduled': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300';
+      case 'workflow_scheduled': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300';
       case 'sent': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
       case 'delivered': return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300';
       case 'failed': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
@@ -190,6 +293,8 @@ export default function EmailCampaignsPage() {
   const getStatusIcon = (status: string) => {
     switch (status.toLowerCase()) {
       case 'queued': return <Clock className="h-3 w-3" />;
+      case 'scheduled': return <Clock className="h-3 w-3" />;
+      case 'workflow_scheduled': return <Clock className="h-3 w-3" />;
       case 'sent': return <Send className="h-3 w-3" />;
       case 'delivered': return <CheckCircle className="h-3 w-3" />;
       case 'failed': return <XCircle className="h-3 w-3" />;
@@ -316,6 +421,77 @@ export default function EmailCampaignsPage() {
               </div>
             </div>
 
+            {/* Scheduling Section */}
+            <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border">
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="isScheduled"
+                  checked={campaignData.isScheduled}
+                  onChange={(e) => setCampaignData(prev => ({ 
+                    ...prev, 
+                    isScheduled: e.target.checked,
+                    scheduledAt: e.target.checked ? prev.scheduledAt : ""
+                  }))}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <Label htmlFor="isScheduled" className="text-sm font-semibold cursor-pointer">
+                  🗓️ Schedule Email for Later
+                </Label>
+              </div>
+
+              {campaignData.isScheduled && (
+                <div className="space-y-3 animate-in slide-in-from-top-2 duration-200">
+                  <Label htmlFor="scheduledAt" className="text-sm font-semibold">
+                    Schedule Date & Time (with seconds precision)
+                  </Label>
+                  <input
+                    type="datetime-local"
+                    id="scheduledAt"
+                    step="1"
+                    value={campaignData.scheduledAt}
+                    onChange={(e) => setCampaignData(prev => ({ ...prev, scheduledAt: e.target.value }))}
+                    className="w-full px-4 py-3 border border-input bg-background rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    min={new Date(Date.now() + 60000).toISOString().slice(0, 19)}
+                  />
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="timezone" className="text-sm font-semibold">
+                      Timezone
+                    </Label>
+                    <select
+                      id="timezone"
+                      value={campaignData.timezone}
+                      onChange={(e) => setCampaignData(prev => ({ ...prev, timezone: e.target.value }))}
+                      className="w-full px-4 py-3 border border-input bg-background rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="UTC">UTC</option>
+                      <option value="America/New_York">Eastern Time (ET)</option>
+                      <option value="America/Chicago">Central Time (CT)</option>
+                      <option value="America/Denver">Mountain Time (MT)</option>
+                      <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                      <option value="Europe/London">London (GMT)</option>
+                      <option value="Europe/Paris">Paris (CET)</option>
+                      <option value="Asia/Tokyo">Tokyo (JST)</option>
+                      <option value="Asia/Shanghai">Shanghai (CST)</option>
+                      <option value="Australia/Sydney">Sydney (AEST)</option>
+                    </select>
+                  </div>
+                  
+                  {campaignData.scheduledAt && (
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">
+                        📅 Scheduled for: {new Date(campaignData.scheduledAt).toLocaleString()}
+                      </p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400">
+                        🌍 Timezone: {campaignData.timezone}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <Separator className="my-6" />
 
             <div className="space-y-4">
@@ -327,12 +503,21 @@ export default function EmailCampaignsPage() {
                 {sendCampaignMutation.isPending ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3" />
-                    Sending Campaign...
+                    {campaignData.isScheduled ? "Scheduling Campaign..." : "Sending Campaign..."}
                   </>
                 ) : (
                   <>
-                    <Zap className="h-5 w-5 mr-3" />
-                    Send Campaign to Temporal
+                    {campaignData.isScheduled ? (
+                      <>
+                        <Clock className="h-5 w-5 mr-3" />
+                        Schedule Campaign
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="h-5 w-5 mr-3" />
+                        Send Campaign Now
+                      </>
+                    )}
                   </>
                 )}
               </Button>
@@ -474,6 +659,14 @@ export default function EmailCampaignsPage() {
                           </div>
                         )}
                       </div>
+                      {(entry.status === 'scheduled' || entry.status === 'workflow_scheduled') && entry.metadata?.sentAt && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-xs font-semibold text-purple-500 dark:text-purple-400">SCHEDULED FOR:</span>
+                          <p className="text-sm text-purple-600 dark:text-purple-400 font-mono">
+                            {new Date(entry.metadata.sentAt).toLocaleString()}
+                          </p>
+                        </div>
+                      )}
                       {entry.temporalWorkflow && (
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-semibold text-purple-500">WORKFLOW:</span>

@@ -425,7 +425,7 @@ func (s *Server) startEmailWorkflow(entry EmailTrackingEntry) {
 		TaskQueue: "email-task-queue",
 	}
 
-	workflowRun, err := s.temporalClient.ExecuteWorkflow(ctx, workflowOptions, "EmailProcessingWorkflow", entry)
+	workflowRun, err := s.temporalClient.ExecuteWorkflow(ctx, workflowOptions, "EmailWorkflow", entry)
 	if err != nil {
 		log.Printf("❌ Failed to start workflow for email %s: %v", entry.EmailID, err)
 		// Update entry status to failed

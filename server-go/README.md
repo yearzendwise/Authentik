@@ -1,150 +1,303 @@
-# Email Tracking Go Server
+# Temporal Email Worker System
 
-A Go backend server that provides email lifecycle tracking functionality with Temporal workflow integration and JWT authentication.
+A comprehensive Temporal Go SDK worker system for handling email campaigns with Resend integration. This system provides reliable email sending with automatic retries, workflow orchestration, and real-time tracking.
+
+## Architecture
+
+```
+server-go/
+├── cmd/
+│   ├── server/               # HTTP/REST API server
+│   │   └── main.go
+│   └── worker/               # Temporal worker service
+│       └── main.go
+│
+├── internal/
+│   ├── api/                  # HTTP handlers
+│   │   └── email_handler.go
+│   ├── workflows/            # Temporal workflow definitions
+│   │   └── email_workflow.go
+│   ├── activities/           # Temporal activity implementations
+│   │   └── send_email.go
+│   └── client/               # Temporal client
+│       └── temporal_client.go
+│
+├── config/                   # Configuration files
+│   └── config.yaml
+│
+├── pkg/                      # Shared packages
+│   └── logger/
+│       └── logger.go
+│
+├── build.sh                  # Build script
+├── go.mod
+├── go.sum
+└── README.md
+```
 
 ## Features
 
-- **Temporal Integration**: Connects to Temporal server at `10.100.0.2` for workflow orchestration
-- **JWT Authentication**: Validates JWT tokens from the main Node.js application
-- **Email Tracking API**: RESTful endpoints for managing email lifecycle tracking
-- **Tenant Isolation**: Multi-tenant support with proper data isolation
-- **Health Checks**: Built-in health monitoring and Temporal connectivity verification
+- **Temporal Workflow Orchestration**: Reliable email processing with workflow management
+- **Resend Integration**: Professional email sending via Resend API
+- **Automatic Retries**: 5 retry attempts with 1-minute intervals on failure
+- **Real-time Tracking**: Track email status from queued to sent/failed
+- **JWT Authentication**: Secure API endpoints with JWT middleware
+- **Structured Logging**: JSON-formatted logs with contextual information
+- **Graceful Shutdown**: Proper cleanup and shutdown handling
+- **Template Support**: Multiple email templates (marketing, transactional, newsletter, notification)
 
 ## Configuration
 
-The server can be configured using environment variables or a `.env` file. A sample `.env` file is provided in the root directory with all available configuration options.
+### config/config.yaml
+```yaml
+server:
+  port: "8095"
+  host: "0.0.0.0"
 
-### Using the .env file
+temporal:
+  host_port: "172.72.0.9:7233"
+  namespace: "default"
+  task_queue: "email-task-queue"
 
-Copy the `.env` file and modify the values as needed:
+email:
+  resend_api_key: "re_f27r7h2s_BYXi6aNpimSCfCLwMeec686Q"
+  from_email: "noreply@zendwise.work"
+  retry_attempts: 5
+  retry_interval: "1m"
 
-```bash
-# Copy the sample .env file
-cp .env .env.local
+jwt:
+  secret: "your-jwt-secret-here"
 
-# Edit the configuration
-nano .env.local
+logging:
+  level: "info"
+  format: "json"
 ```
 
-### Key Environment Variables
-
+### Environment Variables (Override config file)
 ```bash
-# Server Configuration
-PORT=8095                           # Server port (default: 8095)
-HOST=0.0.0.0                        # Host interface (default: 0.0.0.0)
+CONFIG_FILE=config/config.yaml
+TEMPORAL_HOST=172.72.0.9:7233
+TEMPORAL_NAMESPACE=default
+TEMPORAL_TASK_QUEUE=email-task-queue
+RESEND_API_KEY=re_f27r7h2s_BYXi6aNpimSCfCLwMeec686Q
+FROM_EMAIL=noreply@zendwise.work
+JWT_SECRET=your-jwt-secret
+LOG_LEVEL=info
+LOG_FORMAT=json
+PORT=8095
+HOST=0.0.0.0
+```
 
-# Security Configuration  
-JWT_SECRET=your-jwt-secret-key      # Must match the main application's JWT secret
-JWT_ALGORITHM=HS256                 # JWT signing algorithm
+## Quick Start
 
-# Temporal Configuration
-TEMPORAL_HOST=172.72.0.3:7233       # Temporal server address
-TEMPORAL_NAMESPACE=default          # Temporal namespace
-TEMPORAL_RETRY_ATTEMPTS=5           # Connection retry attempts
-TEMPORAL_RETRY_DELAY=2s             # Delay between retries
-TEMPORAL_CONNECTION_TIMEOUT=10s     # Connection timeout
+### 1. Build the Applications
+```bash
+./build.sh
+```
 
-# Email Tracking Configuration
-EMAIL_TRACKING_STORAGE=memory       # Storage type: memory or database
-EMAIL_TRACKING_RETENTION_DAYS=30    # Data retention period
+### 2. Start Temporal Worker
+```bash
+./worker
+```
 
-# Logging Configuration
-LOG_LEVEL=info                      # Log level: debug, info, warn, error
-LOG_FORMAT=json                     # Log format: text or json
-
-# Development Configuration
-ENVIRONMENT=development             # Environment: development, staging, production
-MAIN_APP_URL=http://localhost:5000  # Main application URL
+### 3. Start HTTP Server (in another terminal)
+```bash
+./server
 ```
 
 ## API Endpoints
 
 ### Health Check
-- `GET /health` - Server health status and Temporal connectivity
+```bash
+GET /health
+```
 
-### Email Tracking (Protected Routes)
-All routes require JWT authentication via `Authorization: Bearer <token>` header:
-
-- `POST /api/email-tracking` - Create new email tracking entry
-- `GET /api/email-tracking` - Get all email tracking entries for authenticated user
-- `GET /api/email-tracking/{id}` - Get specific email tracking entry
-- `PUT /api/email-tracking/{id}` - Update email tracking entry
-- `DELETE /api/email-tracking/{id}` - Delete email tracking entry
-
-### Request/Response Format
-
-#### Create Email Tracking
-```json
+### Email Tracking (Protected with JWT)
+```bash
+# Create email tracking entry (triggers workflow)
 POST /api/email-tracking
+Authorization: Bearer <jwt-token>
+Content-Type: application/json
+
 {
-  "emailId": "email-123",
-  "status": "sent",
-  "temporalWorkflow": "email-workflow-id",
+  "emailId": "campaign-123",
+  "status": "queued",
+  "temporalWorkflow": "email-workflow-campaign-123",
   "metadata": {
     "recipient": "user@example.com",
-    "subject": "Welcome Email"
+    "subject": "Test Email",
+    "content": "Hello from Temporal!",
+    "templateType": "marketing",
+    "priority": "normal"
   }
 }
+
+# Get all tracking entries
+GET /api/email-tracking
+Authorization: Bearer <jwt-token>
+
+# Get specific tracking entry
+GET /api/email-tracking/{id}
+Authorization: Bearer <jwt-token>
+
+# Update tracking entry
+PUT /api/email-tracking/{id}
+Authorization: Bearer <jwt-token>
+
+# Delete tracking entry
+DELETE /api/email-tracking/{id}
+Authorization: Bearer <jwt-token>
 ```
 
-#### Response
+## Email Templates
+
+The system supports multiple email templates:
+
+1. **Marketing**: Gradient header with professional styling
+2. **Transactional**: Clean design with green accent
+3. **Newsletter**: Blue header with newsletter branding
+4. **Notification**: Orange accent for important messages
+5. **Default**: Simple HTML formatting
+
+## Workflow Details
+
+### Email Workflow
+- **Workflow Name**: `EmailWorkflow`
+- **Task Queue**: `email-task-queue`
+- **Retry Policy**: 
+  - Maximum attempts: 5
+  - Retry interval: 1 minute
+  - No exponential backoff
+- **Activity Timeout**: 2 minutes
+- **Heartbeat Timeout**: 30 seconds
+
+### Email Activity
+- **Activity Name**: `SendEmail`
+- **Provider**: Resend API
+- **Features**:
+  - Template-based email formatting
+  - Activity heartbeats for monitoring
+  - Detailed error handling
+  - Result tracking with Resend ID
+
+## Monitoring and Logging
+
+The system provides comprehensive logging with structured JSON format:
+
 ```json
 {
-  "id": "1704067200000000000",
-  "userId": "user-id",
-  "tenantId": "tenant-id",
-  "emailId": "email-123",
-  "status": "sent",
-  "timestamp": "2024-01-01T00:00:00Z",
-  "temporalWorkflow": "email-workflow-id",
-  "metadata": {
-    "recipient": "user@example.com",
-    "subject": "Welcome Email"
-  }
+  "time": "2024-01-15T10:30:00Z",
+  "level": "INFO",
+  "msg": "Successfully sent email via Resend",
+  "email_id": "campaign-123",
+  "workflow_id": "email-workflow-campaign-123",
+  "resend_id": "abc123",
+  "recipient": "user@example.com"
 }
 ```
 
-## Running the Server
+## Development
 
-1. Install Go dependencies:
+### Prerequisites
+- Go 1.21+
+- Temporal server running on 172.72.0.9:7233
+- Resend API key
+
+### Building
 ```bash
-cd server-go
 go mod tidy
+./build.sh
 ```
 
-2. Set environment variables:
+### Testing
 ```bash
-export JWT_SECRET="your-jwt-secret"
-export TEMPORAL_HOST="172.72.0.3:7233"
-export PORT="8095"
+go test ./...
 ```
 
-3. Run the server:
+### Manual Testing
 ```bash
-go run main.go
+# Test health endpoint
+curl http://localhost:8095/health
+
+# Test email sending (requires JWT token)
+curl -X POST http://localhost:8095/api/email-tracking \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "emailId": "test-123",
+    "status": "queued",
+    "temporalWorkflow": "email-workflow-test-123",
+    "metadata": {
+      "recipient": "test@example.com",
+      "subject": "Test Email",
+      "content": "This is a test email",
+      "templateType": "marketing",
+      "priority": "normal"
+    }
+  }'
 ```
 
-## Temporal Connection
+## Production Deployment
 
-The server implements robust Temporal connectivity with:
-- **Startup validation**: Verifies Temporal connection before accepting requests
-- **Retry logic**: 5 connection attempts with exponential backoff
-- **Health checks**: Continuous monitoring of Temporal server status
-- **Graceful failure**: Clean shutdown if Temporal becomes unavailable
+### Using Docker
+```dockerfile
+FROM golang:1.21-alpine AS builder
+WORKDIR /app
+COPY . .
+RUN go mod tidy && ./build.sh
+
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
+WORKDIR /root/
+COPY --from=builder /app/worker .
+COPY --from=builder /app/server .
+COPY --from=builder /app/config ./config
+```
+
+### Using PM2
+```bash
+# Start worker
+pm2 start ./worker --name "email-worker"
+
+# Start server
+pm2 start ./server --name "email-server"
+```
+
+## Integration with Frontend
+
+The system integrates with the existing `/email-campaigns` frontend page. When users send campaigns through the UI, the Go server:
+
+1. Receives email tracking requests via JWT-protected API
+2. Creates workflow entries in the tracking store
+3. Starts Temporal workflows for email processing
+4. Updates tracking status in real-time
+5. Provides status updates to the frontend via polling
+
+## Error Handling
+
+- **Network Failures**: Automatic retry with 1-minute intervals
+- **API Errors**: Detailed error logging and status updates
+- **Workflow Failures**: Comprehensive error tracking in metadata
+- **Invalid Requests**: Proper HTTP status codes and error messages
 
 ## Security
 
-- **JWT Validation**: All protected routes validate JWT tokens using the same secret as the main application
-- **Tenant Isolation**: Users can only access their own tenant's data
-- **CORS Support**: Secure cross-origin resource sharing with specific domain allowlist
-- **Input Validation**: Request payload validation for all endpoints
+- JWT authentication for all API endpoints
+- CORS configuration for allowed origins
+- Input validation and sanitization
+- Secure error handling without sensitive data exposure
 
-## Architecture Integration
+## Performance
 
-This Go server complements the existing Node.js/Express backend by:
-- Sharing the same JWT authentication system
-- Maintaining tenant isolation consistency
-- Providing specialized email workflow tracking
-- Integrating with Temporal for advanced workflow management
+- Efficient in-memory tracking store (consider database for production)
+- Concurrent workflow processing
+- Activity heartbeats for long-running operations
+- Graceful shutdown with proper cleanup
 
-The server can run alongside the main application or as a separate microservice, depending on deployment needs.
+## Support
+
+For issues and questions:
+1. Check the logs for detailed error information
+2. Verify Temporal server connectivity
+3. Ensure Resend API key is valid
+4. Check JWT token authentication

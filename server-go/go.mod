@@ -1,11 +1,15 @@
 module email-tracking-server
 
-go 1.21
+go 1.23
+
+toolchain go1.23.4
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/gorilla/mux v1.8.1
+	github.com/resend/resend-go/v2 v2.22.0
 	go.temporal.io/sdk v1.25.1
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -35,5 +39,4 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231106174013-bbf56f31fb17 // indirect
 	google.golang.org/grpc v1.59.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

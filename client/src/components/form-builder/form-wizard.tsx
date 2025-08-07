@@ -22,7 +22,7 @@ export function FormWizard() {
   // Show loading while authentication is being determined
   if (!hasInitialized || authLoading) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-neutral-50 dark:bg-neutral-900">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-50 dark:bg-neutral-900">
         <div className="flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin" />
           <span className="ml-4">Authenticating...</span>
@@ -105,7 +105,7 @@ export function FormWizard() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-neutral-50">
+    <div className="min-h-screen flex flex-col bg-neutral-50">
       {/* Header with Progress */}
       <header className="bg-white/95 backdrop-blur-lg border-b border-slate-200/60 h-16 flex items-center justify-between px-6 shadow-sm pt-[40px] pb-[40px]">
         <div className="flex items-center space-x-6">
@@ -160,7 +160,7 @@ export function FormWizard() {
         </div>
       </header>
       {/* Step Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex flex-col">
         {wizardState.currentStep === 'build' && (
           <BuildStep 
             onDataChange={updateFormData}

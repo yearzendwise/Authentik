@@ -214,7 +214,7 @@ export function PreviewStep({
   // Show error if no theme is selected
   if (!selectedTheme) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-neutral-50">
+      <div className="flex flex-col items-center justify-center bg-neutral-50">
         <div className="text-center">
           <div className="text-lg font-medium text-slate-800 mb-2">No theme selected</div>
           <div className="text-sm text-slate-600">Please go back to Step 2 and select a theme</div>
@@ -413,7 +413,7 @@ export function PreviewStep({
   }, [selectedTheme?.customColors]);
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex flex-col">
       {/* Header */}
       <div className="bg-white/95 backdrop-blur-sm border-b border-slate-200/60 px-6 py-5 shadow-sm">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
@@ -445,7 +445,7 @@ export function PreviewStep({
 
       {/* Preview */}
       <div 
-        className={`flex-1 overflow-y-auto p-6 ${!selectedTheme.customColors ? themeStyles.background : ''}`}
+        className={`p-6 ${!selectedTheme.customColors ? themeStyles.background : ''}`}
         style={selectedTheme.customColors ? pageStyle : {}}
       >
         <div 

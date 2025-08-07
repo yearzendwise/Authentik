@@ -159,7 +159,7 @@ export function BuildStep({ onDataChange, initialTitle, initialElements, initial
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex-1 flex relative h-full">
+      <div className="flex relative">
         {/* Left Sidebar - Component Palette */}
         <div className="hidden lg:block flex-none relative z-20">
           <ComponentPalette onAddElement={handleAddElement} />

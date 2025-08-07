@@ -45,7 +45,7 @@ export function DroppableCanvas({
 
   if (previewMode) {
     return (
-      <div className="flex-1 p-6 overflow-y-auto bg-neutral-50">
+      <div className="p-6 bg-neutral-50">
         <div className="max-w-2xl mx-auto">
           <div className="bg-white rounded-xl border border-neutral-200 p-8">
             <h1 className="text-2xl font-bold text-neutral-800 mb-6">{formTitle}</h1>
@@ -68,7 +68,7 @@ export function DroppableCanvas({
   }
 
   return (
-    <div className="flex-1 p-3 md:p-6 overflow-y-auto bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30">
+    <div className="p-3 md:p-6 bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30">
       <div className="max-w-4xl mx-auto">
         <div
           ref={setNodeRef}

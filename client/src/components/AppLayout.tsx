@@ -199,11 +199,11 @@ export function AppLayout({ children }: AppLayoutProps) {
 
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex items-stretch min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Sidebar */}
       <div
         className={cn(
-          "flex flex-col bg-gray-800 dark:bg-gray-900 transition-all duration-300 ease-in-out min-h-0",
+          "flex flex-col bg-gray-800 dark:bg-gray-900 transition-all duration-300 ease-in-out min-h-full",
           isCollapsed ? "w-20" : "w-64",
         )}
       >
@@ -449,7 +449,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900">
+      <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900 min-h-full">
         <main className="flex-1">{children}</main>
       </div>
     </div>

@@ -889,7 +889,12 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(users.tenantId, tenantId),
-          or(eq(users.role, 'Manager'), eq(users.role, 'Owner')),
+          // Include Managers, Administrators, and Owners as eligible reviewers
+          or(
+            eq(users.role, 'Manager'),
+            eq(users.role, 'Administrator'),
+            eq(users.role, 'Owner')
+          ),
           eq(users.isActive, true)
         )
       )

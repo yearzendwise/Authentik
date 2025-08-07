@@ -57,6 +57,11 @@ export function StyleStep({ themes, selectedTheme, onSelectTheme }: StyleStepPro
                           LUXURY DESIGN
                         </div>
                       )}
+                      {theme.id === 'glassmorphism' && (
+                        <div className="text-white/90 font-semibold text-lg tracking-wide">
+                          Glassmorphism
+                        </div>
+                      )}
                       {theme.id === 'retro' && (
                         <div className="text-white font-black text-lg tracking-wider transform -skew-x-12 uppercase">
                           80S STYLE
@@ -92,12 +97,17 @@ export function StyleStep({ themes, selectedTheme, onSelectTheme }: StyleStepPro
                           MODERN BOLD
                         </div>
                       )}
+                      {theme.id === 'aurora' && (
+                        <div className="text-white font-extrabold text-lg tracking-wide">
+                          Aurora
+                        </div>
+                      )}
                       {theme.id === 'minimal' && (
                         <div className="text-gray-800 font-light text-lg tracking-wide">
                           MINIMAL
                         </div>
                       )}
-                      {!['neon', 'nature', 'luxury', 'retro', 'cosmic', 'brutalist', 'pastel-dream', 'professional', 'neo-modern', 'minimal', 'modern-bold'].includes(theme.id) && (
+                      {!['neon', 'nature', 'luxury', 'retro', 'cosmic', 'brutalist', 'pastel-dream', 'professional', 'neo-modern', 'minimal', 'modern-bold', 'glassmorphism', 'aurora'].includes(theme.id) && (
                         <>
                           <div className="text-white font-semibold opacity-90 text-lg">{theme.name}</div>
                           <div className="text-white text-sm opacity-60 mt-1">Theme Preview</div>
@@ -120,7 +130,7 @@ export function StyleStep({ themes, selectedTheme, onSelectTheme }: StyleStepPro
                           theme.id === 'nature' ? 'bg-white border-2 border-green-300 rounded-2xl' :
                           theme.id === 'luxury' ? 'bg-purple-800/50 border border-yellow-400 text-white' :
                           theme.id === 'retro' ? 'bg-yellow-50 border-3 border-orange-400' :
-                          theme.id === 'glassmorphism' ? 'bg-transparent backdrop-blur-xl border border-white/30 rounded-2xl text-white shadow-inner shadow-black/10' :
+                          theme.id === 'glassmorphism' ? 'bg-white/20 backdrop-blur-xl border border-white/30 rounded-2xl text-white shadow-inner shadow-black/10' :
                           theme.id === 'elegant' ? 'bg-gray-800 border border-gray-600 text-white rounded-lg' :
                           theme.id === 'playful' ? 'bg-pink-50 border-3 border-pink-300 rounded-2xl' :
                           theme.id === 'modern' ? 'bg-white/80 border-2 border-gray-200 rounded-xl backdrop-blur-sm' :
@@ -144,7 +154,7 @@ export function StyleStep({ themes, selectedTheme, onSelectTheme }: StyleStepPro
                           theme.id === 'nature' ? 'bg-white border-2 border-emerald-300 rounded-2xl' :
                           theme.id === 'luxury' ? 'bg-purple-800/50 border border-yellow-400 text-white' :
                           theme.id === 'retro' ? 'bg-yellow-50 border-3 border-pink-400' :
-                          theme.id === 'glassmorphism' ? 'bg-transparent backdrop-blur-xl border border-white/30 rounded-2xl text-white shadow-inner shadow-black/10' :
+                          theme.id === 'glassmorphism' ? 'bg-white/20 backdrop-blur-xl border border-white/30 rounded-2xl text-white shadow-inner shadow-black/10' :
                           theme.id === 'elegant' ? 'bg-gray-800 border border-gray-600 text-white rounded-lg' :
                           theme.id === 'playful' ? 'bg-pink-50 border-3 border-purple-300 rounded-2xl' :
                           theme.id === 'modern' ? 'bg-white/80 border-2 border-gray-200 rounded-xl backdrop-blur-sm' :

@@ -49,6 +49,7 @@ export default function CreateCampaignPage() {
       const response = await apiRequest('GET', '/api/managers');
       return await response.json();
     },
+    staleTime: 60_000,
   });
 
   const managers = managersData?.managers || [];

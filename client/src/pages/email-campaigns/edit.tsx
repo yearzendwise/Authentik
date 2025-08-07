@@ -83,6 +83,7 @@ export default function EditCampaignPage() {
       const res = await apiRequest("GET", queryKey[0]);
       return res.json();
     },
+    staleTime: 60_000,
   });
 
   const managers = (managersData as any)?.managers || [];

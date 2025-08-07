@@ -73,6 +73,13 @@ export function BuildStep({ onDataChange, initialTitle, initialElements, initial
       });
     }
   }, []);
+
+  // Ensure change propagation even if initial data was empty
+  useEffect(() => {
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+    }
+  }, []);
   
   // Update parent component when data changes (only when user makes actual changes)
   useEffect(() => {

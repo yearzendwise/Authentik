@@ -3822,22 +3822,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create campaign
   app.post("/api/campaigns", authenticateToken, async (req: any, res) => {
     try {
+      console.log("🎯 [Campaign] Create request received:", {
+        body: req.body,
+        user: req.user?.id,
+        tenant: req.user?.tenantId
+      });
+      
       const validatedData = createCampaignSchema.parse(req.body);
+      console.log("🎯 [Campaign] Validation successful:", validatedData);
+      
       const campaign = await storage.createCampaign(
         validatedData,
         req.user.id,
         req.user.tenantId
       );
-
+      
+      console.log("🎯 [Campaign] Created successfully:", campaign.id);
       res.status(201).json({ campaign });
     } catch (error: any) {
       if (error.name === "ZodError") {
+        console.error("🎯 [Campaign] Validation error:", error.errors);
         return res.status(400).json({ 
           message: "Validation error", 
           errors: error.errors 
         });
       }
-      console.error("Create campaign error:", error);
+      console.error("🎯 [Campaign] Create campaign error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

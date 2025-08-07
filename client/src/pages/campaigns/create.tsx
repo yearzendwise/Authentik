@@ -49,7 +49,7 @@ export default function CreateCampaignPage() {
         title: 'Success',
         description: 'Campaign created successfully.',
       });
-      setLocation('/campaigns');
+      setLocation('/email-campaigns');
     },
     onError: (error: any) => {
       console.error('Create campaign error:', error);
@@ -433,7 +433,7 @@ export default function CreateCampaignPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => setLocation('/campaigns')}
+              onClick={() => setLocation('/email-campaigns')}
             >
               Cancel
             </Button>

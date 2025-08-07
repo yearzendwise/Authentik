@@ -57,6 +57,7 @@ const getNavigation = (userRole?: string) => {
     { name: "Newsletter", href: "/newsletter", icon: Newspaper },
     { name: "Forms", href: "/forms", icon: ClipboardList },
     { name: "Email Campaigns", href: "/email-campaigns", icon: Mail },
+    { name: "Email Test", href: "/email-test", icon: Settings },
     { name: "Templates", href: "/email-templates", icon: FileText },
     { name: "Contacts", href: "/email-contacts", icon: UserCheck },
     { name: "Analytics", href: "/email-analytics", icon: BarChart3 },

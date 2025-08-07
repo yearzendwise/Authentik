@@ -373,6 +373,7 @@ func enableCORS(next http.Handler) http.Handler {
 			"https://zendwise.work",           // Production main domain
 			"https://tengine.zendwise.work",   // Go server subdomain
 			"https://authentik.zendwise.work", // Authentik subdomain if exists
+			"https://637573c3-49ca-4c2a-a66f-8a199454d465-00-1y6orip6wcu6p.janeway.replit.dev", // Replit development domain
 		}
 
 		// Check if origin is allowed

@@ -53,7 +53,7 @@ export default function EmailCampaignsPage() {
   const { data: serverHealth, isLoading: healthLoading, error: healthError } = useQuery({
     queryKey: ['/go-server-health'],
     queryFn: async () => {
-      const response = await fetch('https://tengine.zendwise.work/health');
+      const response = await fetch('http://localhost:8095/health');
       if (!response.ok) throw new Error('Go server not available');
       return response.json();
     },
@@ -69,7 +69,7 @@ export default function EmailCampaignsPage() {
         return { entries: [], count: 0 };
       }
       
-      const response = await fetch('https://tengine.zendwise.work/api/email-tracking', {
+      const response = await fetch('http://localhost:8095/api/email-tracking', {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
@@ -186,7 +186,7 @@ export default function EmailCampaignsPage() {
       };
 
       console.log('🚀 [Campaign] Sending request to Go server:', {
-        url: 'https://tengine.zendwise.work/api/email-tracking',
+        url: 'http://localhost:8095/api/email-tracking',
         tokenLength: token.length,
         emailId: emailId,
         payload: payload,
@@ -194,7 +194,7 @@ export default function EmailCampaignsPage() {
         scheduledAt: campaignData.scheduledAt
       });
 
-      const response = await fetch('https://tengine.zendwise.work/api/email-tracking', {
+      const response = await fetch('http://localhost:8095/api/email-tracking', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

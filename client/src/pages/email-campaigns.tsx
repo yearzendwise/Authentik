@@ -259,7 +259,7 @@ export default function EmailCampaignsPage() {
 
   const deleteCampaignMutation = useMutation({
     mutationFn: async (campaignId: string) => {
-      return apiRequest(`/api/campaigns/${campaignId}`, 'DELETE');
+      return apiRequest('DELETE', `/api/campaigns/${campaignId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/campaigns'] });

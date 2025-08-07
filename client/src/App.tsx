@@ -32,6 +32,7 @@ const VerifyEmailPage = lazy(() => import("@/pages/verify-email"));
 const PendingVerificationPage = lazy(() => import("@/pages/pending-verification"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 const CampaignsPage = lazy(() => import("@/pages/campaigns").then(module => ({ default: module.CampaignsPage })));
+const CreateCampaignPage = lazy(() => import("@/pages/campaigns/create"));
 const EmailCampaignsPage = lazy(() => import("@/pages/email-campaigns"));
 const EmailTestPage = lazy(() => import("@/pages/email-test"));
 const EmailContactsPage = lazy(() => import("@/pages/email-contacts"));
@@ -139,6 +140,7 @@ function Router() {
                 <Route path="/newsletter/create" component={NewsletterCreatePage} />
                 <Route path="/company" component={CompanyPage} />
                 <Route path="/campaigns" component={CampaignsPage} />
+                <Route path="/campaigns/create" component={CreateCampaignPage} />
                 <Route path="/email-campaigns" component={EmailCampaignsPage} />
                 <Route path="/email-test" component={EmailTestPage} />
                 <Route path="/email-contacts" component={EmailContactsPage} />

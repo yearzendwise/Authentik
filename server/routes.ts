@@ -23,6 +23,8 @@ import {
   updateCompanySchema,
   createNewsletterSchema,
   updateNewsletterSchema,
+  createCampaignSchema,
+  updateCampaignSchema,
   type UserRole,
   type ShopFilters,
   createShopSchema,
@@ -3781,6 +3783,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ tags });
     } catch (error) {
       console.error("Get contact tags error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // ====================================
+  // CAMPAIGN ROUTES
+  // ====================================
+
+  // Get all campaigns
+  app.get("/api/campaigns", authenticateToken, async (req: any, res) => {
+    try {
+      const campaigns = await storage.getAllCampaigns(req.user.tenantId);
+      res.json({ campaigns });
+    } catch (error) {
+      console.error("Get campaigns error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get single campaign
+  app.get("/api/campaigns/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const campaign = await storage.getCampaign(id, req.user.tenantId);
+
+      if (!campaign) {
+        return res.status(404).json({ message: "Campaign not found" });
+      }
+
+      res.json({ campaign });
+    } catch (error) {
+      console.error("Get campaign error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Create campaign
+  app.post("/api/campaigns", authenticateToken, async (req: any, res) => {
+    try {
+      const validatedData = createCampaignSchema.parse(req.body);
+      const campaign = await storage.createCampaign(
+        validatedData,
+        req.user.id,
+        req.user.tenantId
+      );
+
+      res.status(201).json({ campaign });
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.errors 
+        });
+      }
+      console.error("Create campaign error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Update campaign
+  app.put("/api/campaigns/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = updateCampaignSchema.parse(req.body);
+      
+      const campaign = await storage.updateCampaign(id, validatedData, req.user.tenantId);
+
+      if (!campaign) {
+        return res.status(404).json({ message: "Campaign not found" });
+      }
+
+      res.json({ campaign });
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.errors 
+        });
+      }
+      console.error("Update campaign error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Delete campaign
+  app.delete("/api/campaigns/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Check if campaign exists first
+      const campaign = await storage.getCampaign(id, req.user.tenantId);
+      if (!campaign) {
+        return res.status(404).json({ message: "Campaign not found" });
+      }
+
+      await storage.deleteCampaign(id, req.user.tenantId);
+      res.json({ message: "Campaign deleted successfully" });
+    } catch (error) {
+      console.error("Delete campaign error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get campaign statistics
+  app.get("/api/campaign-stats", authenticateToken, async (req: any, res) => {
+    try {
+      const stats = await storage.getCampaignStats(req.user.tenantId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Get campaign stats error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

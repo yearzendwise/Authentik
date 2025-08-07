@@ -498,7 +498,7 @@ export default function CreateCampaignPage() {
                           ) : (
                             managers.map((manager: User) => (
                               <SelectItem key={manager.id} value={manager.id}>
-                                {manager.firstName} {manager.lastName} ({manager.role})
+                                {manager.firstName} {manager.lastName} - {manager.email} ({manager.role})
                               </SelectItem>
                             ))
                           )}

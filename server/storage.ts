@@ -113,6 +113,7 @@ export interface IStorage {
   updateUserAsAdmin(id: string, userData: UpdateUserData, tenantId: string): Promise<User | undefined>;
   deleteUser(id: string, tenantId: string): Promise<void>;
   toggleUserStatus(id: string, isActive: boolean, tenantId: string): Promise<User | undefined>;
+  getManagerUsers(tenantId: string): Promise<User[]>;
   
   // Refresh token operations with device tracking (tenant-aware)
   createRefreshToken(userId: string, tenantId: string, token: string, expiresAt: Date, deviceInfo?: DeviceInfo): Promise<RefreshToken>;
@@ -879,6 +880,22 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(users.id, id), eq(users.tenantId, tenantId)))
       .returning();
     return user;
+  }
+
+  async getManagerUsers(tenantId: string): Promise<User[]> {
+    const result = await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.tenantId, tenantId),
+          or(eq(users.role, 'Manager'), eq(users.role, 'Owner')),
+          eq(users.isActive, true)
+        )
+      )
+      .orderBy(users.firstName);
+    
+    return result;
   }
 
   // Company management methods (tenant-aware)

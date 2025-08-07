@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { CalendarIcon, DollarSign, Target, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
@@ -15,10 +15,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { createCampaignSchema, type CreateCampaignData } from '@shared/schema';
+import { createCampaignSchema, type CreateCampaignData, type User } from '@shared/schema';
 
 export default function CreateCampaignPage() {
   const [, setLocation] = useLocation();
@@ -36,8 +37,21 @@ export default function CreateCampaignPage() {
       status: 'draft',
       currency: 'USD',
       goals: [],
+      requiresReviewerApproval: false,
+      reviewerId: '',
     },
   });
+
+  // Fetch managers for the reviewer dropdown
+  const { data: managersData, isLoading: managersLoading } = useQuery({
+    queryKey: ['/api/managers'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/managers');
+      return await response.json();
+    },
+  });
+
+  const managers = managersData?.managers || [];
 
   const createCampaignMutation = useMutation({
     mutationFn: async (data: CreateCampaignData) => {
@@ -425,6 +439,76 @@ export default function CreateCampaignPage() {
                   </FormItem>
                 )}
               />
+            </CardContent>
+          </Card>
+
+          {/* Reviewer Approval */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                Review & Approval
+              </CardTitle>
+              <CardDescription>
+                Configure approval workflow for this campaign.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <FormField
+                control={form.control}
+                name="requiresReviewerApproval"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>
+                        Requires Reviewer Approval
+                      </FormLabel>
+                      <FormDescription>
+                        This campaign will require approval from a manager before it can be activated.
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              {form.watch('requiresReviewerApproval') && (
+                <FormField
+                  control={form.control}
+                  name="reviewerId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Select Reviewer</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={managersLoading ? "Loading managers..." : "Select a manager"} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {managersLoading ? (
+                            <SelectItem value="loading" disabled>Loading managers...</SelectItem>
+                          ) : managers.length === 0 ? (
+                            <SelectItem value="no-managers" disabled>No managers available</SelectItem>
+                          ) : (
+                            managers.map((manager: User) => (
+                              <SelectItem key={manager.id} value={manager.id}>
+                                {manager.firstName} {manager.lastName} ({manager.role})
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </CardContent>
           </Card>
 

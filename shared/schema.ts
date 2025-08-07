@@ -309,6 +309,12 @@ export const campaigns = pgTable("campaigns", {
   clicks: integer("clicks").default(0),
   conversions: integer("conversions").default(0),
   spent: decimal("spent", { precision: 10, scale: 2 }).default('0'),
+  // Reviewer approval fields
+  requiresReviewerApproval: boolean("requires_reviewer_approval").default(false),
+  reviewerId: varchar("reviewer_id").references(() => users.id),
+  reviewStatus: text("review_status").default('pending'), // pending, approved, rejected
+  reviewedAt: timestamp("reviewed_at"),
+  reviewNotes: text("review_notes"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -1008,6 +1014,10 @@ export const campaignRelations = relations(campaigns, ({ one }) => ({
     fields: [campaigns.userId],
     references: [users.id],
   }),
+  reviewer: one(users, {
+    fields: [campaigns.reviewerId],
+    references: [users.id],
+  }),
 }));
 
 // Campaign schemas
@@ -1024,6 +1034,8 @@ export const createCampaignSchema = z.object({
   goals: z.array(z.string()).optional(),
   kpis: z.string().optional(),
   settings: z.string().optional(),
+  requiresReviewerApproval: z.boolean().default(false),
+  reviewerId: z.string().optional(),
 });
 
 export const updateCampaignSchema = z.object({
@@ -1039,6 +1051,10 @@ export const updateCampaignSchema = z.object({
   goals: z.array(z.string()).optional(),
   kpis: z.string().optional(),
   settings: z.string().optional(),
+  requiresReviewerApproval: z.boolean().optional(),
+  reviewerId: z.string().optional(),
+  reviewStatus: z.enum(['pending', 'approved', 'rejected']).optional(),
+  reviewNotes: z.string().optional(),
   isActive: z.boolean().optional(),
 });
 

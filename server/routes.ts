@@ -3907,6 +3907,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get managers for reviewer dropdown
+  app.get("/api/managers", authenticateToken, async (req: any, res) => {
+    try {
+      const managers = await storage.getManagerUsers(req.user.tenantId);
+      res.json({ managers });
+    } catch (error) {
+      console.error("Get managers error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

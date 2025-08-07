@@ -207,7 +207,7 @@ function CampaignsTable({ campaigns, onDelete }: { campaigns: Campaign[]; onDele
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem
-                      onClick={() => setLocation(`/campaigns/${campaign.id}`)}
+                      onClick={() => setLocation(`/email-campaigns/edit/${campaign.id}`)}
                     >
                       <Edit className="h-4 w-4 mr-2" />
                       Edit

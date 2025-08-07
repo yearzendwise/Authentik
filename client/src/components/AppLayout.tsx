@@ -55,7 +55,6 @@ const getNavigation = (userRole?: string) => {
   const baseNavigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Newsletter", href: "/newsletter", icon: Newspaper },
-    { name: "Campaigns", href: "/campaigns", icon: Target },
     { name: "Forms", href: "/forms", icon: ClipboardList },
     { name: "Email Campaigns", href: "/email-campaigns", icon: Mail },
     { name: "Email Test", href: "/email-test", icon: Settings },

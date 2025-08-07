@@ -10,6 +10,8 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Send, Mail, Server, Clock, CheckCircle, XCircle, Zap, BarChart3 } from "lucide-react";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store";
 
 interface EmailTrackingEntry {
   id: string;
@@ -32,6 +34,7 @@ interface EmailCampaignData {
 
 export default function EmailCampaignsPage() {
   const { toast } = useToast();
+  const accessToken = useSelector((state: RootState) => state.auth.accessToken);
   const [campaignData, setCampaignData] = useState<EmailCampaignData>({
     recipient: "test@example.com",
     subject: "Test Email Campaign",
@@ -44,7 +47,7 @@ export default function EmailCampaignsPage() {
   const { data: serverHealth, isLoading: healthLoading, error: healthError } = useQuery({
     queryKey: ['/go-server-health'],
     queryFn: async () => {
-      const response = await fetch('http://localhost:8083/health');
+      const response = await fetch('https://tengine.zendwise.work/health');
       if (!response.ok) throw new Error('Go server not available');
       return response.json();
     },
@@ -53,30 +56,46 @@ export default function EmailCampaignsPage() {
 
   // Query to get email tracking entries from Go server
   const { data: trackingEntries, isLoading: entriesLoading } = useQuery({
-    queryKey: ['/go-server-tracking'],
+    queryKey: ['/go-server-tracking', accessToken],
     queryFn: async () => {
-      // Get token from Redux store or localStorage
-      const state = (window as any).__REDUX_STORE__?.getState();
-      const token = state?.auth?.accessToken || localStorage.getItem('accessToken') || localStorage.getItem('authToken');
+      if (!accessToken) {
+        console.log('🔍 [Tracking] No access token available, skipping fetch');
+        return { entries: [], count: 0 };
+      }
       
-      const response = await fetch('http://localhost:8083/api/email-tracking', {
+      const response = await fetch('https://tengine.zendwise.work/api/email-tracking', {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
       });
       if (!response.ok) throw new Error('Failed to fetch tracking entries');
       return response.json();
     },
+    enabled: !!accessToken, // Only run query if we have a token
     refetchInterval: 5000, // Refresh every 5 seconds
   });
 
   // Mutation to send email campaign to Go server
   const sendCampaignMutation = useMutation({
     mutationFn: async (campaignData: EmailCampaignData) => {
-      // Get token from Redux store or localStorage
-      const state = (window as any).__REDUX_STORE__?.getState();
-      const token = state?.auth?.accessToken || localStorage.getItem('accessToken') || localStorage.getItem('authToken');
+      // Use token from Redux state (passed from component)
+      const token = accessToken;
+      
+      console.log('🔍 [Campaign] Token check:', {
+        hasToken: !!token,
+        tokenLength: token?.length || 0,
+        tokenPreview: token ? `${token.substring(0, 20)}...` : 'None'
+      });
+      
+      if (!token) {
+        console.error('❌ [Campaign] No authentication token available');
+        console.error('🔍 [Campaign] Please check:');
+        console.error('1. Are you logged in?');
+        console.error('2. Try refreshing the page');
+        console.error('3. Check if you have been logged out');
+        throw new Error('No authentication token available. Please make sure you are logged in.');
+      }
       
       const emailId = `campaign-${Date.now()}`;
       
@@ -94,7 +113,13 @@ export default function EmailCampaignsPage() {
         }
       };
 
-      const response = await fetch('http://localhost:8083/api/email-tracking', {
+      console.log('🚀 [Campaign] Sending request to Go server:', {
+        url: 'https://tengine.zendwise.work/api/email-tracking',
+        tokenLength: token.length,
+        emailId: emailId
+      });
+
+      const response = await fetch('https://tengine.zendwise.work/api/email-tracking', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -103,12 +128,24 @@ export default function EmailCampaignsPage() {
         body: JSON.stringify(payload),
       });
 
+      console.log('📡 [Campaign] Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
       if (!response.ok) {
         const error = await response.text();
+        console.error('❌ [Campaign] Request failed:', {
+          status: response.status,
+          error: error
+        });
         throw new Error(`Failed to send campaign: ${error}`);
       }
 
-      return response.json();
+      const result = await response.json();
+      console.log('✅ [Campaign] Request successful:', result);
+      return result;
     },
     onSuccess: (data) => {
       toast({
@@ -340,7 +377,7 @@ export default function EmailCampaignsPage() {
                   Go server is offline or unreachable
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Make sure the server is running on port 8083
+                  Make sure the server is accessible at https://tengine.zendwise.work
                 </p>
               </div>
             ) : serverHealth ? (

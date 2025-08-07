@@ -1,16 +1,16 @@
 package main
 
 import (
-        "encoding/json"
-        "fmt"
-        "log"
-        "net/http"
-        "os"
-        "strings"
-        "time"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"strings"
+	"time"
 
-        "github.com/golang-jwt/jwt/v5"
-        "github.com/gorilla/mux"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/gorilla/mux"
 )
 
 type TestEmailTrackingEntry struct {
@@ -36,7 +36,7 @@ var testEmailStore = make(map[string]TestEmailTrackingEntry)
 
 func main() {
         server := &TestServer{
-                jwtSecret: getEnvOrDefault("JWT_SECRET", "your-secret-key"),
+                jwtSecret: getEnvOrDefault("JWT_SECRET", "Cvgii9bYKF1HtfD8TODRyZFTmFP4vu70oR59YrjGVpS2fXzQ41O3UPRaR8u9uAqNhwK5ZxZPbX5rAOlMrqe8ag=="),
         }
 
         router := mux.NewRouter()

@@ -4,10 +4,16 @@
 
 echo "🚀 Starting Email Tracking Go Server..."
 
+# Load environment variables from .env file if it exists
+if [ -f .env ]; then
+    echo "📋 Loading environment variables from .env file..."
+    export $(cat .env | grep -v '^#' | xargs)
+fi
+
 # Set default environment variables if not provided
-export JWT_SECRET=${JWT_SECRET:-"your-secret-key"}
-export TEMPORAL_HOST=${TEMPORAL_HOST:-"10.100.0.2:7233"}
-export PORT=${PORT:-"8080"}
+export JWT_SECRET=${JWT_SECRET:-"Cvgii9bYKF1HtfD8TODRyZFTmFP4vu70oR59YrjGVpS2fXzQ41O3UPRaR8u9uAqNhwK5ZxZPbX5rAOlMrqe8ag=="}
+export TEMPORAL_HOST=${TEMPORAL_HOST:-"172.72.0.9:7233"}
+export PORT=${PORT:-"8095"}
 
 echo "📋 Configuration:"
 echo "   PORT: $PORT"

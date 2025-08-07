@@ -46,27 +46,27 @@ var emailTrackingStore = make(map[string]EmailTrackingEntry)
 
 func main() {
 	server := &Server{
-		jwtSecret: getEnvOrDefault("JWT_SECRET", "your-secret-key"),
+		jwtSecret: getEnvOrDefault("JWT_SECRET", "Cvgii9bYKF1HtfD8TODRyZFTmFP4vu70oR59YrjGVpS2fXzQ41O3UPRaR8u9uAqNhwK5ZxZPbX5rAOlMrqe8ag=="),
 	}
 
 	router := mux.NewRouter()
-	
+
 	router.HandleFunc("/health", server.healthCheck).Methods("GET")
-	
+
 	api := router.PathPrefix("/api").Subrouter()
 	api.Use(server.jwtMiddleware)
-	
+
 	api.HandleFunc("/email-tracking", server.createEmailTracking).Methods("POST")
 	api.HandleFunc("/email-tracking", server.getEmailTrackings).Methods("GET")
 	api.HandleFunc("/email-tracking/{id}", server.getEmailTracking).Methods("GET")
 	api.HandleFunc("/email-tracking/{id}", server.updateEmailTracking).Methods("PUT")
 	api.HandleFunc("/email-tracking/{id}", server.deleteEmailTracking).Methods("DELETE")
 
-	port := getEnvOrDefault("PORT", "8080")
+	port := getEnvOrDefault("PORT", "8095")
 	log.Printf("🚀 Email Tracking Go Server starting on port %s", port)
 	log.Printf("⚠️  Running in NO-TEMPORAL mode for testing")
 	log.Printf("✅ Ready to accept requests")
-	
+
 	if err := http.ListenAndServe("0.0.0.0:"+port, enableCORS(router)); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
@@ -107,7 +107,7 @@ func (s *Server) jwtMiddleware(next http.Handler) http.Handler {
 
 		ctx := context.WithValue(r.Context(), "userID", claims.UserID)
 		ctx = context.WithValue(ctx, "tenantID", claims.TenantID)
-		
+
 		log.Printf("🔐 User authenticated: %s (tenant: %s)", claims.UserID, claims.TenantID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -181,7 +181,7 @@ func (s *Server) getEmailTrackings(w http.ResponseWriter, r *http.Request) {
 func (s *Server) getEmailTracking(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value("userID").(string)
 	tenantID := r.Context().Value("tenantID").(string)
-	
+
 	vars := mux.Vars(r)
 	id := vars["id"]
 
@@ -203,7 +203,7 @@ func (s *Server) getEmailTracking(w http.ResponseWriter, r *http.Request) {
 func (s *Server) updateEmailTracking(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value("userID").(string)
 	tenantID := r.Context().Value("tenantID").(string)
-	
+
 	vars := mux.Vars(r)
 	id := vars["id"]
 
@@ -246,7 +246,7 @@ func (s *Server) updateEmailTracking(w http.ResponseWriter, r *http.Request) {
 func (s *Server) deleteEmailTracking(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value("userID").(string)
 	tenantID := r.Context().Value("tenantID").(string)
-	
+
 	vars := mux.Vars(r)
 	id := vars["id"]
 

@@ -10,12 +10,51 @@ A Go backend server that provides email lifecycle tracking functionality with Te
 - **Tenant Isolation**: Multi-tenant support with proper data isolation
 - **Health Checks**: Built-in health monitoring and Temporal connectivity verification
 
-## Environment Variables
+## Configuration
+
+The server can be configured using environment variables or a `.env` file. A sample `.env` file is provided in the root directory with all available configuration options.
+
+### Using the .env file
+
+Copy the `.env` file and modify the values as needed:
 
 ```bash
+# Copy the sample .env file
+cp .env .env.local
+
+# Edit the configuration
+nano .env.local
+```
+
+### Key Environment Variables
+
+```bash
+# Server Configuration
+PORT=8095                           # Server port (default: 8095)
+HOST=0.0.0.0                        # Host interface (default: 0.0.0.0)
+
+# Security Configuration  
 JWT_SECRET=your-jwt-secret-key      # Must match the main application's JWT secret
-TEMPORAL_HOST=10.100.0.2:7233       # Temporal server address (default: 10.100.0.2:7233)
-PORT=8080                           # Server port (default: 8080)
+JWT_ALGORITHM=HS256                 # JWT signing algorithm
+
+# Temporal Configuration
+TEMPORAL_HOST=172.72.0.3:7233       # Temporal server address
+TEMPORAL_NAMESPACE=default          # Temporal namespace
+TEMPORAL_RETRY_ATTEMPTS=5           # Connection retry attempts
+TEMPORAL_RETRY_DELAY=2s             # Delay between retries
+TEMPORAL_CONNECTION_TIMEOUT=10s     # Connection timeout
+
+# Email Tracking Configuration
+EMAIL_TRACKING_STORAGE=memory       # Storage type: memory or database
+EMAIL_TRACKING_RETENTION_DAYS=30    # Data retention period
+
+# Logging Configuration
+LOG_LEVEL=info                      # Log level: debug, info, warn, error
+LOG_FORMAT=json                     # Log format: text or json
+
+# Development Configuration
+ENVIRONMENT=development             # Environment: development, staging, production
+MAIN_APP_URL=http://localhost:5000  # Main application URL
 ```
 
 ## API Endpoints
@@ -76,8 +115,8 @@ go mod tidy
 2. Set environment variables:
 ```bash
 export JWT_SECRET="your-jwt-secret"
-export TEMPORAL_HOST="10.100.0.2:7233"
-export PORT="8080"
+export TEMPORAL_HOST="172.72.0.3:7233"
+export PORT="8095"
 ```
 
 3. Run the server:
@@ -97,7 +136,7 @@ The server implements robust Temporal connectivity with:
 
 - **JWT Validation**: All protected routes validate JWT tokens using the same secret as the main application
 - **Tenant Isolation**: Users can only access their own tenant's data
-- **CORS Support**: Configurable cross-origin resource sharing
+- **CORS Support**: Secure cross-origin resource sharing with specific domain allowlist
 - **Input Validation**: Request payload validation for all endpoints
 
 ## Architecture Integration

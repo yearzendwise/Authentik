@@ -53,7 +53,7 @@ export default function EmailCampaignsPage() {
   const { data: serverHealth, isLoading: healthLoading, error: healthError } = useQuery({
     queryKey: ['/go-server-health'],
     queryFn: async () => {
-      const response = await fetch('http://localhost:8083/health');
+      const response = await fetch('https://tengine.zendwise.work/health');
       if (!response.ok) throw new Error('Go server not available');
       return response.json();
     },
@@ -69,7 +69,7 @@ export default function EmailCampaignsPage() {
         return { entries: [], count: 0 };
       }
       
-      const response = await fetch('http://localhost:8083/api/email-tracking', {
+      const response = await fetch('https://tengine.zendwise.work/api/email-tracking', {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',

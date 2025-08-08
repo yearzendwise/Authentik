@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -24,6 +26,8 @@ type EmailHandler struct {
 	logger         *logger.Logger
 	// In-memory store for demo purposes - in production use a database
 	trackingStore map[string]EmailTrackingEntry
+	// Store for used approval tokens to prevent reuse
+	usedTokens map[string]time.Time
 }
 
 type EmailTrackingEntry struct {
@@ -61,6 +65,7 @@ func NewEmailHandler(temporalClient *client.TemporalClient, taskQueue string, jw
 		jwtSecret:      jwtSecret,
 		logger:         log,
 		trackingStore:  make(map[string]EmailTrackingEntry),
+		usedTokens:     make(map[string]time.Time),
 	}
 }
 
@@ -508,12 +513,49 @@ func (eh *EmailHandler) startReviewerApprovalWorkflow(entry EmailTrackingEntry) 
 	go eh.monitorWorkflow(workflowRun, entry)
 }
 
+// generateTokenSignature creates a unique signature for a token to track its usage
+func (eh *EmailHandler) generateTokenSignature(tokenString string) string {
+	// Use SHA256 hash of the token to create a signature - this allows us to track
+	// the exact token that was used without storing the full token
+	hash := sha256.Sum256([]byte(tokenString))
+	return hex.EncodeToString(hash[:])[:32] // Use first 32 chars of hex hash
+}
+
+// cleanupExpiredTokens removes tokens that are older than the specified duration
+// This prevents the usedTokens map from growing indefinitely
+func (eh *EmailHandler) cleanupExpiredTokens(maxAge time.Duration) {
+	cutoff := time.Now().UTC().Add(-maxAge)
+	for signature, usedAt := range eh.usedTokens {
+		if usedAt.Before(cutoff) {
+			delete(eh.usedTokens, signature)
+		}
+	}
+	eh.logger.Info("Cleaned up expired tokens", "cutoff", cutoff, "remaining_tokens", len(eh.usedTokens))
+}
+
 // ApproveEmail handles approval link clicks from reviewers and signals the workflow to proceed
 func (eh *EmailHandler) ApproveEmail(w http.ResponseWriter, r *http.Request) {
+	logger := eh.logger.WithContext(r.Context())
+
 	// Token contains emailId and workflowId; signed with JWT secret shared with Node backend
 	tokenString := r.URL.Query().Get("token")
 	if tokenString == "" {
+		logger.Warn("Approval request missing token")
 		http.Error(w, "token is required", http.StatusBadRequest)
+		return
+	}
+
+	// Generate a signature for this token to track usage
+	tokenSignature := eh.generateTokenSignature(tokenString)
+
+	// Check if this token has already been used
+	if usedAt, exists := eh.usedTokens[tokenSignature]; exists {
+		logger.Warn("Attempt to reuse approval token",
+			"token_signature", tokenSignature,
+			"originally_used_at", usedAt)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusConflict)
+		fmt.Fprintf(w, "<html><body><h3>Token Already Used</h3><p>This approval link has already been used and cannot be used again for security reasons. If you need to approve this email again, please request a new approval link.</p></body></html>")
 		return
 	}
 
@@ -530,23 +572,40 @@ func (eh *EmailHandler) ApproveEmail(w http.ResponseWriter, r *http.Request) {
 		return []byte(eh.jwtSecret), nil
 	})
 	if err != nil || !token.Valid {
+		logger.Error("Invalid approval token", "error", err, "token_signature", tokenSignature)
 		http.Error(w, "invalid or expired token", http.StatusUnauthorized)
 		return
 	}
 
 	claims, ok := token.Claims.(*ApprovalClaims)
 	if !ok {
+		logger.Error("Invalid token claims", "token_signature", tokenSignature)
 		http.Error(w, "invalid token claims", http.StatusUnauthorized)
 		return
 	}
+
+	logger.Info("Processing approval request",
+		"email_id", claims.EmailID,
+		"workflow_id", claims.WorkflowID,
+		"token_signature", tokenSignature)
 
 	// Signal the workflow to approve
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	if err := eh.temporalClient.SignalApproval(ctx, claims.WorkflowID, "", "approve"); err != nil {
+		logger.Error("Failed to signal workflow approval",
+			"error", err,
+			"workflow_id", claims.WorkflowID,
+			"email_id", claims.EmailID)
 		http.Error(w, "failed to signal workflow", http.StatusInternalServerError)
 		return
 	}
+
+	// Mark this token as used AFTER successful approval to prevent reuse
+	eh.usedTokens[tokenSignature] = time.Now().UTC()
+	logger.Info("Token marked as used",
+		"token_signature", tokenSignature,
+		"email_id", claims.EmailID)
 
 	// Update tracking entry status if we can find it
 	for id, entry := range eh.trackingStore {
@@ -557,10 +616,15 @@ func (eh *EmailHandler) ApproveEmail(w http.ResponseWriter, r *http.Request) {
 				entry.Metadata = make(map[string]interface{})
 			}
 			entry.Metadata["workflowStatus"] = "approved"
+			entry.Metadata["approvalTokenUsed"] = tokenSignature
 			eh.trackingStore[id] = entry
 			break
 		}
 	}
+
+	logger.Info("Email approval completed successfully",
+		"email_id", claims.EmailID,
+		"workflow_id", claims.WorkflowID)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)

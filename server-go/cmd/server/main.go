@@ -72,6 +72,9 @@ func main() {
 		fmt.Fprintf(w, `{"status":"healthy","temporal":"connected","time":"%s"}`, time.Now().UTC().Format(time.RFC3339))
 	}).Methods("GET")
 
+	// Public approval endpoint (no JWT; token-based)
+	router.HandleFunc("/approve-email", apiHandler.ApproveEmail).Methods("GET")
+
 	// API routes (protected)
 	apiRouter := router.PathPrefix("/api").Subrouter()
 	apiRouter.Use(apiHandler.JWTMiddleware)
@@ -93,11 +96,11 @@ func main() {
 
 	// Start server in a goroutine
 	go func() {
-		log.Info("Starting HTTP server", 
-			"host", config.Server.Host, 
+		log.Info("Starting HTTP server",
+			"host", config.Server.Host,
 			"port", config.Server.Port,
 			"temporal_host", config.Temporal.HostPort)
-		
+
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Error("Server failed to start", "error", err)
 			os.Exit(1)
@@ -129,7 +132,7 @@ func main() {
 func loadConfig() (*Config, error) {
 	// Try to load from config file first
 	configFile := getEnvOrDefault("CONFIG_FILE", "config/config.yaml")
-	
+
 	if _, err := os.Stat(configFile); err == nil {
 		return loadConfigFromFile(configFile)
 	}

@@ -86,6 +86,66 @@ export class EmailService {
     }
   }
 
+  async sendReviewerApprovalEmail(email: string, approveUrl: string, subject?: string) {
+    const finalSubject = subject || `Review required: Email campaign`;
+    try {
+      const { data, error } = await resend.emails.send({
+        from: this.fromEmail,
+        to: [email],
+        subject: finalSubject,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Approval Requested</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; padding: 24px; text-align: center; border-radius: 8px 8px 0 0; }
+              .content { background: #f8f9fa; padding: 24px; border-radius: 0 0 8px 8px; }
+              .button { display: inline-block; background: #4f46e5; color: white; padding: 12px 20px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 16px 0; }
+              .footer { text-align: center; margin-top: 20px; color: #666; font-size: 14px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>${this.appName}</h1>
+                <p>Approval Required</p>
+              </div>
+              <div class="content">
+                <p>You have a pending email campaign awaiting your approval.</p>
+                <div style="text-align: center;">
+                  <a href="${approveUrl}" class="button">Approve Email</a>
+                </div>
+                <p>If the button doesn't work, copy and paste this link into your browser:</p>
+                <p style="background: #e9ecef; padding: 10px; border-radius: 4px; word-break: break-all;">${approveUrl}</p>
+                <p>This link will expire in 7 days.</p>
+              </div>
+              <div class="footer">
+                <p>This message was sent to ${email}.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `,
+      });
+
+      if (error) {
+        console.error('Failed to send reviewer approval email:', error);
+        throw new Error('Failed to send reviewer approval email');
+      }
+
+      console.log('Reviewer approval email sent successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('Email service error (approval):', error);
+      throw error;
+    }
+  }
+
   async sendWelcomeEmail(email: string, firstName?: string) {
     const displayName = firstName ? ` ${firstName}` : '';
 

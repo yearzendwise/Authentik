@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Send, Mail, Server, Clock, CheckCircle, XCircle, Zap, BarChart3 } from "lucide-react";
+import { Send, Mail, Server, Clock, CheckCircle, XCircle, Zap, BarChart3, Target, ShieldCheck } from "lucide-react";
+import { useLocation } from "wouter";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store";
 
@@ -33,10 +34,13 @@ interface EmailCampaignData {
   scheduledAt?: string;
   isScheduled?: boolean;
   timezone?: string;
+  requiresReviewerApproval?: boolean;
+  reviewerId?: string;
 }
 
 export default function EmailTestPage() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const accessToken = useSelector((state: RootState) => state.auth.accessToken);
   const [campaignData, setCampaignData] = useState<EmailCampaignData>({
     recipient: "test@example.com",
@@ -46,7 +50,9 @@ export default function EmailTestPage() {
     priority: "normal",
     isScheduled: false,
     scheduledAt: "",
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    requiresReviewerApproval: false,
+    reviewerId: "",
   });
 
   // Query to check Go server health
@@ -81,6 +87,17 @@ export default function EmailTestPage() {
     enabled: !!accessToken, // Only run query if we have a token
     refetchInterval: 5000, // Refresh every 5 seconds
   });
+
+  // Fetch managers for reviewer dropdown (from our Node/Express API)
+  const { data: managersData, isLoading: managersLoading } = useQuery({
+    queryKey: ["/api/managers"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/managers");
+      return await response.json();
+    },
+    staleTime: 60_000,
+  });
+  const managers = managersData?.managers || [];
 
   // Mutation to send email campaign to Go server
   const sendCampaignMutation = useMutation({
@@ -169,9 +186,26 @@ export default function EmailTestPage() {
          });
       }
 
+      const status = campaignData.requiresReviewerApproval
+        ? "awaiting_approval"
+        : (campaignData.isScheduled ? "scheduled" : "queued");
+
+      // Get reviewer email from managers data if reviewerId is provided
+      let reviewerEmail = undefined;
+      if (campaignData.reviewerId && managers.length > 0) {
+        const reviewer = managers.find((m: any) => m.id === campaignData.reviewerId);
+        reviewerEmail = reviewer?.email;
+      }
+      // Guard: if approval is required but we cannot resolve a reviewer email, stop early
+      if (campaignData.requiresReviewerApproval && !reviewerEmail) {
+        throw new Error(
+          "Requires reviewer approval, but no reviewer selected or reviewer email unavailable. Please select a reviewer."
+        );
+      }
+
       const payload = {
         emailId,
-        status: campaignData.isScheduled ? "scheduled" : "queued",
+        status,
         temporalWorkflow: `email-workflow-${emailId}`,
         scheduledAt: scheduledAtISO,
         timezone: campaignData.timezone,
@@ -181,6 +215,10 @@ export default function EmailTestPage() {
           content: campaignData.content,
           templateType: campaignData.templateType,
           priority: campaignData.priority,
+          requiresReviewerApproval: !!campaignData.requiresReviewerApproval,
+          reviewerId: campaignData.reviewerId || undefined,
+          reviewerEmail: reviewerEmail,
+          to: campaignData.recipient, // Add 'to' field for email activity
           sentAt: scheduledAtISO || new Date().toISOString(),
         }
       };
@@ -222,13 +260,20 @@ export default function EmailTestPage() {
       console.log('✅ [Campaign] Request successful:', result);
       return result;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast({
         title: campaignData.isScheduled ? "Campaign Scheduled Successfully" : "Campaign Sent Successfully",
         description: campaignData.isScheduled 
           ? `Email campaign scheduled with ID: ${data.id}`
           : `Email campaign queued with ID: ${data.id}`,
       });
+      // Reviewer notification is now handled automatically by the Temporal workflow
+      if (campaignData.requiresReviewerApproval) {
+        toast({
+          title: 'Campaign Awaiting Approval',
+          description: 'The reviewer will be notified automatically and the campaign will be sent upon approval.',
+        });
+      }
       // Refresh tracking entries
       queryClient.invalidateQueries({ queryKey: ['/go-server-tracking'] });
     },
@@ -274,6 +319,15 @@ export default function EmailTestPage() {
       }
     }
 
+    if (campaignData.requiresReviewerApproval && !campaignData.reviewerId) {
+      toast({
+        variant: "destructive",
+        title: "Reviewer Required",
+        description: "Select a reviewer when approval is required.",
+      });
+      return;
+    }
+
     sendCampaignMutation.mutate(campaignData);
   };
 
@@ -314,27 +368,32 @@ export default function EmailTestPage() {
             Test email campaigns through Go backend and Temporal workflows
           </p>
         </div>
-        <div className="flex items-center gap-3 px-4 py-2 bg-card rounded-lg border shadow-sm">
-          <Server className="h-5 w-5 text-blue-600" />
-          <span className="text-sm font-medium">Go Server:</span>
-          {healthLoading ? (
-            <Badge variant="outline" className="gap-1">
-              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600" />
-              Checking...
-            </Badge>
-          ) : healthError ? (
-            <Badge variant="destructive" className="gap-1">
-              <XCircle className="h-3 w-3" />
-              Offline
-            </Badge>
-          ) : serverHealth ? (
-            <Badge variant="default" className="bg-green-600 gap-1">
-              <CheckCircle className="h-3 w-3" />
-              Online
-            </Badge>
-          ) : (
-            <Badge variant="outline">Unknown</Badge>
-          )}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 px-4 py-2 bg-card rounded-lg border shadow-sm">
+            <Server className="h-5 w-5 text-blue-600" />
+            <span className="text-sm font-medium">Go Server:</span>
+            {healthLoading ? (
+              <Badge variant="outline" className="gap-1">
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600" />
+                Checking...
+              </Badge>
+            ) : healthError ? (
+              <Badge variant="destructive" className="gap-1">
+                <XCircle className="h-3 w-3" />
+                Offline
+              </Badge>
+            ) : serverHealth ? (
+              <Badge variant="default" className="bg-green-600 gap-1">
+                <CheckCircle className="h-3 w-3" />
+                Online
+              </Badge>
+            ) : (
+              <Badge variant="outline">Unknown</Badge>
+            )}
+          </div>
+          <Button variant="outline" onClick={() => setLocation('/email-approvals')} className="gap-2">
+            <ShieldCheck className="h-4 w-4" /> View Approvals
+          </Button>
         </div>
       </div>
 
@@ -488,6 +547,69 @@ export default function EmailTestPage() {
                       </p>
                     </div>
                   )}
+                </div>
+              )}
+            </div>
+
+            {/* Review & Approval */}
+            <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded">
+                  <Target className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold">Review & Approval</h3>
+                  <p className="text-xs text-muted-foreground">Configure approval workflow for this campaign.</p>
+                </div>
+              </div>
+
+              <div className="flex flex-row items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="requiresReviewerApproval"
+                  checked={!!campaignData.requiresReviewerApproval}
+                  onChange={(e) => setCampaignData(prev => ({
+                    ...prev,
+                    requiresReviewerApproval: e.target.checked,
+                    reviewerId: e.target.checked ? prev.reviewerId : "",
+                  }))}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-1"
+                />
+                <div className="space-y-1">
+                  <Label htmlFor="requiresReviewerApproval" className="text-sm font-medium cursor-pointer">
+                    Requires Reviewer Approval
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    This campaign will require approval from a manager before it can be activated.
+                  </p>
+                </div>
+              </div>
+
+              {campaignData.requiresReviewerApproval && (
+                <div className="space-y-2 animate-in fade-in duration-150">
+                  <Label htmlFor="reviewerId" className="text-sm font-semibold">Select Reviewer</Label>
+                  <select
+                    id="reviewerId"
+                    value={campaignData.reviewerId}
+                    onChange={(e) => setCampaignData(prev => ({ ...prev, reviewerId: e.target.value }))}
+                    disabled={managersLoading || managers.length === 0}
+                    className="w-full px-4 py-3 border border-input bg-background rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {managersLoading ? (
+                      <option value="" disabled>Loading managers...</option>
+                    ) : managers.length === 0 ? (
+                      <option value="" disabled>No managers available</option>
+                    ) : (
+                      <>
+                        <option value="">Select a manager</option>
+                        {managers.map((manager: any) => (
+                          <option key={manager.id} value={manager.id}>
+                            {manager.firstName} {manager.lastName} - {manager.email} ({manager.role})
+                          </option>
+                        ))}
+                      </>
+                    )}
+                  </select>
                 </div>
               )}
             </div>

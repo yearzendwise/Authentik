@@ -34,6 +34,7 @@ const NotFound = lazy(() => import("@/pages/not-found"));
 const CreateCampaignPage = lazy(() => import("@/pages/campaigns/create"));
 const EmailCampaignsPage = lazy(() => import("@/pages/email-campaigns"));
 const EmailTestPage = lazy(() => import("@/pages/email-test"));
+const EmailApprovalsPage = lazy(() => import("@/pages/email-approvals"));
 const EmailContactsPage = lazy(() => import("@/pages/email-contacts"));
 const NewEmailContactPage = lazy(() => import("@/pages/email-contacts/new"));
 const ViewEmailContactPage = lazy(() => import("@/pages/email-contacts/view"));
@@ -143,6 +144,7 @@ function Router() {
                 <Route path="/email-campaigns" component={EmailCampaignsPage} />
                 <Route path="/email-campaigns/edit/:id" component={EditEmailCampaignPage} />
                 <Route path="/email-test" component={EmailTestPage} />
+                <Route path="/email-approvals" component={EmailApprovalsPage} />
                 <Route path="/email-contacts" component={EmailContactsPage} />
                 <Route path="/email-contacts/new" component={NewEmailContactPage} />
                 <Route path="/email-contacts/view/:id" component={ViewEmailContactPage} />

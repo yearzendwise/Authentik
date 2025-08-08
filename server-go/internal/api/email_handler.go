@@ -131,6 +131,14 @@ func (eh *EmailHandler) CreateEmailTracking(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	// If reviewer approval is required, force status to awaiting_approval to prevent immediate send
+	// This guards against clients accidentally sending queued/scheduled
+	if req.Metadata != nil {
+		if v, ok := req.Metadata["requiresReviewerApproval"].(bool); ok && v {
+			req.Status = "awaiting_approval"
+		}
+	}
+
 	var scheduledAt *time.Time
 	var timezone string
 	if req.ScheduledAt != "" {
@@ -171,9 +179,11 @@ func (eh *EmailHandler) CreateEmailTracking(w http.ResponseWriter, r *http.Reque
 	logger.Info("Created email tracking entry",
 		"entry_id", entry.ID,
 		"email_id", entry.EmailID,
-		"status", req.Status,
+		"initial_status", req.Status,
+		"final_status", entry.Status,
 		"scheduled_at", scheduledAt,
-		"has_scheduled_at", entry.ScheduledAt != nil)
+		"has_scheduled_at", entry.ScheduledAt != nil,
+		"metadata", entry.Metadata)
 
 	// Start Temporal workflow with detailed debugging
 	isScheduled := entry.Status == "scheduled" && entry.ScheduledAt != nil
@@ -182,11 +192,37 @@ func (eh *EmailHandler) CreateEmailTracking(w http.ResponseWriter, r *http.Reque
 		"has_scheduled_at", entry.ScheduledAt != nil,
 		"is_scheduled", isScheduled)
 
-	if isScheduled {
-		logger.Info("Routing to scheduled workflow")
+	// Reviewer approval path - check both metadata and status
+	requiresApproval := false
+	if entry.Metadata != nil {
+		if v, ok := entry.Metadata["requiresReviewerApproval"].(bool); ok {
+			requiresApproval = v
+			logger.Info("Reviewer approval metadata check", "requiresReviewerApproval", v)
+		}
+	}
+	// Also support status-based routing for robustness
+	if strings.EqualFold(entry.Status, "awaiting_approval") {
+		requiresApproval = true
+		logger.Info("Status-based approval routing", "status", entry.Status)
+	}
+
+	logger.Info("Workflow routing decision detailed",
+		"entry_status", entry.Status,
+		"requires_approval", requiresApproval,
+		"has_scheduled_at", entry.ScheduledAt != nil,
+		"is_scheduled", isScheduled)
+
+	if requiresApproval {
+		logger.Info("Routing to reviewer approval workflow", "email_id", entry.EmailID)
+		// Ensure the entry reflects awaiting_approval immediately
+		entry.Status = "awaiting_approval"
+		eh.trackingStore[entry.ID] = entry
+		go eh.startReviewerApprovalWorkflow(entry)
+	} else if isScheduled {
+		logger.Info("Routing to scheduled workflow", "email_id", entry.EmailID)
 		go eh.scheduleEmailWorkflow(entry)
 	} else {
-		logger.Info("Routing to immediate workflow")
+		logger.Info("Routing to immediate workflow", "email_id", entry.EmailID)
 		go eh.startEmailWorkflow(entry)
 	}
 
@@ -425,6 +461,112 @@ func (eh *EmailHandler) scheduleEmailWorkflow(entry EmailTrackingEntry) {
 	go eh.monitorWorkflow(workflowRun, entry)
 }
 
+func (eh *EmailHandler) startReviewerApprovalWorkflow(entry EmailTrackingEntry) {
+	logger := eh.logger.WithEmail(entry.EmailID)
+	logger.Info("Starting reviewer approval Temporal workflow")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	emailData := activities.EmailData{
+		ID:        entry.ID,
+		UserID:    entry.UserID,
+		TenantID:  entry.TenantID,
+		EmailID:   entry.EmailID,
+		Status:    entry.Status,
+		Timestamp: entry.Timestamp,
+		Workflow:  entry.TemporalWorkflow,
+		Metadata:  entry.Metadata,
+	}
+
+	workflowID := fmt.Sprintf("reviewer-email-workflow-%s", entry.EmailID)
+
+	workflowRun, err := eh.temporalClient.StartReviewerApprovalEmailWorkflow(ctx, workflowID, eh.taskQueue, emailData)
+	if err != nil {
+		logger.Error("Failed to start reviewer approval workflow", "error", err)
+		entry.Status = "workflow_failed"
+		if entry.Metadata == nil {
+			entry.Metadata = make(map[string]interface{})
+		}
+		entry.Metadata["error"] = err.Error()
+		eh.trackingStore[entry.ID] = entry
+		return
+	}
+
+	logger.Info("Started reviewer approval workflow",
+		"workflow_id", workflowRun.GetID(),
+		"run_id", workflowRun.GetRunID())
+
+	entry.Status = "awaiting_approval"
+	if entry.Metadata == nil {
+		entry.Metadata = make(map[string]interface{})
+	}
+	entry.Metadata["workflowRunId"] = workflowRun.GetRunID()
+	entry.Metadata["workflowStatus"] = "awaiting_approval"
+	eh.trackingStore[entry.ID] = entry
+
+	go eh.monitorWorkflow(workflowRun, entry)
+}
+
+// ApproveEmail handles approval link clicks from reviewers and signals the workflow to proceed
+func (eh *EmailHandler) ApproveEmail(w http.ResponseWriter, r *http.Request) {
+	// Token contains emailId and workflowId; signed with JWT secret shared with Node backend
+	tokenString := r.URL.Query().Get("token")
+	if tokenString == "" {
+		http.Error(w, "token is required", http.StatusBadRequest)
+		return
+	}
+
+	type ApprovalClaims struct {
+		EmailID    string `json:"emailId"`
+		WorkflowID string `json:"workflowId"`
+		jwt.RegisteredClaims
+	}
+
+	token, err := jwt.ParseWithClaims(tokenString, &ApprovalClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(eh.jwtSecret), nil
+	})
+	if err != nil || !token.Valid {
+		http.Error(w, "invalid or expired token", http.StatusUnauthorized)
+		return
+	}
+
+	claims, ok := token.Claims.(*ApprovalClaims)
+	if !ok {
+		http.Error(w, "invalid token claims", http.StatusUnauthorized)
+		return
+	}
+
+	// Signal the workflow to approve
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	if err := eh.temporalClient.SignalApproval(ctx, claims.WorkflowID, "", "approve"); err != nil {
+		http.Error(w, "failed to signal workflow", http.StatusInternalServerError)
+		return
+	}
+
+	// Update tracking entry status if we can find it
+	for id, entry := range eh.trackingStore {
+		if entry.EmailID == claims.EmailID {
+			entry.Status = "approved"
+			entry.Timestamp = time.Now().UTC()
+			if entry.Metadata == nil {
+				entry.Metadata = make(map[string]interface{})
+			}
+			entry.Metadata["workflowStatus"] = "approved"
+			eh.trackingStore[id] = entry
+			break
+		}
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "<html><body><h3>Approval received</h3><p>The email has been approved and will be sent shortly.</p></body></html>")
+}
+
 func (eh *EmailHandler) monitorWorkflow(workflowRun temporalclient.WorkflowRun, entry EmailTrackingEntry) {
 	logger := eh.logger.WithEmail(entry.EmailID).WithWorkflow(workflowRun.GetID())
 	logger.Info("Monitoring workflow completion")
@@ -442,8 +584,13 @@ func (eh *EmailHandler) monitorWorkflow(workflowRun temporalclient.WorkflowRun, 
 		entry.Metadata["workflowError"] = err.Error()
 		entry.Metadata["workflowStatus"] = "failed"
 	} else {
-		logger.Info("Workflow completed successfully", "resend_id", result.ResendID)
-		entry.Status = "sent"
+		logger.Info("Workflow completed successfully", "status", result.Status, "resend_id", result.ResendID)
+		// Respect workflow result status (e.g., sent, approval_timeout)
+		if result.Status != "" {
+			entry.Status = result.Status
+		} else {
+			entry.Status = "sent"
+		}
 		if entry.Metadata == nil {
 			entry.Metadata = make(map[string]interface{})
 		}

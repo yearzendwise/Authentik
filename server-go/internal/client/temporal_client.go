@@ -128,3 +128,34 @@ func (tc *TemporalClient) StartScheduledEmailWorkflow(ctx context.Context, workf
 
 	return workflowRun, nil
 }
+
+func (tc *TemporalClient) StartReviewerApprovalEmailWorkflow(ctx context.Context, workflowID string, taskQueue string, input interface{}) (client.WorkflowRun, error) {
+	tc.logger.Info("Starting reviewer approval email workflow", "workflow_id", workflowID, "task_queue", taskQueue)
+
+	workflowOptions := client.StartWorkflowOptions{
+		ID:        workflowID,
+		TaskQueue: taskQueue,
+	}
+
+	workflowRun, err := tc.client.ExecuteWorkflow(ctx, workflowOptions, "ReviewerApprovalEmailWorkflow", input)
+	if err != nil {
+		tc.logger.Error("Failed to start reviewer approval workflow", "workflow_id", workflowID, "error", err)
+		return nil, fmt.Errorf("failed to start reviewer approval workflow: %w", err)
+	}
+
+	tc.logger.Info("Successfully started reviewer approval email workflow",
+		"workflow_id", workflowRun.GetID(),
+		"run_id", workflowRun.GetRunID())
+
+	return workflowRun, nil
+}
+
+func (tc *TemporalClient) SignalApproval(ctx context.Context, workflowID string, runID string, payload string) error {
+	tc.logger.Info("Signaling approval to workflow", "workflow_id", workflowID, "run_id", runID)
+	if err := tc.client.SignalWorkflow(ctx, workflowID, runID, "approval", payload); err != nil {
+		tc.logger.Error("Failed to signal approval", "workflow_id", workflowID, "error", err)
+		return fmt.Errorf("failed to signal approval: %w", err)
+	}
+	tc.logger.Info("Approval signal sent", "workflow_id", workflowID)
+	return nil
+}

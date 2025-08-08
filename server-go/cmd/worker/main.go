@@ -29,6 +29,12 @@ type Config struct {
 		RetryAttempts int    `yaml:"retry_attempts"`
 		RetryInterval string `yaml:"retry_interval"`
 	} `yaml:"email"`
+    JWT struct {
+        Secret string `yaml:"secret"`
+    } `yaml:"jwt"`
+    Approvals struct {
+        ApproveBaseURL string `yaml:"approve_base_url"`
+    } `yaml:"approvals"`
 	Logging struct {
 		Level  string `yaml:"level"`
 		Format string `yaml:"format"`
@@ -62,21 +68,26 @@ func main() {
 	w := worker.New(temporalClient.GetClient(), config.Temporal.TaskQueue, worker.Options{})
 
 	// Initialize email activity
-	emailActivity := activities.NewEmailActivity(
-		config.Email.ResendAPIKey,
-		config.Email.FromEmail,
-		log,
-	)
+    emailActivity := activities.NewEmailActivity(
+        config.Email.ResendAPIKey,
+        config.Email.FromEmail,
+        config.JWT.Secret,
+        firstNonEmpty(config.Approvals.ApproveBaseURL, os.Getenv("GO_EMAIL_SERVER_BASE_URL"), "https://tengine.zendwise.work"),
+        log,
+    )
 
 	// Register workflows and activities
 	w.RegisterWorkflow(workflows.EmailWorkflow)
 	w.RegisterWorkflow(workflows.ScheduledEmailWorkflow)
-	w.RegisterActivity(emailActivity.SendEmail)
+	w.RegisterWorkflow(workflows.ReviewerApprovalEmailWorkflow)
+    w.RegisterActivity(emailActivity.SendEmail)
+    w.RegisterActivity(emailActivity.SendApprovalEmail)
+    w.RegisterActivity(emailActivity.SendReviewerNotificationEmail)
 
-	log.Info("Temporal worker registered",
+    log.Info("Temporal worker registered",
 		"task_queue", config.Temporal.TaskQueue,
-		"workflows", []string{"EmailWorkflow", "ScheduledEmailWorkflow"},
-		"activities", []string{"SendEmail"})
+        "workflows", []string{"EmailWorkflow", "ScheduledEmailWorkflow", "ReviewerApprovalEmailWorkflow"},
+        "activities", []string{"SendEmail", "SendApprovalEmail", "SendReviewerNotificationEmail"})
 
 	// Set up signal handling for graceful shutdown
 	sigChan := make(chan os.Signal, 1)
@@ -171,6 +182,16 @@ func loadConfigFromEnv() *Config {
 			RetryAttempts: 5,
 			RetryInterval: "1m",
 		},
+        JWT: struct {
+            Secret string `yaml:"secret"`
+        }{
+            Secret: getEnvOrDefault("JWT_SECRET", ""),
+        },
+        Approvals: struct {
+            ApproveBaseURL string `yaml:"approve_base_url"`
+        }{
+            ApproveBaseURL: getEnvOrDefault("GO_EMAIL_SERVER_BASE_URL", "https://tengine.zendwise.work"),
+        },
 		Logging: struct {
 			Level  string `yaml:"level"`
 			Format string `yaml:"format"`
@@ -186,4 +207,13 @@ func getEnvOrDefault(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+func firstNonEmpty(values ...string) string {
+    for _, v := range values {
+        if v != "" {
+            return v
+        }
+    }
+    return ""
 }

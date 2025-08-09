@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2, Calendar, User, MoreVertical, Eye, Edit, Trash2, RefreshCw } from 'lucide-react';
+import { Plus, Loader2, Calendar, User, MoreVertical, Eye, Edit, Trash2, RefreshCw, QrCode } from 'lucide-react';
 import { useReduxAuth } from '@/hooks/useReduxAuth';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -11,6 +11,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { FormPreviewModal } from '@/components/form-preview-modal';
+import { FormQRCode } from '@/components/form-builder/form-qr-code';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface Form {
   id: string;
@@ -162,6 +164,8 @@ export default function Forms2() {
   const queryClient = useQueryClient();
   const [previewForm, setPreviewForm] = useState<any>(null);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [qrForm, setQrForm] = useState<Form | null>(null);
+  const [isQRModalOpen, setIsQRModalOpen] = useState(false);
 
   // Fetch forms data
   const { data: formsData, isLoading: formsLoading, error: formsError, refetch } = useQuery({
@@ -219,6 +223,20 @@ export default function Forms2() {
 
   const handleDeleteForm = (formId: string) => {
     deleteFormMutation.mutate(formId);
+  };
+
+  const handleQRForm = (formId: string) => {
+    const form = forms.find(f => f.id === formId);
+    if (form) {
+      setQrForm(form);
+      setIsQRModalOpen(true);
+    } else {
+      toast({
+        title: "Error",
+        description: "Form not found",
+        variant: "destructive",
+      });
+    }
   };
 
   // Redirect unauthenticated users immediately
@@ -390,6 +408,10 @@ export default function Forms2() {
                             <Eye className="mr-2 h-4 w-4" />
                             View
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleQRForm(form.id)}>
+                            <QrCode className="mr-2 h-4 w-4" />
+                            QR
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleEditForm(form.id)}>
                             <Edit className="mr-2 h-4 w-4" />
                             Edit
@@ -498,6 +520,23 @@ export default function Forms2() {
           }}
         />
       )}
+
+      {/* QR Code Modal */}
+      <Dialog open={isQRModalOpen} onOpenChange={setIsQRModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center">
+              {qrForm ? `QR Code for "${qrForm.title}"` : 'QR Code'}
+            </DialogTitle>
+          </DialogHeader>
+          {qrForm && (
+            <FormQRCode 
+              formId={qrForm.id} 
+              formTitle={qrForm.title}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

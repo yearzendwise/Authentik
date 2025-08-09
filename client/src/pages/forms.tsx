@@ -30,16 +30,18 @@ const getThemePreview = (themeId: string): string => {
     'modern': 'bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500',
     'glassmorphism': 'bg-gradient-to-br from-white/40 to-white/10 backdrop-blur-xl border border-white/20 shadow-lg',
     'professional': 'bg-gray-50 border-l-4 border-blue-600 shadow-sm',
+    'playful': 'bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400 rounded-2xl',
+    'elegant': 'bg-gradient-to-r from-gray-900 to-gray-700 border border-yellow-400/20',
+    'modern-bold': 'bg-gradient-to-br from-orange-500 via-red-500 to-purple-600',
     'neon': 'bg-black border-2 border-cyan-400 shadow-cyan-400/50 shadow-lg',
-    'nature': 'bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200',
+    'nature': 'bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl',
     'luxury': 'bg-gradient-to-r from-purple-900 to-indigo-900 border border-yellow-400/30',
     'retro': 'bg-gradient-to-r from-orange-400 to-pink-500 border-4 border-yellow-300',
+    'neo-modern': 'bg-gradient-to-br from-slate-800 via-gray-800 to-black border border-green-400/30',
+    'aurora': 'bg-[radial-gradient(120%_120%_at_0%_0%,_#7dd3fc_0%,_transparent_40%),_radial-gradient(120%_120%_at_100%_0%,_#c084fc_0%,_transparent_40%),_radial-gradient(120%_120%_at_100%_100%,_#fca5a5_0%,_transparent_40%),_radial-gradient(120%_120%_at_0%_100%,_#86efac_0%,_transparent_40%)]',
     'cosmic': 'bg-gradient-to-br from-purple-900 via-indigo-900 to-black',
-    'brutalist': 'bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]',
-    'pastel-dream': 'bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 border-2 border-pink-200',
-    'aurora': 'bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-600',
-    'neo-modern': 'bg-gradient-to-br from-green-900 via-black to-green-900 border border-green-400/30',
-    'modern-bold': 'bg-gradient-to-br from-red-600 via-orange-600 to-yellow-500'
+    'brutalist': 'bg-gray-800 border-4 border-black',
+    'pastel-dream': 'bg-gradient-to-br from-pink-200 via-purple-200 to-indigo-200'
   };
   
   return themePreviewMap[themeId] || themePreviewMap['minimal'];
@@ -86,7 +88,7 @@ const getThemePreviewContent = (themeId: string) => {
       );
     case 'brutalist':
       return (
-        <div className="text-black font-black text-sm tracking-wider uppercase border-2 border-black px-2 py-1">
+        <div className="text-white font-black text-sm tracking-wider uppercase border-2 border-white px-2 py-1">
           BRUTALIST
         </div>
       );
@@ -100,6 +102,18 @@ const getThemePreviewContent = (themeId: string) => {
       return (
         <div className="text-blue-600 font-semibold text-sm">
           PROFESSIONAL
+        </div>
+      );
+    case 'playful':
+      return (
+        <div className="text-white font-bold text-sm tracking-wide drop-shadow-lg">
+          🎨 PLAYFUL 🎨
+        </div>
+      );
+    case 'elegant':
+      return (
+        <div className="text-yellow-400 font-light text-sm tracking-widest font-serif">
+          ELEGANT
         </div>
       );
     case 'neo-modern':
@@ -116,7 +130,7 @@ const getThemePreviewContent = (themeId: string) => {
       );
     case 'aurora':
       return (
-        <div className="text-white font-extrabold text-sm tracking-wide">
+        <div className="text-slate-800 font-extrabold text-sm tracking-wide">
           Aurora
         </div>
       );

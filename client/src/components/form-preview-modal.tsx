@@ -494,16 +494,48 @@ export function FormPreviewModal({ isOpen, onClose, form, formSettings = {} }: F
 
               <ThemedProgressBar />
 
-              {elementsWithButtons.map((element) => (
-                <div key={element.id} className={element.type === 'spacer' ? 'h-6' : themeStyles.field}>
-                  <ThemedFormRenderer
-                    element={element}
-                    themeStyles={themeStyles}
-                    onChange={handleFormChange}
-                    onReset={handleFormReset}
-                  />
+              {parsedFormSettings.compactMode ? (
+                // Compact mode: 2 fields per row
+                <div className="grid grid-cols-2 gap-4">
+                  {elementsWithButtons.map((element) => {
+                    // Special handling for certain elements that should span full width
+                    const elementType = element.type as string;
+                    const shouldSpanFullWidth = elementType === 'textarea' || 
+                                              elementType === 'submit-button' || 
+                                              elementType === 'reset-button' || 
+                                              elementType === 'spacer' ||
+                                              elementType === 'image';
+                    
+                    return (
+                      <div 
+                        key={element.id} 
+                        className={`${elementType === 'spacer' ? 'h-6' : themeStyles.field} ${
+                          shouldSpanFullWidth ? 'col-span-2' : ''
+                        }`}
+                      >
+                        <ThemedFormRenderer
+                          element={element}
+                          themeStyles={themeStyles}
+                          onChange={handleFormChange}
+                          onReset={handleFormReset}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
+              ) : (
+                // Normal mode: 1 field per row
+                elementsWithButtons.map((element) => (
+                  <div key={element.id} className={element.type === 'spacer' ? 'h-6' : themeStyles.field}>
+                    <ThemedFormRenderer
+                      element={element}
+                      themeStyles={themeStyles}
+                      onChange={handleFormChange}
+                      onReset={handleFormReset}
+                    />
+                  </div>
+                ))
+              )}
             </form>
           </div>
         </div>

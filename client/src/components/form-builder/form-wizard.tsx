@@ -2,6 +2,7 @@ import { useFormWizard } from '@/hooks/use-form-wizard';
 import { BuildStep } from './wizard-steps/build-step';
 import { StyleStep } from './wizard-steps/style-step';
 import { PreviewStep } from './wizard-steps/preview-step';
+import { FormSuccessDialog } from './form-success-dialog';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
 import { useReduxAuth } from '@/hooks/useReduxAuth';
@@ -32,6 +33,8 @@ export function FormWizard({ editMode = false, formData: existingFormData }: For
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [createdFormData, setCreatedFormData] = useState<{ id: string; title: string } | null>(null);
 
   // Redirect unauthenticated users immediately
   if (hasInitialized && !isAuthenticated) {
@@ -124,9 +127,17 @@ export function FormWizard({ editMode = false, formData: existingFormData }: For
         queryClient.invalidateQueries({ queryKey: ['/api/forms', existingFormData.id] });
       }
       
-      toast({
-        title: "Success",
-        description: `Form "${wizardState.formData.title}" has been ${editMode ? 'updated' : 'saved'} successfully!`,
+      // Extract form ID from response
+      const formId = editMode && existingFormData ? existingFormData.id : result.form?.id;
+      
+      if (!formId) {
+        throw new Error('Failed to get form ID from server response');
+      }
+      
+      // Set created form data and show success dialog
+      setCreatedFormData({
+        id: formId,
+        title: wizardState.formData.title
       });
       
       // Clear the form data from storage and reset wizard state (only for new forms)
@@ -140,9 +151,9 @@ export function FormWizard({ editMode = false, formData: existingFormData }: For
         checkStorageState();
       }
       
-      // Complete the wizard and redirect
+      // Complete the wizard and show success dialog
       completeWizard();
-      setLocation('/forms'); // Redirect to forms list
+      setShowSuccessDialog(true);
     } catch (error: any) {
       console.error('Error saving form:', error);
       toast({
@@ -164,6 +175,13 @@ export function FormWizard({ editMode = false, formData: existingFormData }: For
   const handleTestStorage = () => {
     console.log('🧪 Testing storage functionality...');
     checkStorageState();
+  };
+
+  // Handle success dialog close
+  const handleSuccessDialogClose = () => {
+    setShowSuccessDialog(false);
+    setCreatedFormData(null);
+    setLocation('/forms'); // Redirect to forms list
   };
 
 
@@ -345,6 +363,17 @@ export function FormWizard({ editMode = false, formData: existingFormData }: For
           </div>
         </div>
       </footer>
+
+      {/* Success Dialog with QR Code */}
+      {showSuccessDialog && createdFormData && (
+        <FormSuccessDialog
+          isOpen={showSuccessDialog}
+          onClose={handleSuccessDialogClose}
+          formId={createdFormData.id}
+          formTitle={createdFormData.title}
+          isEditMode={editMode}
+        />
+      )}
     </div>
   );
 }

@@ -33,11 +33,25 @@ app.use(helmet({
   },
 }));
 
-// CORS headers manually set
+// CORS headers manually set - Allow Replit dynamic hostnames
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', process.env.NODE_ENV === 'production' ? 'false' : '*');
+  const origin = req.headers.origin;
+  
+  // Allow requests from localhost, Replit domains, or no origin (direct API calls)
+  if (!origin || 
+      origin.includes('localhost') || 
+      origin.includes('.replit.dev') || 
+      origin.includes('.repl.co') ||
+      origin.includes('janeway.replit.dev')) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+  } else {
+    res.header('Access-Control-Allow-Origin', '*'); // Allow all in development
+  }
+  
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
   } else {

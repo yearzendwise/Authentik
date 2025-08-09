@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { FormElement, FormTheme, CustomColors } from '@/types/form-builder';
 import { ThemedFormRenderer } from '@/components/form-builder/themed-form-renderer';
 import { lightenColor } from '@/utils/theme-color-utils';
-import { X, Eye, RotateCcw } from 'lucide-react';
+import { Eye, RotateCcw } from 'lucide-react';
 
 // Extended type for preview elements that includes buttons and spacer
 type PreviewFormElement = FormElement | {
@@ -439,22 +439,15 @@ export function FormPreviewModal({ isOpen, onClose, form, formSettings = {} }: F
                 Form Preview: {form.title}
               </DialogTitle>
             </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleFormReset}
-                className="flex items-center space-x-1"
-              >
-                <RotateCcw className="w-4 h-4" />
-                <span>Reset Form</span>
-              </Button>
-              <DialogClose asChild>
-                <Button variant="ghost" size="sm">
-                  <X className="w-4 h-4" />
-                </Button>
-              </DialogClose>
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleFormReset}
+              className="flex items-center space-x-1"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>Reset Form</span>
+            </Button>
           </div>
         </DialogHeader>
 

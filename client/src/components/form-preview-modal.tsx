@@ -504,7 +504,8 @@ export function FormPreviewModal({ isOpen, onClose, form, formSettings = {} }: F
                                               elementType === 'submit-button' || 
                                               elementType === 'reset-button' || 
                                               elementType === 'spacer' ||
-                                              elementType === 'image';
+                                              elementType === 'image' ||
+                                              elementType === 'full-name';
                     
                     return (
                       <div 

@@ -278,7 +278,14 @@ export function FormPreviewModal({ isOpen, onClose, form, formSettings = {} }: F
 
   // Calculate progress percentage based on filled fields
   const progressPercentage = useMemo(() => {
-    const totalFields = elements.length;
+    // Only count actual form fields (not buttons or spacers)
+    const actualFormFields = elements.filter(element => 
+      element.type !== 'submit-button' && 
+      element.type !== 'reset-button' && 
+      element.type !== 'spacer'
+    );
+    
+    const totalFields = actualFormFields.length;
     if (totalFields === 0) return 0;
     
     const filledFields = Object.keys(liveFormData).filter(key => {
@@ -287,7 +294,7 @@ export function FormPreviewModal({ isOpen, onClose, form, formSettings = {} }: F
     }).length;
     
     return Math.round((filledFields / totalFields) * 100);
-  }, [elements.length, liveFormData]);
+  }, [elements, liveFormData]);
 
   // Progress bar component
   const ThemedProgressBar = () => {

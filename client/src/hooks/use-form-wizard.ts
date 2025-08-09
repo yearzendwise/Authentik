@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { WizardStep, WizardState, FormTheme, FormElement, CustomColors } from '@/types/form-builder';
 import { applyCustomColors, extractThemeColors } from '@/utils/theme-color-utils';
 
-const defaultThemes: FormTheme[] = [
+export const defaultThemes: FormTheme[] = [
   // Enhanced existing themes
   {
     id: 'minimal',
@@ -499,6 +499,7 @@ interface ExistingFormData {
 }
 
 export function useFormWizard(existingForm?: ExistingFormData) {
+  const isEditMode = !!existingForm;
   // Initialize state from storage, existing form, or default values
   const getInitialState = (): WizardState => {
     // If editing an existing form, parse its data
@@ -672,15 +673,20 @@ export function useFormWizard(existingForm?: ExistingFormData) {
     setWizardState(newState);
   };
 
-  // Save data before page unload
+  // Save or clear data before page unload
   useEffect(() => {
     const handleBeforeUnload = () => {
-      saveToStorage(wizardState);
+      if (isEditMode) {
+        // When editing, do not persist unfinished changes on page unload
+        clearStorage();
+      } else {
+        saveToStorage(wizardState);
+      }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [wizardState]);
+  }, [wizardState, isEditMode]);
 
   // Debug function to check storage state
   const checkStorageState = () => {
@@ -692,6 +698,15 @@ export function useFormWizard(existingForm?: ExistingFormData) {
       localDataPreview: localData ? JSON.parse(localData).formData?.title : null
     });
   };
+
+  // Optionally clear storage on unmount when editing and not completed
+  useEffect(() => {
+    return () => {
+      if (isEditMode) {
+        clearStorage();
+      }
+    };
+  }, [isEditMode]);
 
   return {
     wizardState,

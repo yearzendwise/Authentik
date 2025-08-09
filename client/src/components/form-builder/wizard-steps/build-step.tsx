@@ -15,9 +15,10 @@ interface BuildStepProps {
   initialTitle?: string;
   initialElements?: any[];
   initialSettings?: any;
+  isEditMode?: boolean;
 }
 
-export function BuildStep({ onDataChange, initialTitle, initialElements, initialSettings }: BuildStepProps) {
+export function BuildStep({ onDataChange, initialTitle, initialElements, initialSettings, isEditMode = false }: BuildStepProps) {
   const {
     formTitle,
     elements,
@@ -198,7 +199,8 @@ export function BuildStep({ onDataChange, initialTitle, initialElements, initial
                 updateFormSettings(key, newSettings[key]);
               });
             }}
-            onClearForm={() => resetFormData('', [])}
+            onClearForm={isEditMode ? undefined : () => resetFormData('', [])}
+            hideClearButton={isEditMode}
           />
           
           {/* Element Properties - Only when element is selected */}

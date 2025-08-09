@@ -64,8 +64,11 @@ const getDescriptionStyles = (themeId: string): string => {
   }
 };
 
-// Default themes configuration - this would normally come from a themes file
-const getDefaultThemes = (): FormTheme[] => [
+// Default themes configuration - reuse builder's themes for consistency
+import { defaultThemes as builderDefaultThemes } from '@/hooks/use-form-wizard';
+
+// Fallback themes if hook themes aren't available (should match builder)
+const fallbackThemes: FormTheme[] = [
   {
     id: 'minimal',
     name: 'Minimal',
@@ -197,9 +200,9 @@ export function FormPreviewModal({ isOpen, onClose, form, formSettings = {} }: F
         themeData = { id: form.theme || 'minimal', name: form.theme || 'Minimal' };
       }
 
-      // Find matching theme from default themes
-      const themes = getDefaultThemes();
-      const matchedTheme = themes.find(t => t.id === themeData.id) || themes[0];
+      // Find matching theme from shared default themes (prefer builder's list)
+      const themes: FormTheme[] = (builderDefaultThemes && Array.isArray(builderDefaultThemes) ? builderDefaultThemes : fallbackThemes);
+      const matchedTheme = themes.find(t => t.id === themeData.id) || themes.find(t => t.id === 'minimal') || themes[0];
       
       // Apply custom colors if they exist
       if (themeData.customColors) {

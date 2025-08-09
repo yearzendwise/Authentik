@@ -23,6 +23,122 @@ interface Form {
   updatedAt: string;
 }
 
+// Helper function to get theme preview classes
+const getThemePreview = (themeId: string): string => {
+  const themePreviewMap: Record<string, string> = {
+    'minimal': 'bg-white border border-gray-200 shadow-sm',
+    'modern': 'bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500',
+    'glassmorphism': 'bg-gradient-to-br from-white/40 to-white/10 backdrop-blur-xl border border-white/20 shadow-lg',
+    'professional': 'bg-gray-50 border-l-4 border-blue-600 shadow-sm',
+    'neon': 'bg-black border-2 border-cyan-400 shadow-cyan-400/50 shadow-lg',
+    'nature': 'bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200',
+    'luxury': 'bg-gradient-to-r from-purple-900 to-indigo-900 border border-yellow-400/30',
+    'retro': 'bg-gradient-to-r from-orange-400 to-pink-500 border-4 border-yellow-300',
+    'cosmic': 'bg-gradient-to-br from-purple-900 via-indigo-900 to-black',
+    'brutalist': 'bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]',
+    'pastel-dream': 'bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 border-2 border-pink-200',
+    'aurora': 'bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-600',
+    'neo-modern': 'bg-gradient-to-br from-green-900 via-black to-green-900 border border-green-400/30',
+    'modern-bold': 'bg-gradient-to-br from-red-600 via-orange-600 to-yellow-500'
+  };
+  
+  return themePreviewMap[themeId] || themePreviewMap['minimal'];
+};
+
+// Helper function to get theme-specific preview content
+const getThemePreviewContent = (themeId: string) => {
+  switch (themeId) {
+    case 'neon':
+      return (
+        <div className="text-cyan-400 font-bold text-sm tracking-wider drop-shadow-lg">
+          CYBER<span className="text-green-400">FORM</span>
+        </div>
+      );
+    case 'nature':
+      return (
+        <div className="text-green-800 font-semibold text-sm">
+          🌿 Natural Form 🌿
+        </div>
+      );
+    case 'luxury':
+      return (
+        <div className="text-yellow-400 font-light text-sm tracking-widest font-serif">
+          LUXURY DESIGN
+        </div>
+      );
+    case 'glassmorphism':
+      return (
+        <div className="text-white/90 font-semibold text-sm tracking-wide">
+          Glassmorphism
+        </div>
+      );
+    case 'retro':
+      return (
+        <div className="text-white font-black text-sm tracking-wider transform -skew-x-12 uppercase">
+          80S STYLE
+        </div>
+      );
+    case 'cosmic':
+      return (
+        <div className="text-purple-300 font-bold text-sm tracking-wider drop-shadow-lg">
+          <span className="text-cyan-400">✦</span> COSMIC <span className="text-pink-400">✦</span>
+        </div>
+      );
+    case 'brutalist':
+      return (
+        <div className="text-black font-black text-sm tracking-wider uppercase border-2 border-black px-2 py-1">
+          BRUTALIST
+        </div>
+      );
+    case 'pastel-dream':
+      return (
+        <div className="text-purple-600 font-medium text-sm tracking-wide">
+          ✨ Pastel Dreams ✨
+        </div>
+      );
+    case 'professional':
+      return (
+        <div className="text-blue-600 font-semibold text-sm">
+          PROFESSIONAL
+        </div>
+      );
+    case 'neo-modern':
+      return (
+        <div className="text-green-400 font-mono font-bold text-sm tracking-wider">
+          &gt; NEO_MODERN.exe
+        </div>
+      );
+    case 'modern-bold':
+      return (
+        <div className="text-white font-black text-sm tracking-wider drop-shadow-lg">
+          MODERN BOLD
+        </div>
+      );
+    case 'aurora':
+      return (
+        <div className="text-white font-extrabold text-sm tracking-wide">
+          Aurora
+        </div>
+      );
+    case 'modern':
+      return (
+        <div className="text-white font-bold text-sm tracking-wide drop-shadow-lg">
+          MODERN
+        </div>
+      );
+    case 'minimal':
+      return (
+        <div className="text-gray-800 font-light text-sm tracking-wide">
+          MINIMAL
+        </div>
+      );
+    default:
+      return (
+        <div className="text-white font-semibold opacity-90 text-sm">Form Theme</div>
+      );
+  }
+};
+
 export default function Forms2() {
   const { isAuthenticated, isLoading: authLoading } = useReduxAuth();
   const { hasInitialized } = useAuth();
@@ -214,13 +330,17 @@ export default function Forms2() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {forms.map((form) => {
-              // Parse theme data to get theme name
-              let themeName = 'Unknown';
+              // Parse theme data to get theme info
+              let themeData: { id: string; name: string; preview?: string } = { id: 'minimal', name: 'Unknown' };
               try {
-                const themeData = JSON.parse(form.theme);
-                themeName = themeData.name || themeData.id || 'Unknown';
+                const parsed = JSON.parse(form.theme);
+                themeData = {
+                  id: parsed.id || 'minimal',
+                  name: parsed.name || parsed.id || 'Unknown',
+                  preview: getThemePreview(parsed.id || 'minimal')
+                };
               } catch (e) {
-                themeName = form.theme || 'Unknown';
+                themeData = { id: 'minimal', name: form.theme || 'Unknown', preview: getThemePreview('minimal') };
               }
 
               // Parse form data to get element count
@@ -233,15 +353,18 @@ export default function Forms2() {
               }
 
               return (
-                <Card key={form.id} className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300 group">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <CardTitle className="text-gray-900 dark:text-gray-100 text-lg font-semibold pr-2">
-                        {form.title}
-                      </CardTitle>
+                <Card key={form.id} className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300 group overflow-hidden">
+                  {/* Theme Preview Header */}
+                  <div className={`h-20 relative flex items-center justify-center overflow-hidden ${themeData.preview}`}>
+                    <div className="text-center px-4">
+                      {/* Theme-specific preview content */}
+                      {getThemePreviewContent(themeData.id)}
+                    </div>
+                    {/* Dropdown Menu positioned over theme preview */}
+                    <div className="absolute top-2 right-2">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button variant="ghost" className="h-8 w-8 p-0 bg-black/20 hover:bg-black/30 text-white/90 hover:text-white backdrop-blur-sm rounded-full opacity-70 group-hover:opacity-100 transition-opacity">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -293,8 +416,26 @@ export default function Forms2() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
+                  </div>
+
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-gray-900 dark:text-gray-100 text-lg font-semibold">
+                      {form.title}
+                    </CardTitle>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {themeData.name}
+                      </span>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        form.isActive 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                      }`}>
+                        {form.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-3 pt-0">
                     {form.description && (
                       <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-2">
                         {form.description}
@@ -312,22 +453,6 @@ export default function Forms2() {
                           {new Date(form.createdAt).toLocaleDateString()}
                         </span>
                       </div>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center space-x-2">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          form.isActive 
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-                            : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
-                        }`}>
-                          {form.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {themeName}
-                        </span>
-                      </div>
-                      
                       <span className="text-xs text-gray-500 dark:text-gray-400">
                         {form.responseCount} response{form.responseCount !== 1 ? 's' : ''}
                       </span>

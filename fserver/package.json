@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently \"NODE_ENV=development tsx index.ts\" \"vite --host 0.0.0.0\"",
     "dev:server": "NODE_ENV=development tsx index.ts",
-    "dev:client": "vite --host 0.0.0.0 --allowed-hosts all",
+    "dev:client": "vite --host 0.0.0.0",
     "build": "vite build && esbuild index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js"
   },

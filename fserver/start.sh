@@ -12,7 +12,7 @@ sleep 2
 
 # Start the frontend development server
 echo "Starting frontend server on port 3002..."
-npm run dev:client &
+npx vite --host 0.0.0.0 --port 3002 &
 FRONTEND_PID=$!
 
 echo "Backend PID: $BACKEND_PID"

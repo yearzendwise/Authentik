@@ -11,7 +11,22 @@ import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 
-export function FormWizard() {
+interface FormWizardProps {
+  editMode?: boolean;
+  formData?: {
+    id: string;
+    title: string;
+    description: string;
+    formData: string;
+    theme: string;
+    isActive: boolean;
+    responseCount: number;
+    createdAt: string;
+    updatedAt: string;
+  };
+}
+
+export function FormWizard({ editMode = false, formData: existingFormData }: FormWizardProps) {
   const { isAuthenticated, isLoading: authLoading } = useReduxAuth();
   const { hasInitialized } = useAuth();
   const [, setLocation] = useLocation();
@@ -47,7 +62,7 @@ export function FormWizard() {
     completeWizard,
     resetWizard,
     checkStorageState
-  } = useFormWizard();
+  } = useFormWizard(editMode ? existingFormData : undefined);
 
   const canProceedToStyle = wizardState.formData.elements.length > 0;
   const canProceedToPreview = wizardState.selectedTheme !== null;
@@ -93,30 +108,37 @@ export function FormWizard() {
         })
       };
 
-      console.log('Saving form:', formDataToSave);
+      console.log(`${editMode ? 'Updating' : 'Creating'} form:`, formDataToSave);
 
-      // Make authenticated API call to save the form
-      const response = await apiRequest('POST', '/api/forms', formDataToSave);
+      // Make authenticated API call to create or update the form
+      const url = editMode && existingFormData ? `/api/forms/${existingFormData.id}` : '/api/forms';
+      const method = editMode && existingFormData ? 'PUT' : 'POST';
+      const response = await apiRequest(method, url, formDataToSave);
       const result = await response.json();
       
-      console.log('Form saved successfully:', result);
+      console.log(`Form ${editMode ? 'updated' : 'created'} successfully:`, result);
       
       // Invalidate the forms cache to refresh the forms list
       queryClient.invalidateQueries({ queryKey: ['/api/forms'] });
+      if (editMode && existingFormData) {
+        queryClient.invalidateQueries({ queryKey: ['/api/forms', existingFormData.id] });
+      }
       
       toast({
         title: "Success",
-        description: `Form "${wizardState.formData.title}" has been saved successfully!`,
+        description: `Form "${wizardState.formData.title}" has been ${editMode ? 'updated' : 'saved'} successfully!`,
       });
       
-      // Clear the form data from storage and reset wizard state
-      console.log('🧹 Clearing form wizard data from storage...');
-      resetWizard();
-      console.log('✅ Form wizard data cleared from storage');
-      
-      // Verify storage is cleared
-      console.log('🔍 After clearing storage:');
-      checkStorageState();
+      // Clear the form data from storage and reset wizard state (only for new forms)
+      if (!editMode) {
+        console.log('🧹 Clearing form wizard data from storage...');
+        resetWizard();
+        console.log('✅ Form wizard data cleared from storage');
+        
+        // Verify storage is cleared
+        console.log('🔍 After clearing storage:');
+        checkStorageState();
+      }
       
       // Complete the wizard and redirect
       completeWizard();

@@ -27,6 +27,7 @@ const ShopDetailsPage = lazy(() => import("@/pages/shops/$id"));
 const EditShopPage = lazy(() => import("@/pages/shops/$id.edit"));
 const FormsPage = lazy(() => import("@/pages/forms"));
 const FormsAddPage = lazy(() => import("@/pages/forms/add"));
+const FormsEditPage = lazy(() => import("@/pages/forms/edit"));
 const Subscribe = lazy(() => import("@/pages/subscribe"));
 const VerifyEmailPage = lazy(() => import("@/pages/verify-email"));
 const PendingVerificationPage = lazy(() => import("@/pages/pending-verification"));
@@ -156,6 +157,7 @@ function Router() {
                 <Route path="/shops/:id/edit" component={EditShopPage} />
                 <Route path="/forms" component={FormsPage} />
                 <Route path="/forms/add" component={FormsAddPage} />
+                <Route path="/forms/:id/edit" component={FormsEditPage} />
                 <Route path="/profile" component={ProfilePage} />
                 <Route path="/sessions" component={SessionsPage} />
                 <Route path="/users" component={UsersPage} />

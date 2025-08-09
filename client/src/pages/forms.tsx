@@ -206,12 +206,7 @@ export default function Forms2() {
   };
 
   const handleEditForm = (formId: string) => {
-    // TODO: Navigate to form edit page
-    console.log('Edit form', formId);
-    toast({
-      title: "Not implemented",
-      description: "Form editing feature coming soon!",
-    });
+    setLocation(`/forms/${formId}/edit`);
   };
 
   const handleDeleteForm = (formId: string) => {

@@ -486,10 +486,57 @@ function clearStorage() {
   }
 }
 
-export function useFormWizard() {
-  // Initialize state from storage or default values
+interface ExistingFormData {
+  id: string;
+  title: string;
+  description: string;
+  formData: string;
+  theme: string;
+  isActive: boolean;
+  responseCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function useFormWizard(existingForm?: ExistingFormData) {
+  // Initialize state from storage, existing form, or default values
   const getInitialState = (): WizardState => {
-    const saved = loadFromStorage();
+    // If editing an existing form, parse its data
+    if (existingForm) {
+      try {
+        const parsedFormData = JSON.parse(existingForm.formData);
+        const parsedTheme = JSON.parse(existingForm.theme);
+        
+        // Find the theme by ID
+        const selectedTheme = defaultThemes.find(t => t.id === parsedTheme.id);
+        
+        return {
+          currentStep: 'build',
+          formData: {
+            title: existingForm.title,
+            elements: parsedFormData.elements || [],
+            settings: {
+              description: existingForm.description || '',
+              showProgressBar: parsedFormData.settings?.showProgressBar || false,
+              allowSaveProgress: parsedFormData.settings?.allowSaveProgress || false,
+              showFormTitle: parsedFormData.settings?.showFormTitle ?? true,
+              compactMode: parsedFormData.settings?.compactMode || false,
+              ...parsedFormData.settings
+            }
+          },
+          selectedTheme: selectedTheme ? {
+            ...selectedTheme,
+            customColors: parsedTheme.customColors || null
+          } : null,
+          isComplete: false
+        };
+      } catch (error) {
+        console.error('Failed to parse existing form data:', error);
+      }
+    }
+    
+    // Fallback to saved state or defaults
+    const saved = !existingForm ? loadFromStorage() : null;
     return saved || {
       currentStep: 'build',
       formData: {

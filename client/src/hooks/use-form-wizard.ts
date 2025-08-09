@@ -440,10 +440,12 @@ function saveToStorage(data: WizardState) {
   try {
     // Try localStorage first
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    console.log('💾 Form wizard data saved to localStorage');
   } catch (error) {
     try {
       // Fallback to sessionStorage
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      console.log('💾 Form wizard data saved to sessionStorage (localStorage failed)');
     } catch (fallbackError) {
       console.warn('Failed to save form data to storage:', fallbackError);
     }
@@ -478,6 +480,7 @@ function clearStorage() {
   try {
     localStorage.removeItem(STORAGE_KEY);
     sessionStorage.removeItem(STORAGE_KEY);
+    console.log('🗑️ Form wizard storage cleared from localStorage and sessionStorage');
   } catch (error) {
     console.warn('Failed to clear storage:', error);
   }
@@ -632,6 +635,17 @@ export function useFormWizard() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [wizardState]);
 
+  // Debug function to check storage state
+  const checkStorageState = () => {
+    const localData = localStorage.getItem(STORAGE_KEY);
+    const sessionData = sessionStorage.getItem(STORAGE_KEY);
+    console.log('🔍 Storage Debug:', {
+      localStorage: localData ? 'HAS DATA' : 'EMPTY',
+      sessionStorage: sessionData ? 'HAS DATA' : 'EMPTY',
+      localDataPreview: localData ? JSON.parse(localData).formData?.title : null
+    });
+  };
+
   return {
     wizardState,
     themes: defaultThemes,
@@ -642,6 +656,7 @@ export function useFormWizard() {
     customizeThemeColors,
     resetThemeColors,
     completeWizard,
-    resetWizard
+    resetWizard,
+    checkStorageState
   };
 }

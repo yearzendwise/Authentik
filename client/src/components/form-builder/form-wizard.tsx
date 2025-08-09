@@ -7,11 +7,16 @@ import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
 import { useReduxAuth } from '@/hooks/useReduxAuth';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocation } from 'wouter';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 
 export function FormWizard() {
   const { isAuthenticated, isLoading: authLoading } = useReduxAuth();
   const { hasInitialized } = useAuth();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
 
   // Redirect unauthenticated users immediately
   if (hasInitialized && !isAuthenticated) {
@@ -40,25 +45,100 @@ export function FormWizard() {
     customizeThemeColors,
     resetThemeColors,
     completeWizard,
-    resetWizard
+    resetWizard,
+    checkStorageState
   } = useFormWizard();
 
   const canProceedToStyle = wizardState.formData.elements.length > 0;
   const canProceedToPreview = wizardState.selectedTheme !== null;
 
-  const handleSave = () => {
-    // TODO: Implement actual save functionality
-    console.log('Saving form:', {
-      title: wizardState.formData.title,
-      elements: wizardState.formData.elements,
-      theme: wizardState.selectedTheme
-    });
-    completeWizard();
+  const handleSave = async () => {
+    if (!wizardState.selectedTheme) {
+      toast({
+        title: "Error",
+        description: "No theme selected. Please go back to step 2 and select a theme.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (wizardState.formData.elements.length === 0) {
+      toast({
+        title: "Error",
+        description: "Cannot save an empty form. Please add some form elements.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    
+    // Check storage state before saving
+    console.log('📝 Before saving form:');
+    checkStorageState();
+    
+    try {
+      // Prepare form data for saving
+      const formDataToSave = {
+        title: wizardState.formData.title,
+        description: wizardState.formData.settings?.description || '',
+        formData: JSON.stringify({
+          elements: wizardState.formData.elements,
+          settings: wizardState.formData.settings || {}
+        }),
+        theme: JSON.stringify({
+          id: wizardState.selectedTheme.id,
+          name: wizardState.selectedTheme.name,
+          customColors: wizardState.selectedTheme.customColors || null
+        })
+      };
+
+      console.log('Saving form:', formDataToSave);
+
+      // Make authenticated API call to save the form
+      const response = await apiRequest('POST', '/api/forms', formDataToSave);
+      const result = await response.json();
+      
+      console.log('Form saved successfully:', result);
+      
+      toast({
+        title: "Success",
+        description: `Form "${wizardState.formData.title}" has been saved successfully!`,
+      });
+      
+      // Clear the form data from storage and reset wizard state
+      console.log('🧹 Clearing form wizard data from storage...');
+      resetWizard();
+      console.log('✅ Form wizard data cleared from storage');
+      
+      // Verify storage is cleared
+      console.log('🔍 After clearing storage:');
+      checkStorageState();
+      
+      // Complete the wizard and redirect
+      completeWizard();
+      setLocation('/forms'); // Redirect to forms list
+    } catch (error: any) {
+      console.error('Error saving form:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save form. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleExport = () => {
     // TODO: Implement export functionality
     console.log('Exporting form:', wizardState);
+  };
+
+  // Development helper to test storage functionality
+  const handleTestStorage = () => {
+    console.log('🧪 Testing storage functionality...');
+    checkStorageState();
   };
 
 
@@ -188,6 +268,7 @@ export function FormWizard() {
             onExport={handleExport}
             onCustomizeColors={customizeThemeColors}
             onResetColors={resetThemeColors}
+            isSaving={isSaving}
           />
         )}
       </div>

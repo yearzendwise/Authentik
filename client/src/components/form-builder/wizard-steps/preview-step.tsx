@@ -4,7 +4,7 @@ import { CustomThemedForm } from '@/components/form-builder/custom-themed-form';
 import { ColorCustomizer } from '@/components/form-builder/color-customizer';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Save, Download, Code, Mail, Clock, User } from 'lucide-react';
+import { Save, Download, Code, Mail, Clock, User, Loader2 } from 'lucide-react';
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { lightenColor } from '@/utils/theme-color-utils';
 
@@ -62,6 +62,7 @@ interface PreviewStepProps {
   onExport: () => void;
   onCustomizeColors: (colors: CustomColors) => void;
   onResetColors: () => void;
+  isSaving?: boolean;
 }
 
 export function PreviewStep({ 
@@ -72,7 +73,8 @@ export function PreviewStep({
   onSave, 
   onExport,
   onCustomizeColors,
-  onResetColors
+  onResetColors,
+  isSaving = false
 }: PreviewStepProps) {
   const [showJsonPreview, setShowJsonPreview] = useState(false);
   const [showEmailPreview, setShowEmailPreview] = useState(false);
@@ -435,9 +437,17 @@ export function PreviewStep({
               <Download className="w-4 h-4" />
               <span>Export</span>
             </Button>
-            <Button onClick={onSave} className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700">
-              <Save className="w-4 h-4" />
-              <span>Save Form</span>
+            <Button 
+              onClick={onSave} 
+              disabled={isSaving}
+              className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+            >
+              {isSaving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              <span>{isSaving ? 'Saving...' : 'Save Form'}</span>
             </Button>
           </div>
         </div>

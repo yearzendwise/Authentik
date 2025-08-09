@@ -433,21 +433,24 @@ export function FormPreviewModal({ isOpen, onClose, form, formSettings = {} }: F
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden p-0">
         <DialogHeader className="p-4 border-b border-gray-200 bg-white">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Eye className="w-5 h-5 text-blue-600" />
-              <DialogTitle className="text-lg font-semibold text-gray-900">
-                Form Preview: {form.title}
-              </DialogTitle>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <Eye className="w-5 h-5 text-blue-600" />
+                <DialogTitle className="text-lg font-semibold text-gray-900">
+                  Form Preview: {form.title}
+                </DialogTitle>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleFormReset}
+                className="flex items-center space-x-1"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Reset Form</span>
+              </Button>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleFormReset}
-              className="flex items-center space-x-1"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span>Reset Form</span>
-            </Button>
+            <div>{/* Space for built-in close button */}</div>
           </div>
         </DialogHeader>
 

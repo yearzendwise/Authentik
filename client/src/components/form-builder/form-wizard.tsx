@@ -7,7 +7,7 @@ import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
 import { useReduxAuth } from '@/hooks/useReduxAuth';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocation } from 'wouter';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 
@@ -100,6 +100,9 @@ export function FormWizard() {
       const result = await response.json();
       
       console.log('Form saved successfully:', result);
+      
+      // Invalidate the forms cache to refresh the forms list
+      queryClient.invalidateQueries({ queryKey: ['/api/forms'] });
       
       toast({
         title: "Success",

@@ -4,7 +4,7 @@ echo "Starting Form Frontend Server..."
 
 # Start the backend API server
 echo "Starting backend server on port 3001..."
-NODE_ENV=development tsx index.ts &
+NODE_ENV=development npx --yes tsx index.ts &
 BACKEND_PID=$!
 
 # Wait for backend to start
@@ -12,7 +12,7 @@ sleep 2
 
 # Start the frontend development server
 echo "Starting frontend server on port 3002..."
-vite --port 3002 --host 0.0.0.0 &
+npx --yes vite --port 3002 --host 0.0.0.0 &
 FRONTEND_PID=$!
 
 echo "Backend PID: $BACKEND_PID"

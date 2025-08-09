@@ -30,11 +30,11 @@ const getThemePreview = (themeId: string): string => {
     'modern': 'bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500',
     'glassmorphism': 'bg-gradient-to-br from-white/40 to-white/10 backdrop-blur-xl border border-white/20 shadow-lg',
     'professional': 'bg-gray-50 border-l-4 border-blue-600 shadow-sm',
-    'playful': 'bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400 rounded-2xl',
+    'playful': 'bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400',
     'elegant': 'bg-gradient-to-r from-gray-900 to-gray-700 border border-yellow-400/20',
     'modern-bold': 'bg-gradient-to-br from-orange-500 via-red-500 to-purple-600',
     'neon': 'bg-black border-2 border-cyan-400 shadow-cyan-400/50 shadow-lg',
-    'nature': 'bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl',
+    'nature': 'bg-gradient-to-r from-green-500 to-emerald-600',
     'luxury': 'bg-gradient-to-r from-purple-900 to-indigo-900 border border-yellow-400/30',
     'retro': 'bg-gradient-to-r from-orange-400 to-pink-500 border-4 border-yellow-300',
     'neo-modern': 'bg-gradient-to-br from-slate-800 via-gray-800 to-black border border-green-400/30',
@@ -367,9 +367,9 @@ export default function Forms2() {
               }
 
               return (
-                <Card key={form.id} className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300 group overflow-hidden">
+                <Card key={form.id} className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300 group overflow-hidden rounded-none">
                   {/* Theme Preview Header */}
-                  <div className={`h-20 relative flex items-center justify-center overflow-hidden ${themeData.preview}`}>
+                  <div className={`h-20 relative flex items-center justify-center overflow-hidden ${themeData.preview} rounded-none`}>
                     <div className="text-center px-4">
                       {/* Theme-specific preview content */}
                       {getThemePreviewContent(themeData.id)}

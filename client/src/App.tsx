@@ -27,15 +27,20 @@ const ShopDetailsPage = lazy(() => import("@/pages/shops/$id"));
 const EditShopPage = lazy(() => import("@/pages/shops/$id.edit"));
 const FormsPage = lazy(() => import("@/pages/forms"));
 const FormsAddPage = lazy(() => import("@/pages/forms/add"));
+const FormsEditPage = lazy(() => import("@/pages/forms/edit"));
 const Subscribe = lazy(() => import("@/pages/subscribe"));
 const VerifyEmailPage = lazy(() => import("@/pages/verify-email"));
 const PendingVerificationPage = lazy(() => import("@/pages/pending-verification"));
 const NotFound = lazy(() => import("@/pages/not-found"));
-const CampaignsPage = lazy(() => import("@/pages/campaigns").then(module => ({ default: module.CampaignsPage })));
+const CreateCampaignPage = lazy(() => import("@/pages/campaigns/create"));
+const EmailCampaignsPage = lazy(() => import("@/pages/email-campaigns"));
+const EmailTestPage = lazy(() => import("@/pages/email-test"));
+const EmailApprovalsPage = lazy(() => import("@/pages/email-approvals"));
 const EmailContactsPage = lazy(() => import("@/pages/email-contacts"));
 const NewEmailContactPage = lazy(() => import("@/pages/email-contacts/new"));
 const ViewEmailContactPage = lazy(() => import("@/pages/email-contacts/view"));
 const EmailAnalyticsPage = lazy(() => import("@/pages/email-analytics"));
+const EditEmailCampaignPage = lazy(() => import("@/pages/email-campaigns/edit"));
 
 // Loading component for Suspense fallback
 const PageLoader = () => (
@@ -136,7 +141,11 @@ function Router() {
                 <Route path="/newsletter" component={NewsletterPage} />
                 <Route path="/newsletter/create" component={NewsletterCreatePage} />
                 <Route path="/company" component={CompanyPage} />
-                <Route path="/campaigns" component={CampaignsPage} />
+                <Route path="/campaigns/create" component={CreateCampaignPage} />
+                <Route path="/email-campaigns" component={EmailCampaignsPage} />
+                <Route path="/email-campaigns/edit/:id" component={EditEmailCampaignPage} />
+                <Route path="/email-test" component={EmailTestPage} />
+                <Route path="/email-approvals" component={EmailApprovalsPage} />
                 <Route path="/email-contacts" component={EmailContactsPage} />
                 <Route path="/email-contacts/new" component={NewEmailContactPage} />
                 <Route path="/email-contacts/view/:id" component={ViewEmailContactPage} />
@@ -148,6 +157,7 @@ function Router() {
                 <Route path="/shops/:id/edit" component={EditShopPage} />
                 <Route path="/forms" component={FormsPage} />
                 <Route path="/forms/add" component={FormsAddPage} />
+                <Route path="/forms/:id/edit" component={FormsEditPage} />
                 <Route path="/profile" component={ProfilePage} />
                 <Route path="/sessions" component={SessionsPage} />
                 <Route path="/users" component={UsersPage} />

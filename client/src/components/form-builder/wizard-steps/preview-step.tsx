@@ -4,7 +4,7 @@ import { CustomThemedForm } from '@/components/form-builder/custom-themed-form';
 import { ColorCustomizer } from '@/components/form-builder/color-customizer';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Save, Download, Code, Mail, Clock, User } from 'lucide-react';
+import { Save, Download, Code, Mail, Clock, User, Loader2 } from 'lucide-react';
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { lightenColor } from '@/utils/theme-color-utils';
 
@@ -62,6 +62,7 @@ interface PreviewStepProps {
   onExport: () => void;
   onCustomizeColors: (colors: CustomColors) => void;
   onResetColors: () => void;
+  isSaving?: boolean;
 }
 
 export function PreviewStep({ 
@@ -72,7 +73,8 @@ export function PreviewStep({
   onSave, 
   onExport,
   onCustomizeColors,
-  onResetColors
+  onResetColors,
+  isSaving = false
 }: PreviewStepProps) {
   const [showJsonPreview, setShowJsonPreview] = useState(false);
   const [showEmailPreview, setShowEmailPreview] = useState(false);
@@ -214,7 +216,7 @@ export function PreviewStep({
   // Show error if no theme is selected
   if (!selectedTheme) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-neutral-50">
+      <div className="flex flex-col items-center justify-center bg-neutral-50">
         <div className="text-center">
           <div className="text-lg font-medium text-slate-800 mb-2">No theme selected</div>
           <div className="text-sm text-slate-600">Please go back to Step 2 and select a theme</div>
@@ -290,18 +292,63 @@ export function PreviewStep({
     }
   }, []);
 
-  // Calculate progress percentage based on filled fields
+  // Calculate progress percentage based on filled fields with accurate field units
+  // - Treat checkbox group as 1 unit (filled when any option is selected)
+  // - Treat full-name as 2 units (first and last)
+  // - Ignore non-input UI elements (image, spacer, auto buttons)
   const progressPercentage = useMemo(() => {
-    const totalFields = elements.length;
-    if (totalFields === 0) return 0;
-    
-    const filledFields = Object.keys(liveFormData).filter(key => {
-      const value = liveFormData[key];
-      return value !== null && value !== undefined && value !== '' && value !== false;
-    }).length;
-    
-    return Math.round((filledFields / totalFields) * 100);
-  }, [elements.length, liveFormData]);
+    if (!elements || elements.length === 0) return 0;
+
+    // Total field units expected to be filled
+    const totalUnits = elements.reduce((acc, el) => {
+      switch (el.type) {
+        case 'full-name':
+          return acc + 2;
+        case 'image':
+        case 'spacer':
+          return acc; // not input fields
+        default:
+          return acc + 1;
+      }
+    }, 0);
+
+    if (totalUnits === 0) return 0;
+
+    // Filled units based on current live data
+    const filledUnits = elements.reduce((acc, el) => {
+      switch (el.type) {
+        case 'checkbox': {
+          const hasAnyChecked = (el.options || []).some((opt) => {
+            const key = `${el.name}_${opt}`;
+            const val = (liveFormData as Record<string, any>)[key];
+            return val !== null && val !== undefined && val !== '' && val !== false;
+          });
+          return acc + (hasAnyChecked ? 1 : 0);
+        }
+        case 'full-name': {
+          const firstFilled = (liveFormData as Record<string, any>)[`${el.name}_first`];
+          const lastFilled = (liveFormData as Record<string, any>)[`${el.name}_last`];
+          const unit1 = firstFilled ? 1 : 0;
+          const unit2 = lastFilled ? 1 : 0;
+          return acc + unit1 + unit2;
+        }
+        case 'image':
+        case 'spacer':
+          return acc;
+        case 'rate-scale': {
+          const val = (liveFormData as Record<string, any>)[el.name];
+          // Treat 0, null, undefined, "", false, or "NA" as not filled
+          return acc + (val !== null && val !== undefined && val !== '' && val !== false && val !== 'NA' ? 1 : 0);
+        }
+        default: {
+          const val = (liveFormData as Record<string, any>)[el.name];
+          return acc + (val !== null && val !== undefined && val !== '' && val !== false ? 1 : 0);
+        }
+      }
+    }, 0);
+
+    return Math.min(100, Math.round((filledUnits / totalUnits) * 100));
+  }, [elements, liveFormData]);
 
   // Progress bar component
   const ThemedProgressBar = () => {
@@ -313,9 +360,9 @@ export function PreviewStep({
           <span className={`text-sm font-medium ${selectedTheme.id === 'elegant' || selectedTheme.id === 'neon' || selectedTheme.id === 'luxury' ? 'text-gray-300' : 'text-gray-700'}`}>
             Form Progress
           </span>
-          <span className={`text-sm font-medium ${selectedTheme.id === 'elegant' || selectedTheme.id === 'neon' || selectedTheme.id === 'luxury' ? 'text-gray-300' : 'text-gray-700'}`}>
-            {progressPercentage}%
-          </span>
+           <span className={`text-sm font-medium ${selectedTheme.id === 'elegant' || selectedTheme.id === 'neon' || selectedTheme.id === 'luxury' ? 'text-gray-300' : 'text-gray-700'}`}>
+             {progressPercentage}%
+           </span>
         </div>
         <div className={themeStyles.progressBar.container}>
           <div 
@@ -413,7 +460,7 @@ export function PreviewStep({
   }, [selectedTheme?.customColors]);
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex flex-col">
       {/* Header */}
       <div className="bg-white/95 backdrop-blur-sm border-b border-slate-200/60 px-6 py-5 shadow-sm">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
@@ -435,9 +482,17 @@ export function PreviewStep({
               <Download className="w-4 h-4" />
               <span>Export</span>
             </Button>
-            <Button onClick={onSave} className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700">
-              <Save className="w-4 h-4" />
-              <span>Save Form</span>
+            <Button 
+              onClick={onSave} 
+              disabled={isSaving}
+              className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+            >
+              {isSaving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              <span>{isSaving ? 'Saving...' : 'Save Form'}</span>
             </Button>
           </div>
         </div>
@@ -445,7 +500,7 @@ export function PreviewStep({
 
       {/* Preview */}
       <div 
-        className={`flex-1 overflow-y-auto p-6 ${!selectedTheme.customColors ? themeStyles.background : ''}`}
+        className={`p-6 ${!selectedTheme.customColors ? themeStyles.background : ''}`}
         style={selectedTheme.customColors ? pageStyle : {}}
       >
         <div 

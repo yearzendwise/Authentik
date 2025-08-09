@@ -1,307 +1,409 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { 
-  Mail, 
-  Send, 
-  Plus, 
-  Search, 
-  Filter,
-  MoreVertical,
-  Clock,
-  Users,
-  TrendingUp,
-  Eye,
-  BarChart3,
-  Calendar,
-  ChevronRight
-} from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
+import { Plus, Search, Filter, MoreVertical, Edit, Trash2, Target, TrendingUp, Calendar, DollarSign } from 'lucide-react';
+import { format } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import { Skeleton } from '@/components/ui/skeleton';
+import { type Campaign } from '@shared/schema';
 
-interface Campaign {
-  id: string;
-  name: string;
-  status: "draft" | "scheduled" | "sent" | "sending";
-  recipients: number;
-  sentCount: number;
-  openRate: number;
-  clickRate: number;
-  createdAt: string;
-  scheduledFor?: string;
-  sentAt?: string;
-}
+const statusColors = {
+  draft: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
+  active: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+  paused: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+  completed: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+  cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+};
 
-const mockCampaigns: Campaign[] = [
-  {
-    id: "1",
-    name: "Summer Sale Announcement",
-    status: "sent",
-    recipients: 5420,
-    sentCount: 5420,
-    openRate: 68.5,
-    clickRate: 24.3,
-    createdAt: "2025-07-20",
-    sentAt: "2025-07-22",
-  },
-  {
-    id: "2",
-    name: "Q3 Product Updates",
-    status: "scheduled",
-    recipients: 3200,
-    sentCount: 0,
-    openRate: 0,
-    clickRate: 0,
-    createdAt: "2025-07-25",
-    scheduledFor: "2025-08-01T14:00:00Z",
-  },
-  {
-    id: "3",
-    name: "Customer Feedback Survey",
-    status: "sending",
-    recipients: 8900,
-    sentCount: 4230,
-    openRate: 45.2,
-    clickRate: 12.8,
-    createdAt: "2025-07-28",
-  },
-  {
-    id: "4",
-    name: "Welcome Series - Day 1",
-    status: "draft",
-    recipients: 1200,
-    sentCount: 0,
-    openRate: 0,
-    clickRate: 0,
-    createdAt: "2025-07-29",
-  },
-];
+const typeColors = {
+  email: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
+  sms: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
+  push: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300',
+  social: 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-300',
+};
 
-export default function EmailCampaigns() {
-  const [campaigns] = useState<Campaign[]>(mockCampaigns);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+function CampaignStats() {
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ['/api/campaign-stats'],
+  });
 
-  const getStatusBadge = (status: Campaign["status"]) => {
-    const statusConfig = {
-      draft: { color: "bg-gray-100 text-gray-700", label: "Draft" },
-      scheduled: { color: "bg-blue-100 text-blue-700", label: "Scheduled" },
-      sending: { color: "bg-yellow-100 text-yellow-700", label: "Sending" },
-      sent: { color: "bg-green-100 text-green-700", label: "Sent" },
-    };
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <Skeleton className="h-4 w-[100px]" />
+              <Skeleton className="h-4 w-4" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-[60px] mb-2" />
+              <Skeleton className="h-3 w-[120px]" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
-    const config = statusConfig[status];
-    return <Badge className={config.color}>{config.label}</Badge>;
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", { 
-      month: "short", 
-      day: "numeric", 
-      year: "numeric" 
-    });
-  };
+  const statsData = [
+    {
+      title: 'Total Campaigns',
+      value: (stats as any)?.totalCampaigns || 0,
+      icon: Target,
+      description: 'All campaigns created',
+    },
+    {
+      title: 'Active Campaigns',
+      value: (stats as any)?.activeCampaigns || 0,
+      icon: TrendingUp,
+      description: 'Currently running',
+    },
+    {
+      title: 'Draft Campaigns',
+      value: (stats as any)?.draftCampaigns || 0,
+      icon: Edit,
+      description: 'In preparation',
+    },
+    {
+      title: 'Completed',
+      value: (stats as any)?.completedCampaigns || 0,
+      icon: Calendar,
+      description: 'Successfully finished',
+    },
+  ];
 
   return (
-    <div className="p-6">
-      {/* Page Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Email Campaigns</h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              Manage and track your email marketing campaigns
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      {statsData.map((stat, index) => (
+        <Card key={index}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              {stat.title}
+            </CardTitle>
+            <stat.icon className="h-4 w-4 text-gray-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">
+              {stat.value}
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {stat.description}
             </p>
-          </div>
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="w-4 h-4 mr-2" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function CampaignsTable({ campaigns, onDelete }: { campaigns: Campaign[]; onDelete: (id: string) => void }) {
+  const [, setLocation] = useLocation();
+
+  if (campaigns.length === 0) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-16">
+          <Target className="h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            No campaigns found
+          </h3>
+          <p className="text-gray-500 dark:text-gray-400 text-center mb-6">
+            Get started by creating your first marketing campaign.
+          </p>
+          <Button onClick={() => setLocation('/campaigns/create')}>
+            <Plus className="h-4 w-4 mr-2" />
             Create Campaign
           </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Campaign</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Budget</TableHead>
+            <TableHead>Timeline</TableHead>
+            <TableHead>Performance</TableHead>
+            <TableHead className="w-[70px]"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {campaigns.map((campaign) => (
+            <TableRow key={campaign.id}>
+              <TableCell>
+                <div>
+                  <div className="font-medium text-gray-900 dark:text-white">
+                    {campaign.name}
+                  </div>
+                  {campaign.description && (
+                    <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-[300px]">
+                      {campaign.description}
+                    </div>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell>
+                <Badge className={typeColors[campaign.type as keyof typeof typeColors]}>
+                  {campaign.type}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <Badge className={statusColors[campaign.status as keyof typeof statusColors]}>
+                  {campaign.status}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                {campaign.budget ? (
+                  <div className="flex items-center gap-1">
+                    <DollarSign className="h-3 w-3" />
+                    <span>{parseFloat(campaign.budget).toLocaleString()}</span>
+                    <span className="text-xs text-gray-400">{campaign.currency}</span>
+                  </div>
+                ) : (
+                  <span className="text-gray-400">—</span>
+                )}
+              </TableCell>
+              <TableCell>
+                <div className="text-sm">
+                  {campaign.startDate && (
+                    <div>Start: {format(new Date(campaign.startDate), 'MMM dd, yyyy')}</div>
+                  )}
+                  {campaign.endDate && (
+                    <div className="text-gray-500">End: {format(new Date(campaign.endDate), 'MMM dd, yyyy')}</div>
+                  )}
+                  {!campaign.startDate && !campaign.endDate && (
+                    <span className="text-gray-400">Not scheduled</span>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="text-sm">
+                  <div>Impressions: {campaign.impressions?.toLocaleString() || 0}</div>
+                  <div className="text-gray-500">Clicks: {campaign.clicks?.toLocaleString() || 0}</div>
+                </div>
+              </TableCell>
+              <TableCell>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={() => setLocation(`/email-campaigns/edit/${campaign.id}`)}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </DropdownMenuItem>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Campaign</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{campaign.name}"? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => onDelete(campaign.id)}>
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Card>
+  );
+}
+
+export default function EmailCampaignsPage() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+
+  const { data: campaignsData, isLoading, error } = useQuery({
+    queryKey: ['/api/campaigns'],
+  });
+
+  const deleteCampaignMutation = useMutation({
+    mutationFn: async (campaignId: string) => {
+      return apiRequest('DELETE', `/api/campaigns/${campaignId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/campaign-stats'] });
+      toast({
+        title: 'Success',
+        description: 'Campaign deleted successfully.',
+      });
+    },
+    onError: (error: any) => {
+      console.error('Delete campaign error:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete campaign.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleDelete = (campaignId: string) => {
+    deleteCampaignMutation.mutate(campaignId);
+  };
+
+  // Filter campaigns
+  const filteredCampaigns = (campaignsData as any)?.campaigns?.filter((campaign: Campaign) => {
+    const matchesSearch = campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         campaign.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || campaign.status === statusFilter;
+    const matchesType = typeFilter === 'all' || campaign.type === typeFilter;
+    
+    return matchesSearch && matchesStatus && matchesType;
+  }) || [];
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="text-red-500 mb-4">
+              <Target className="h-16 w-16" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              Failed to load campaigns
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400 text-center">
+              {error?.message || 'An error occurred while fetching campaigns.'}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto py-8 px-4">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Email Campaigns
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Manage and track your marketing campaigns across all channels.
+          </p>
         </div>
+        <Button onClick={() => setLocation('/campaigns/create')}>
+          <Plus className="h-4 w-4 mr-2" />
+          Create Campaign
+        </Button>
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Campaigns</p>
-                <p className="text-2xl font-bold text-gray-900">{campaigns.length}</p>
-              </div>
-              <Mail className="text-blue-500 w-8 h-8" />
-            </div>
-          </CardContent>
-        </Card>
+      {/* Stats */}
+      <CampaignStats />
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Emails Sent</p>
-                <p className="text-2xl font-bold text-gray-900">13,870</p>
-              </div>
-              <Send className="text-green-500 w-8 h-8" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Avg Open Rate</p>
-                <p className="text-2xl font-bold text-gray-900">52.6%</p>
-              </div>
-              <Eye className="text-purple-500 w-8 h-8" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Avg Click Rate</p>
-                <p className="text-2xl font-bold text-gray-900">18.5%</p>
-              </div>
-              <TrendingUp className="text-orange-500 w-8 h-8" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters and Search */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <Input
-            type="text"
-            placeholder="Search campaigns..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px]">
-            <Filter className="w-4 h-4 mr-2" />
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Campaigns</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="scheduled">Scheduled</SelectItem>
-            <SelectItem value="sending">Sending</SelectItem>
-            <SelectItem value="sent">Sent</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Campaigns List */}
-      <Card>
+      {/* Filters */}
+      <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Recent Campaigns</CardTitle>
+          <CardTitle>Filters</CardTitle>
+          <CardDescription>Filter and search through your campaigns</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {campaigns.map((campaign) => (
-              <div
-                key={campaign.id}
-                className="p-4 border rounded-lg hover:border-blue-200 dark:hover:border-blue-800 transition-colors cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-gray-900 dark:text-white">
-                        {campaign.name}
-                      </h3>
-                      {getStatusBadge(campaign.status)}
-                    </div>
-                    
-                    <div className="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-400">
-                      <div className="flex items-center gap-1">
-                        <Users className="w-4 h-4" />
-                        <span>{campaign.recipients.toLocaleString()} recipients</span>
-                      </div>
-                      
-                      {campaign.status === "sent" && (
-                        <>
-                          <div className="flex items-center gap-1">
-                            <Eye className="w-4 h-4" />
-                            <span>{campaign.openRate}% opened</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <BarChart3 className="w-4 h-4" />
-                            <span>{campaign.clickRate}% clicked</span>
-                          </div>
-                        </>
-                      )}
-                      
-                      {campaign.status === "scheduled" && campaign.scheduledFor && (
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          <span>Scheduled for {formatDate(campaign.scheduledFor)}</span>
-                        </div>
-                      )}
-                      
-                      {campaign.status === "sending" && (
-                        <div className="flex items-center gap-1">
-                          <Send className="w-4 h-4" />
-                          <span>{campaign.sentCount.toLocaleString()} / {campaign.recipients.toLocaleString()} sent</span>
-                        </div>
-                      )}
-                      
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        <span>Created {formatDate(campaign.createdAt)}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 ml-4">
-                    <Button variant="ghost" size="sm">
-                      View Details
-                      <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Edit Campaign</DropdownMenuItem>
-                        <DropdownMenuItem>Duplicate</DropdownMenuItem>
-                        <DropdownMenuItem>View Analytics</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600">
-                          Delete Campaign
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search campaigns..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
-            ))}
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="paused">Paused</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filter by type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="email">Email</SelectItem>
+                <SelectItem value="sms">SMS</SelectItem>
+                <SelectItem value="push">Push</SelectItem>
+                <SelectItem value="social">Social</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
+
+      {/* Campaigns Table */}
+      {isLoading ? (
+        <Card>
+          <CardContent className="py-8">
+            <div className="space-y-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center space-x-4">
+                  <Skeleton className="h-12 w-12 rounded" />
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-4 w-[200px]" />
+                    <Skeleton className="h-4 w-[300px]" />
+                  </div>
+                  <Skeleton className="h-4 w-[100px]" />
+                  <Skeleton className="h-4 w-[100px]" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <CampaignsTable campaigns={filteredCampaigns} onDelete={handleDelete} />
+      )}
     </div>
   );
 }

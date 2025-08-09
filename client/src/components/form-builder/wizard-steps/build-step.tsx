@@ -15,9 +15,10 @@ interface BuildStepProps {
   initialTitle?: string;
   initialElements?: any[];
   initialSettings?: any;
+  isEditMode?: boolean;
 }
 
-export function BuildStep({ onDataChange, initialTitle, initialElements, initialSettings }: BuildStepProps) {
+export function BuildStep({ onDataChange, initialTitle, initialElements, initialSettings, isEditMode = false }: BuildStepProps) {
   const {
     formTitle,
     elements,
@@ -71,6 +72,13 @@ export function BuildStep({ onDataChange, initialTitle, initialElements, initial
       Object.keys(initialSettings).forEach(key => {
         updateFormSettings(key, initialSettings[key]);
       });
+    }
+  }, []);
+
+  // Ensure change propagation even if initial data was empty
+  useEffect(() => {
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
     }
   }, []);
   
@@ -152,7 +160,7 @@ export function BuildStep({ onDataChange, initialTitle, initialElements, initial
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex-1 flex relative h-full">
+      <div className="flex relative">
         {/* Left Sidebar - Component Palette */}
         <div className="hidden lg:block flex-none relative z-20">
           <ComponentPalette onAddElement={handleAddElement} />
@@ -191,7 +199,8 @@ export function BuildStep({ onDataChange, initialTitle, initialElements, initial
                 updateFormSettings(key, newSettings[key]);
               });
             }}
-            onClearForm={() => resetFormData('', [])}
+            onClearForm={isEditMode ? undefined : () => resetFormData('', [])}
+            hideClearButton={isEditMode}
           />
           
           {/* Element Properties - Only when element is selected */}

@@ -10,7 +10,7 @@ interface StyleStepProps {
 
 export function StyleStep({ themes, selectedTheme, onSelectTheme }: StyleStepProps) {
   return (
-    <div className="flex-1 flex flex-col bg-neutral-50">
+    <div className="flex flex-col bg-neutral-50">
       <div className="bg-white/95 backdrop-blur-sm border-b border-slate-200/60 px-6 py-5 shadow-sm">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl font-bold text-slate-800 mb-2">Choose Your Form Style</h2>
@@ -18,7 +18,7 @@ export function StyleStep({ themes, selectedTheme, onSelectTheme }: StyleStepPro
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="p-6">
         <div className="max-w-4xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {themes.map((theme) => (
@@ -57,6 +57,11 @@ export function StyleStep({ themes, selectedTheme, onSelectTheme }: StyleStepPro
                           LUXURY DESIGN
                         </div>
                       )}
+                      {theme.id === 'glassmorphism' && (
+                        <div className="text-white/90 font-semibold text-lg tracking-wide">
+                          Glassmorphism
+                        </div>
+                      )}
                       {theme.id === 'retro' && (
                         <div className="text-white font-black text-lg tracking-wider transform -skew-x-12 uppercase">
                           80S STYLE
@@ -92,12 +97,17 @@ export function StyleStep({ themes, selectedTheme, onSelectTheme }: StyleStepPro
                           MODERN BOLD
                         </div>
                       )}
+                      {theme.id === 'aurora' && (
+                        <div className="text-white font-extrabold text-lg tracking-wide">
+                          Aurora
+                        </div>
+                      )}
                       {theme.id === 'minimal' && (
                         <div className="text-gray-800 font-light text-lg tracking-wide">
                           MINIMAL
                         </div>
                       )}
-                      {!['neon', 'nature', 'luxury', 'retro', 'cosmic', 'brutalist', 'pastel-dream', 'professional', 'neo-modern', 'minimal', 'modern-bold'].includes(theme.id) && (
+                      {!['neon', 'nature', 'luxury', 'retro', 'cosmic', 'brutalist', 'pastel-dream', 'professional', 'neo-modern', 'minimal', 'modern-bold', 'glassmorphism', 'aurora'].includes(theme.id) && (
                         <>
                           <div className="text-white font-semibold opacity-90 text-lg">{theme.name}</div>
                           <div className="text-white text-sm opacity-60 mt-1">Theme Preview</div>
@@ -120,7 +130,7 @@ export function StyleStep({ themes, selectedTheme, onSelectTheme }: StyleStepPro
                           theme.id === 'nature' ? 'bg-white border-2 border-green-300 rounded-2xl' :
                           theme.id === 'luxury' ? 'bg-purple-800/50 border border-yellow-400 text-white' :
                           theme.id === 'retro' ? 'bg-yellow-50 border-3 border-orange-400' :
-                          theme.id === 'glassmorphism' ? 'bg-transparent backdrop-blur-xl border border-white/30 rounded-2xl text-white shadow-inner shadow-black/10' :
+                          theme.id === 'glassmorphism' ? 'bg-white/20 backdrop-blur-xl border border-white/30 rounded-2xl text-white shadow-inner shadow-black/10' :
                           theme.id === 'elegant' ? 'bg-gray-800 border border-gray-600 text-white rounded-lg' :
                           theme.id === 'playful' ? 'bg-pink-50 border-3 border-pink-300 rounded-2xl' :
                           theme.id === 'modern' ? 'bg-white/80 border-2 border-gray-200 rounded-xl backdrop-blur-sm' :
@@ -144,7 +154,7 @@ export function StyleStep({ themes, selectedTheme, onSelectTheme }: StyleStepPro
                           theme.id === 'nature' ? 'bg-white border-2 border-emerald-300 rounded-2xl' :
                           theme.id === 'luxury' ? 'bg-purple-800/50 border border-yellow-400 text-white' :
                           theme.id === 'retro' ? 'bg-yellow-50 border-3 border-pink-400' :
-                          theme.id === 'glassmorphism' ? 'bg-transparent backdrop-blur-xl border border-white/30 rounded-2xl text-white shadow-inner shadow-black/10' :
+                          theme.id === 'glassmorphism' ? 'bg-white/20 backdrop-blur-xl border border-white/30 rounded-2xl text-white shadow-inner shadow-black/10' :
                           theme.id === 'elegant' ? 'bg-gray-800 border border-gray-600 text-white rounded-lg' :
                           theme.id === 'playful' ? 'bg-pink-50 border-3 border-purple-300 rounded-2xl' :
                           theme.id === 'modern' ? 'bg-white/80 border-2 border-gray-200 rounded-xl backdrop-blur-sm' :

@@ -23,6 +23,8 @@ import {
   updateCompanySchema,
   createNewsletterSchema,
   updateNewsletterSchema,
+  createCampaignSchema,
+  updateCampaignSchema,
   type UserRole,
   type ShopFilters,
   createShopSchema,
@@ -36,6 +38,8 @@ import * as QRCode from "qrcode";
 import { UAParser } from "ua-parser-js";
 import { createHash } from "crypto";
 import { emailService } from "./emailService";
+import { Resend } from 'resend';
+const resend = new Resend(process.env.RESEND_API_KEY);
 import {
   sanitizeUserInput,
   sanitizeEmail,
@@ -795,6 +799,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.error("Resend verification error:", error);
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Reviewer approval request: generate signed approval link and email the reviewer
+  app.post("/api/email/reviewer-request", authenticateToken, async (req: any, res) => {
+    try {
+      const { emailId, reviewerEmail, reviewerId, subject } = req.body as {
+        emailId: string;
+        reviewerEmail?: string;
+        reviewerId?: string;
+        subject?: string;
+      };
+
+      if (!emailId) {
+        return res.status(400).json({ message: "emailId is required" });
+      }
+
+      // Resolve reviewer email if only reviewerId is provided
+      let toEmail = reviewerEmail;
+      if (!toEmail && reviewerId) {
+        const reviewer = await storage.getUser(reviewerId, req.user.tenantId);
+        if (!reviewer) {
+          return res.status(404).json({ message: "Reviewer not found" });
+        }
+        toEmail = reviewer.email;
+      }
+
+      if (!toEmail) {
+        return res.status(400).json({ message: "reviewerEmail or reviewerId is required" });
+      }
+
+      // Build workflow ID to match Go server convention
+      const workflowId = `reviewer-email-workflow-${emailId}`;
+
+      // Sign approval token compatible with Go server
+      const jwtSecret = process.env.JWT_SECRET || "";
+      if (!jwtSecret) {
+        return res.status(500).json({ message: "JWT secret not configured" });
+      }
+
+      const token = jwt.sign(
+        {
+          emailId,
+          workflowId,
+        },
+        jwtSecret,
+        { expiresIn: "7d" },
+      );
+
+      const approveUrl = `${process.env.GO_EMAIL_SERVER_BASE_URL || "https://tengine.zendwise.work"}/approve-email?token=${encodeURIComponent(token)}`;
+
+      // Send email to reviewer
+      const approvalSubject = subject ? `Review required: ${subject}` : "Review required: Email campaign";
+      // Compose a basic approval email using our email service
+      try {
+        await resend.emails.send({
+          from: process.env.FROM_EMAIL || 'noreply@zendwise.work',
+          to: [toEmail],
+          subject: approvalSubject,
+          html: `<p>You have a pending email campaign awaiting your approval.</p>
+                 <p><a href="${approveUrl}" style="display:inline-block;padding:10px 16px;background:#4f46e5;color:white;border-radius:6px;text-decoration:none;">Approve Email</a></p>
+                 <p>If the button doesn't work, click or copy this link:</p>
+                 <p>${approveUrl}</p>`
+        } as any);
+      } catch (e) {
+        console.warn('Falling back to verification email template for approval link', e);
+        await emailService.sendVerificationEmail(
+          toEmail,
+          token,
+        );
+      }
+
+      // Also log link and return it in response for debugging
+      console.log("Reviewer approval URL:", approveUrl);
+      return res.status(200).json({ approveUrl });
+    } catch (err: any) {
+      console.error("Failed to send reviewer approval request:", err);
+      return res.status(500).json({ message: "Failed to send reviewer approval request" });
     }
   });
 
@@ -3781,6 +3863,137 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ tags });
     } catch (error) {
       console.error("Get contact tags error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // ====================================
+  // CAMPAIGN ROUTES
+  // ====================================
+
+  // Get all campaigns
+  app.get("/api/campaigns", authenticateToken, async (req: any, res) => {
+    try {
+      const campaigns = await storage.getAllCampaigns(req.user.tenantId);
+      res.json({ campaigns });
+    } catch (error) {
+      console.error("Get campaigns error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get single campaign
+  app.get("/api/campaigns/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const campaign = await storage.getCampaign(id, req.user.tenantId);
+
+      if (!campaign) {
+        return res.status(404).json({ message: "Campaign not found" });
+      }
+
+      res.json({ campaign });
+    } catch (error) {
+      console.error("Get campaign error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Create campaign
+  app.post("/api/campaigns", authenticateToken, async (req: any, res) => {
+    try {
+      console.log("🎯 [Campaign] Create request received:", {
+        body: req.body,
+        user: req.user?.id,
+        tenant: req.user?.tenantId
+      });
+      
+      const validatedData = createCampaignSchema.parse(req.body);
+      console.log("🎯 [Campaign] Validation successful:", validatedData);
+      
+      const campaign = await storage.createCampaign(
+        validatedData,
+        req.user.id,
+        req.user.tenantId
+      );
+      
+      console.log("🎯 [Campaign] Created successfully:", campaign.id);
+      res.status(201).json({ campaign });
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        console.error("🎯 [Campaign] Validation error:", error.errors);
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.errors 
+        });
+      }
+      console.error("🎯 [Campaign] Create campaign error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Update campaign
+  app.put("/api/campaigns/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = updateCampaignSchema.parse(req.body);
+      
+      const campaign = await storage.updateCampaign(id, validatedData, req.user.tenantId);
+
+      if (!campaign) {
+        return res.status(404).json({ message: "Campaign not found" });
+      }
+
+      res.json({ campaign });
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.errors 
+        });
+      }
+      console.error("Update campaign error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Delete campaign
+  app.delete("/api/campaigns/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Check if campaign exists first
+      const campaign = await storage.getCampaign(id, req.user.tenantId);
+      if (!campaign) {
+        return res.status(404).json({ message: "Campaign not found" });
+      }
+
+      await storage.deleteCampaign(id, req.user.tenantId);
+      res.json({ message: "Campaign deleted successfully" });
+    } catch (error) {
+      console.error("Delete campaign error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get campaign statistics
+  app.get("/api/campaign-stats", authenticateToken, async (req: any, res) => {
+    try {
+      const stats = await storage.getCampaignStats(req.user.tenantId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Get campaign stats error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get managers for reviewer dropdown
+  app.get("/api/managers", authenticateToken, async (req: any, res) => {
+    try {
+      const managers = await storage.getManagerUsers(req.user.tenantId);
+      res.json({ managers });
+    } catch (error) {
+      console.error("Get managers error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

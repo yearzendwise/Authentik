@@ -18,8 +18,8 @@ export default function AddForm() {
   // Show loading while authentication is being determined
   if (!hasInitialized || authLoading) {
     return (
-      <div className="p-6">
-        <div className="flex items-center justify-center min-h-[400px]">
+      <div className="min-h-screen p-6 flex items-center justify-center">
+        <div className="flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin" />
           <span className="ml-4">Authenticating...</span>
         </div>
@@ -27,5 +27,9 @@ export default function AddForm() {
     );
   }
 
-  return <FormWizard />;
+  return (
+    <div className="min-h-screen">
+      <FormWizard />
+    </div>
+  );
 }

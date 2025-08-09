@@ -9,7 +9,19 @@ This project is a full-stack SaaS authentication system providing a comprehensiv
 Preferred communication style: Simple, everyday language.
 UI/UX Design: Modern glass morphism design with enhanced dark mode support (July 31, 2025).
 
-## Recent Changes (August 6, 2025)
+## Recent Changes (August 9, 2025)
+
+### Form Frontend Server Implementation ✅ COMPLETED
+- **New Frontend Server**: Created `/fserver` directory with independent React frontend for public form access
+- **Isolated Architecture**: Completely separate from main application backend, only accesses forms by UUID
+- **Public Form Access**: Serves forms to customers without authentication requirements
+- **Form Submission API**: Handles form responses and stores them in database with tracking
+- **Security Features**: Rate limiting, CORS protection, helmet security headers, IP/user agent tracking
+- **Modern UI**: React with TypeScript, Tailwind CSS, and shadcn/ui components
+- **Responsive Design**: Mobile-friendly form rendering with theme support
+- **Error Handling**: Comprehensive error states for missing forms, network issues, and submission failures
+- **Database Integration**: Direct PostgreSQL access using Drizzle ORM with tenant isolation
+- **Development Setup**: Vite for development, production build support, and environment configuration
 
 ### Go Backend Server Implementation ✅ COMPLETED
 - **New Go Server**: Created `server-go/` directory with complete email tracking microservice
@@ -29,6 +41,7 @@ The application adopts a monorepo architecture, separating client, server, and s
 ### Core Technologies
 -   **Frontend**: React with TypeScript, using Vite.
 -   **Backend**: Express.js with TypeScript.
+-   **Form Frontend**: Independent React application for public form access (`/fserver`).
 -   **Database**: PostgreSQL with Drizzle ORM.
 -   **Styling**: Tailwind CSS with shadcn/ui.
 -   **State Management**: TanStack Query.
@@ -124,3 +137,31 @@ All database migrations are up-to-date and include current schema columns:
 - Form validation with Zod schemas and React Hook Form integration
 
 **Database Command**: Use `npm run db:push` for schema changes instead of manual SQL migrations.
+
+## Form Frontend Server Architecture
+
+**Location**: `/fserver` directory
+**Purpose**: Independent public frontend for serving forms to customers without authentication
+
+### Key Features
+- **Public Access**: Forms served by UUID at `http://localhost:3001/form/[UUID]`
+- **Security**: Only serves active forms, rate limiting, CORS protection, security headers
+- **Form Types**: Supports text, email, tel, url, textarea, select, radio, and checkbox inputs
+- **Response Tracking**: Stores submissions with IP address and user agent tracking
+- **Modern UI**: Responsive design with loading states, error handling, and success messages
+- **Tenant Isolation**: Maintains proper tenant boundaries for form responses
+
+### API Endpoints
+- `GET /api/forms/:id` - Retrieve form data by UUID
+- `POST /api/forms/:id/submit` - Submit form response
+
+### Development Commands
+- `cd fserver && npm run dev:server` - Start backend server only
+- `cd fserver && npm run dev:client` - Start frontend only  
+- `cd fserver && npm run dev` - Start both concurrently
+- `cd fserver && npm run build` - Production build
+
+### Environment Variables
+- `FSERVER_PORT` - Port for form server (default: 3001)
+- `DATABASE_URL` - Inherited from parent project
+- `NODE_ENV` - Development/production environment

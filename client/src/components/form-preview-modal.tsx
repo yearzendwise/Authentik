@@ -173,6 +173,7 @@ export function FormPreviewModal({ isOpen, onClose, form, formSettings = {} }: F
   const [liveFormData, setLiveFormData] = useState<Record<string, any>>({});
   const [selectedTheme, setSelectedTheme] = useState<FormTheme | null>(null);
   const [elements, setElements] = useState<FormElement[]>([]);
+  const [parsedFormSettings, setParsedFormSettings] = useState<any>({});
 
   // Parse form data and theme on mount
   useEffect(() => {
@@ -182,6 +183,10 @@ export function FormPreviewModal({ isOpen, onClose, form, formSettings = {} }: F
       // Parse form data
       const parsedFormData = JSON.parse(form.formData);
       setElements(parsedFormData.elements || []);
+      
+      // Parse and store form settings from the database
+      const storedSettings = parsedFormData.settings || {};
+      setParsedFormSettings(storedSettings);
 
       // Parse theme
       let themeData: { id: string; name: string; customColors?: CustomColors } = { id: 'minimal', name: 'Minimal' };
@@ -279,11 +284,12 @@ export function FormPreviewModal({ isOpen, onClose, form, formSettings = {} }: F
   // Calculate progress percentage based on filled fields
   const progressPercentage = useMemo(() => {
     // Only count actual form fields (not buttons or spacers)
-    const actualFormFields = elements.filter(element => 
-      element.type !== 'submit-button' && 
-      element.type !== 'reset-button' && 
-      element.type !== 'spacer'
-    );
+    const actualFormFields = elements.filter(element => {
+      const elementType = element.type as string;
+      return elementType !== 'submit-button' && 
+             elementType !== 'reset-button' && 
+             elementType !== 'spacer';
+    });
     
     const totalFields = actualFormFields.length;
     if (totalFields === 0) return 0;
@@ -298,7 +304,10 @@ export function FormPreviewModal({ isOpen, onClose, form, formSettings = {} }: F
 
   // Progress bar component
   const ThemedProgressBar = () => {
-    if (!formSettings.showProgressBar || !selectedTheme?.styles.progressBar) return null;
+    // Use parsed form settings instead of passed formSettings
+    const shouldShowProgressBar = parsedFormSettings.showProgressBar !== false;
+    
+    if (!shouldShowProgressBar || !selectedTheme?.styles.progressBar) return null;
     
     return (
       <div className="mb-6">
@@ -472,12 +481,12 @@ export function FormPreviewModal({ isOpen, onClose, form, formSettings = {} }: F
               style={selectedTheme.customColors ? formStyle : {}}
               onSubmit={(e) => e.preventDefault()}
             >
-              {formSettings.showFormTitle !== false && (
+              {parsedFormSettings.showFormTitle !== false && (
                 <>
                   <h1 className={themeStyles.header}>{form.title}</h1>
-                  {(form.description || formSettings.description) && (
+                  {(form.description || parsedFormSettings.description) && (
                     <p className={`mb-6 -mt-4 leading-relaxed ${getDescriptionStyles(selectedTheme.id)}`}>
-                      {form.description || formSettings.description}
+                      {form.description || parsedFormSettings.description}
                     </p>
                   )}
                 </>

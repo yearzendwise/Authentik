@@ -281,46 +281,17 @@ export function FormPreviewModal({ isOpen, onClose, form, formSettings = {} }: F
     }
   }, []);
 
-  // Calculate progress percentage based on filled fields
+  // Calculate progress percentage based on filled fields (using same logic as preview-step.tsx)
   const progressPercentage = useMemo(() => {
-    // Only count actual form fields (not buttons, spacers, or images)
-    const actualFormFields = elements.filter(element => {
-      const elementType = element.type as string;
-      return elementType !== 'submit-button' && 
-             elementType !== 'reset-button' && 
-             elementType !== 'spacer' &&
-             elementType !== 'image';
-    });
-    
-    const totalFields = actualFormFields.length;
+    const totalFields = elements.length;
     if (totalFields === 0) return 0;
     
-    // Only count fields that correspond to actual form inputs
-    const formFieldNames = actualFormFields.map(field => {
-      if (field.type === 'full-name') {
-        return [`${field.id}-firstName`, `${field.id}-lastName`];
-      }
-      return field.id;
-    }).flat();
-    
-    const filledFields = formFieldNames.filter(fieldName => {
-      const value = liveFormData[fieldName];
+    const filledFields = Object.keys(liveFormData).filter(key => {
+      const value = liveFormData[key];
       return value !== null && value !== undefined && value !== '' && value !== false;
     }).length;
     
-    // Debug logging to understand the calculation
-    console.log('Progress calculation debug:', {
-      totalElements: elements.length,
-      actualFormFields: actualFormFields.length,
-      formFieldNames: formFieldNames,
-      liveFormData: liveFormData,
-      filledFields: filledFields,
-      calculation: `${filledFields}/${formFieldNames.length} = ${filledFields / formFieldNames.length}`
-    });
-    
-    // Ensure we never exceed 100%
-    const percentage = Math.round((filledFields / formFieldNames.length) * 100);
-    return Math.min(percentage, 100);
+    return Math.round((filledFields / totalFields) * 100);
   }, [elements, liveFormData]);
 
   // Progress bar component

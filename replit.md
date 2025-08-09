@@ -164,6 +164,11 @@ All database migrations are up-to-date and include current schema columns:
 - `cd fserver && npm run dev` - Start both concurrently
 - `cd fserver && npm run build` - Production build
 
+### Integrated Startup Options
+- `./start-all-servers.sh` - Start main application + form server (all components)
+- `./start-forms-only.sh` - Start form server only (backend + frontend)
+- Default Replit workflow starts main application only on port 5000
+
 ### Environment Variables
 - `FSERVER_PORT` - Port for form server (default: 3001)
 - `DATABASE_URL` - Inherited from parent project

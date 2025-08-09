@@ -500,8 +500,7 @@ export function FormPreviewModal({ isOpen, onClose, form, formSettings = {} }: F
                   {elementsWithButtons.map((element) => {
                     // Special handling for certain elements that should span full width
                     const elementType = element.type as string;
-                    const shouldSpanFullWidth = elementType === 'textarea' || 
-                                              elementType === 'submit-button' || 
+                    const shouldSpanFullWidth = elementType === 'submit-button' || 
                                               elementType === 'reset-button' || 
                                               elementType === 'spacer' ||
                                               elementType === 'image' ||

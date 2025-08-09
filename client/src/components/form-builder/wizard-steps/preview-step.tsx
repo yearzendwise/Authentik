@@ -292,18 +292,63 @@ export function PreviewStep({
     }
   }, []);
 
-  // Calculate progress percentage based on filled fields
+  // Calculate progress percentage based on filled fields with accurate field units
+  // - Treat checkbox group as 1 unit (filled when any option is selected)
+  // - Treat full-name as 2 units (first and last)
+  // - Ignore non-input UI elements (image, spacer, auto buttons)
   const progressPercentage = useMemo(() => {
-    const totalFields = elements.length;
-    if (totalFields === 0) return 0;
-    
-    const filledFields = Object.keys(liveFormData).filter(key => {
-      const value = liveFormData[key];
-      return value !== null && value !== undefined && value !== '' && value !== false;
-    }).length;
-    
-    return Math.round((filledFields / totalFields) * 100);
-  }, [elements.length, liveFormData]);
+    if (!elements || elements.length === 0) return 0;
+
+    // Total field units expected to be filled
+    const totalUnits = elements.reduce((acc, el) => {
+      switch (el.type) {
+        case 'full-name':
+          return acc + 2;
+        case 'image':
+        case 'spacer':
+          return acc; // not input fields
+        default:
+          return acc + 1;
+      }
+    }, 0);
+
+    if (totalUnits === 0) return 0;
+
+    // Filled units based on current live data
+    const filledUnits = elements.reduce((acc, el) => {
+      switch (el.type) {
+        case 'checkbox': {
+          const hasAnyChecked = (el.options || []).some((opt) => {
+            const key = `${el.name}_${opt}`;
+            const val = (liveFormData as Record<string, any>)[key];
+            return val !== null && val !== undefined && val !== '' && val !== false;
+          });
+          return acc + (hasAnyChecked ? 1 : 0);
+        }
+        case 'full-name': {
+          const firstFilled = (liveFormData as Record<string, any>)[`${el.name}_first`];
+          const lastFilled = (liveFormData as Record<string, any>)[`${el.name}_last`];
+          const unit1 = firstFilled ? 1 : 0;
+          const unit2 = lastFilled ? 1 : 0;
+          return acc + unit1 + unit2;
+        }
+        case 'image':
+        case 'spacer':
+          return acc;
+        case 'rate-scale': {
+          const val = (liveFormData as Record<string, any>)[el.name];
+          // Treat 0, null, undefined, "", false, or "NA" as not filled
+          return acc + (val !== null && val !== undefined && val !== '' && val !== false && val !== 'NA' ? 1 : 0);
+        }
+        default: {
+          const val = (liveFormData as Record<string, any>)[el.name];
+          return acc + (val !== null && val !== undefined && val !== '' && val !== false ? 1 : 0);
+        }
+      }
+    }, 0);
+
+    return Math.min(100, Math.round((filledUnits / totalUnits) * 100));
+  }, [elements, liveFormData]);
 
   // Progress bar component
   const ThemedProgressBar = () => {
@@ -315,9 +360,9 @@ export function PreviewStep({
           <span className={`text-sm font-medium ${selectedTheme.id === 'elegant' || selectedTheme.id === 'neon' || selectedTheme.id === 'luxury' ? 'text-gray-300' : 'text-gray-700'}`}>
             Form Progress
           </span>
-          <span className={`text-sm font-medium ${selectedTheme.id === 'elegant' || selectedTheme.id === 'neon' || selectedTheme.id === 'luxury' ? 'text-gray-300' : 'text-gray-700'}`}>
-            {progressPercentage}%
-          </span>
+           <span className={`text-sm font-medium ${selectedTheme.id === 'elegant' || selectedTheme.id === 'neon' || selectedTheme.id === 'luxury' ? 'text-gray-300' : 'text-gray-700'}`}>
+             {progressPercentage}%
+           </span>
         </div>
         <div className={themeStyles.progressBar.container}>
           <div 

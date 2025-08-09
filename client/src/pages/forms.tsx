@@ -10,6 +10,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
+import { FormPreviewModal } from '@/components/form-preview-modal';
 
 interface Form {
   id: string;
@@ -159,6 +160,8 @@ export default function Forms2() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [previewForm, setPreviewForm] = useState<any>(null);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
   // Fetch forms data
   const { data: formsData, isLoading: formsLoading, error: formsError, refetch } = useQuery({
@@ -197,12 +200,17 @@ export default function Forms2() {
 
   // Handle form actions
   const handleViewForm = (formId: string) => {
-    // TODO: Navigate to form view page
-    console.log('View form', formId);
-    toast({
-      title: "Not implemented",
-      description: "Form viewing feature coming soon!",
-    });
+    const form = forms.find(f => f.id === formId);
+    if (form) {
+      setPreviewForm(form);
+      setIsPreviewModalOpen(true);
+    } else {
+      toast({
+        title: "Error",
+        description: "Form not found",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEditForm = (formId: string) => {
@@ -473,6 +481,23 @@ export default function Forms2() {
           </div>
         )}
       </div>
+
+      {/* Form Preview Modal */}
+      {previewForm && (
+        <FormPreviewModal
+          isOpen={isPreviewModalOpen}
+          onClose={() => {
+            setIsPreviewModalOpen(false);
+            setPreviewForm(null);
+          }}
+          form={previewForm}
+          formSettings={{
+            showProgressBar: true,
+            showFormTitle: true,
+            allowSaveProgress: false
+          }}
+        />
+      )}
     </div>
   );
 }

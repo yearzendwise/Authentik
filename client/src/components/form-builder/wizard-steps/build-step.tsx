@@ -15,11 +15,9 @@ interface BuildStepProps {
   initialTitle?: string;
   initialElements?: any[];
   initialSettings?: any;
-  editMode?: boolean;
-  onCancel?: () => void;
 }
 
-export function BuildStep({ onDataChange, initialTitle, initialElements, initialSettings, editMode = false, onCancel }: BuildStepProps) {
+export function BuildStep({ onDataChange, initialTitle, initialElements, initialSettings }: BuildStepProps) {
   const {
     formTitle,
     elements,
@@ -227,7 +225,7 @@ export function BuildStep({ onDataChange, initialTitle, initialElements, initial
         </div>
 
         {/* Mobile Floating Add Button */}
-        {!previewMode && !editMode && (
+        {!previewMode && (
         <div className="lg:hidden fixed bottom-6 left-6 z-50">
           <Button
             size="lg"
@@ -239,38 +237,6 @@ export function BuildStep({ onDataChange, initialTitle, initialElements, initial
             </svg>
           </Button>
         </div>
-        )}
-
-        {/* Mobile Add Button for Edit Mode */}
-        {!previewMode && editMode && (
-        <div className="lg:hidden fixed bottom-6 right-6 z-50">
-          <Button
-            size="lg"
-            className="w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-200"
-            onClick={() => setShowMobileAdd(true)}
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-          </Button>
-        </div>
-        )}
-
-        {/* Cancel Button for Edit Mode */}
-        {editMode && onCancel && (
-          <div className="fixed bottom-6 left-6 z-50">
-            <Button
-              variant="destructive"
-              size="lg"
-              className="bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-3 rounded-lg font-medium"
-              onClick={onCancel}
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              Cancel Edit
-            </Button>
-          </div>
         )}
 
 

@@ -272,8 +272,6 @@ export function FormWizard({ editMode = false, formData: existingFormData }: For
             initialTitle={wizardState.formData.title}
             initialElements={wizardState.formData.elements}
             initialSettings={wizardState.formData.settings}
-            editMode={editMode}
-            onCancel={() => setLocation('/forms')}
           />
         )}
         

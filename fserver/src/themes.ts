@@ -159,6 +159,42 @@ export const themes: Record<string, ThemeStyles> = {
     checkbox: 'h-4 w-4 text-gray-600 focus:ring-gray-400 border-gray-300 rounded',
     button: 'w-full bg-gray-900 hover:bg-gray-800 text-white font-light py-3 px-6 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed',
     background: 'bg-white'
+  },
+
+  'aurora': {
+    id: 'aurora',
+    name: 'Aurora',
+    container: 'min-h-screen py-8',
+    card: 'bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-purple-200',
+    header: 'p-6 border-b border-purple-100',
+    title: 'text-2xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent',
+    description: 'text-gray-600 mt-2',
+    label: 'text-sm font-medium text-purple-700',
+    input: 'w-full px-4 py-3 bg-white/80 border-2 border-purple-200 rounded-xl backdrop-blur-sm transition-all duration-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-400/20 focus:outline-none',
+    textarea: 'w-full px-4 py-3 bg-white/80 border-2 border-purple-200 rounded-xl backdrop-blur-sm transition-all duration-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-400/20 focus:outline-none resize-none',
+    select: 'w-full px-4 py-3 bg-white/80 border-2 border-purple-200 rounded-xl backdrop-blur-sm transition-all duration-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-400/20 focus:outline-none',
+    radio: 'h-4 w-4 text-purple-600 focus:ring-purple-500 border-purple-300',
+    checkbox: 'h-4 w-4 text-purple-600 focus:ring-purple-500 border-purple-300 rounded',
+    button: 'w-full bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none',
+    background: 'bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50'
+  },
+
+  'cosmic': {
+    id: 'cosmic',
+    name: 'Cosmic',
+    container: 'min-h-screen py-8',
+    card: 'bg-gray-900/95 backdrop-blur-sm rounded-xl shadow-lg border-2 border-indigo-400 shadow-indigo-400/20',
+    header: 'p-6 border-b border-indigo-400/30',
+    title: 'text-2xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent tracking-wide',
+    description: 'text-gray-300 mt-2',
+    label: 'text-sm font-medium text-cyan-400',
+    input: 'w-full px-4 py-3 bg-gray-900 border-2 border-indigo-400 rounded-lg text-cyan-100 placeholder-gray-400 transition-all duration-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 focus:outline-none',
+    textarea: 'w-full px-4 py-3 bg-gray-900 border-2 border-indigo-400 rounded-lg text-cyan-100 placeholder-gray-400 transition-all duration-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 focus:outline-none resize-none',
+    select: 'w-full px-4 py-3 bg-gray-900 border-2 border-indigo-400 rounded-lg text-cyan-100 transition-all duration-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 focus:outline-none',
+    radio: 'h-4 w-4 text-indigo-400 focus:ring-indigo-400 border-indigo-400',
+    checkbox: 'h-4 w-4 text-indigo-400 focus:ring-indigo-400 border-indigo-400 rounded',
+    button: 'w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:via-purple-500 hover:to-pink-500 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg shadow-indigo-400/30 hover:shadow-xl hover:shadow-indigo-400/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none',
+    background: 'bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900'
   }
 };
 

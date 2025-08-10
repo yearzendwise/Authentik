@@ -1,6 +1,7 @@
 import { useParams, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +63,8 @@ interface EmailList {
 export default function ViewContact() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: response, isLoading, error } = useQuery({
     queryKey: ['/api/email-contacts', id],
@@ -78,6 +81,39 @@ export default function ViewContact() {
   const contact: Contact | undefined = response?.contact || response;
   
   console.log('Processed contact data:', contact);
+
+  // Delete contact mutation
+  const deleteContactMutation = useMutation({
+    mutationFn: async (contactId: string) => {
+      const response = await apiRequest('DELETE', `/api/email-contacts/${contactId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/email-contacts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/email-contacts-stats'] });
+      toast({
+        title: "Success",
+        description: "Contact deleted successfully",
+      });
+      setLocation('/email-contacts');
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete contact",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Handle contact delete
+  const handleDeleteContact = () => {
+    if (!contact) return;
+    
+    if (window.confirm('Are you sure you want to delete this contact? This action cannot be undone.')) {
+      deleteContactMutation.mutate(contact.id);
+    }
+  };
 
   const getStatusBadge = (status: Contact["status"]) => {
     const statusConfig = {
@@ -447,9 +483,11 @@ export default function ViewContact() {
               <Button 
                 variant="outline" 
                 className="w-full justify-start text-red-600 hover:text-red-700"
+                onClick={handleDeleteContact}
+                disabled={deleteContactMutation.isPending}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Delete Contact
+                {deleteContactMutation.isPending ? 'Deleting...' : 'Delete Contact'}
               </Button>
             </CardContent>
           </Card>

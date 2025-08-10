@@ -13,7 +13,7 @@ build = ["npm", "run", "build"]
 
 [[ports]]
 localPort = 3001
-externalPort = 4200
+externalPort = 3002
 
 [[ports]]
 localPort = 3002

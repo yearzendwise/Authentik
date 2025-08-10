@@ -249,6 +249,7 @@ export const forms = pgTable("forms", {
   formData: text("form_data").notNull(), // JSON string of form structure
   theme: text("theme").default('modern'),
   isActive: boolean("is_active").default(true),
+  isEmbeddable: boolean("is_embeddable").default(true), // Allow form to be embedded on external sites
   responseCount: integer("response_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -717,6 +718,7 @@ export const createFormSchema = z.object({
   description: z.string().optional(),
   formData: z.string().min(1, "Form structure is required"),
   theme: z.string().default('modern'),
+  isEmbeddable: z.boolean().default(true),
 });
 
 export const updateFormSchema = z.object({
@@ -725,6 +727,7 @@ export const updateFormSchema = z.object({
   formData: z.string().min(1, "Form structure is required"),
   theme: z.string(),
   isActive: z.boolean(),
+  isEmbeddable: z.boolean(),
 });
 
 export const submitFormResponseSchema = z.object({

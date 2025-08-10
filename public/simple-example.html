@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Form Embedding Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .section {
+            background: white;
+            padding: 30px;
+            margin: 20px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; text-align: center; }
+        h2 { color: #666; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .code { 
+            background: #f8f8f8; 
+            padding: 15px; 
+            border-radius: 5px; 
+            border-left: 4px solid #007acc;
+            font-family: monospace;
+            overflow-x: auto;
+        }
+        .note {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 Authentik Forms - Simple Example</h1>
+
+    <div class="section">
+        <h2>📋 Example 1: Automatic Loading</h2>
+        <p>This form loads automatically using HTML data attributes:</p>
+        
+        <div class="code">
+&lt;div id="auto-form" 
+     data-authentik-form="0e577568-457c-4f7a-971b-a1a160490cbe"
+     data-authentik-theme="minimal"&gt;
+&lt;/div&gt;
+        </div>
+
+        <div class="note">
+            <strong>Note:</strong> Replace "0e577568-457c-4f7a-971b-a1a160490cbe" with your actual form ID from the Authentik dashboard.
+        </div>
+
+        <!-- Auto-loading form container -->
+        <div id="auto-form" 
+             data-authentik-form="0e577568-457c-4f7a-971b-a1a160490cbe"
+             data-authentik-theme="minimal">
+            <!-- Form will load here automatically -->
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>⚡ Example 2: Programmatic Loading</h2>
+        <p>This form is loaded using the JavaScript API with custom callbacks:</p>
+        
+        <div class="code">
+AuthentikForms.embed('js-form', '0e577568-457c-4f7a-971b-a1a160490cbe', {
+    theme: 'modern',
+    showTitle: true,
+    showDescription: true,
+    onSuccess: function(response) {
+        alert('Form submitted successfully!');
+    },
+    onError: function(error) {
+        console.error('Error:', error);
+    }
+});
+        </div>
+
+        <!-- Programmatic form container -->
+        <div id="js-form">
+            <!-- Form will be loaded here via JavaScript -->
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>🎯 How to Use This</h2>
+        <ol>
+            <li><strong>Create a form</strong> in your Authentik dashboard</li>
+            <li><strong>Copy the form ID</strong> from the form settings</li>
+            <li><strong>Replace the demo IDs</strong> in the examples above</li>
+            <li><strong>Update the script URL</strong> to point to your Authentik server</li>
+            <li><strong>Test on your website</strong></li>
+        </ol>
+
+        <div class="note">
+            <strong>⚠️ Important:</strong> 
+            <ul>
+                <li>Make sure your Authentik server is running</li>
+                <li>Ensure the form is marked as "embeddable" in settings</li>
+                <li>Update the script src URL to match your domain</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Include the Authentik Forms script -->
+    <script src="https://web2.zendwise.work/js/authentik-forms.js"></script>
+    
+    <script>
+        // Example of programmatic form loading
+        // Note: This won't work until you have actual form IDs
+        
+        console.log('🚀 Authentik Forms widget loaded!');
+        
+        // Load the second form programmatically
+        AuthentikForms.embed('js-form', '0e577568-457c-4f7a-971b-a1a160490cbe', {
+            theme: 'modern',
+            showTitle: true,
+            showDescription: true,
+            onSuccess: function(response) {
+                alert('Thank you! Your form has been submitted successfully.');
+                console.log('Form response:', response);
+            },
+            onError: function(error) {
+                alert('Sorry, there was an error submitting the form. Please try again.');
+                console.error('Form error:', error);
+            }
+        });
+    </script>
+</body>
+</html>

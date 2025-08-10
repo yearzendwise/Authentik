@@ -140,6 +140,7 @@ export interface IStorage {
   // Forms operations (tenant-aware)
   createForm(formData: CreateFormData, userId: string, tenantId: string): Promise<Form>;
   getForm(id: string, tenantId: string): Promise<Form | undefined>;
+  getPublicForm(id: string): Promise<Form | undefined>;
   getUserForms(userId: string, tenantId: string): Promise<Form[]>;
   getTenantForms(tenantId: string): Promise<FormWithDetails[]>;
   updateForm(id: string, updates: UpdateFormData, tenantId: string): Promise<Form | undefined>;
@@ -689,6 +690,11 @@ export class DatabaseStorage implements IStorage {
   async getForm(id: string, tenantId: string): Promise<Form | undefined> {
     const [form] = await db.select().from(forms)
       .where(and(eq(forms.id, id), eq(forms.tenantId, tenantId)));
+    return form;
+  }
+
+  async getPublicForm(id: string): Promise<Form | undefined> {
+    const [form] = await db.select().from(forms).where(eq(forms.id, id));
     return form;
   }
 

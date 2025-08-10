@@ -16,8 +16,8 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = parseInt(process.env.FSERVER_PORT || '3001');
 
-// Trust proxy to handle X-Forwarded-For headers correctly
-app.set('trust proxy', true);
+// Trust proxy for Replit's infrastructure (trust only the first proxy)
+app.set('trust proxy', 1);
 
 // Security middleware
 app.use(helmet({
@@ -62,11 +62,15 @@ app.use((req, res, next) => {
   }
 });
 
-// Rate limiting
+// Rate limiting - simplified configuration for Replit
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  // Skip validation for development environment
+  validate: false
 });
 app.use(limiter);
 

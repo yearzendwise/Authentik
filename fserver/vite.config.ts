@@ -18,11 +18,11 @@ export default defineConfig({
     sourcemap: false
   },
   server: {
-    port: 3002,
+    port: 3003,
     host: '0.0.0.0',
     allowedHosts: true,
     hmr: {
-      port: 3002,
+      port: 3003,
       host: '0.0.0.0'
     }
   }

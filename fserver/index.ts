@@ -6,7 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { formRouter } from './routes/forms.js';
-import { setupVite, serveStatic, log } from './vite.js';
+import { setupVite, serveStatic, log } from './viteServer.js';
 
 dotenv.config({ path: '../.env' });
 

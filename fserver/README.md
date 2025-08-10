@@ -10,7 +10,7 @@ Successfully migrated from a dual-server setup to a single-server architecture:
 
 ### Before:
 - **Backend**: Express server on port 3001 (`index.ts`)
-- **Frontend**: Vite dev server on port 3002 
+- **Frontend**: Vite dev server on port 3003
 - **Coordination**: `start.sh` script to run both servers
 - **API calls**: Hardcoded to `http://localhost:3001`
 

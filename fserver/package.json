@@ -4,7 +4,8 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "dev": "NODE_ENV=development tsx index.ts",
+    "dev": "FSERVER_PORT=3004 NODE_ENV=development tsx index.ts",
+    "dev:3002": "FSERVER_PORT=3002 NODE_ENV=development tsx index.ts",
     "build": "vite build && esbuild index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js"
   },

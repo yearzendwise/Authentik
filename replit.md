@@ -9,7 +9,20 @@ This project is a full-stack SaaS authentication system providing a comprehensiv
 Preferred communication style: Simple, everyday language.
 UI/UX Design: Modern glass morphism design with enhanced dark mode support (July 31, 2025).
 
-## Recent Changes (August 9, 2025)
+## Recent Changes (August 10, 2025)
+
+### Form Server Single-Server Architecture Migration ✅ COMPLETED
+- **Architecture Alignment**: Successfully migrated fserver from dual-server to single-server architecture matching main `/server` pattern
+- **Simplified Development**: Eliminated need for separate backend (port 3001) and frontend (port 3002) servers
+- **Single Process**: Both API routes (`/api/forms/*`) and frontend now served from single Express server on port 3001
+- **Middleware Integration**: Created `fserver/vite.ts` to handle frontend serving via Express middleware
+- **Relative API Paths**: Updated `FormView.tsx` to use relative paths instead of hardcoded `localhost:3001`
+- **Unified Startup**: Replaced dual-server `start.sh` script with single `npm run dev` command
+- **Verified Working**: Tested both API endpoints and frontend serving successfully from single server
+- **Benefits Achieved**: Eliminated CORS issues, simplified deployment, reduced resource usage, improved development experience
+- **Documentation Updated**: Created comprehensive README.md in fserver with before/after architecture comparison
+
+## Previous Changes (August 9, 2025)
 
 ### Form Frontend Server Implementation ✅ COMPLETED
 - **New Frontend Server**: Created `/fserver` directory with independent React frontend for public form access
@@ -150,7 +163,9 @@ All database migrations are up-to-date and include current schema columns:
 **Purpose**: Independent public frontend for serving forms to customers without authentication
 
 ### Key Features
+- **Single-Server Architecture**: Both API and frontend served from single Express server (port 3001)
 - **Public Access**: Forms served by UUID at `http://localhost:3001/form/[UUID]`
+- **Unified Origin**: No CORS issues, all requests within same origin
 - **Security**: Only serves active forms, rate limiting, CORS protection, security headers
 - **Form Types**: Supports text, email, tel, url, textarea, select, radio, and checkbox inputs
 - **Response Tracking**: Stores submissions with IP address and user agent tracking
@@ -161,11 +176,10 @@ All database migrations are up-to-date and include current schema columns:
 - `GET /api/forms/:id` - Retrieve form data by UUID
 - `POST /api/forms/:id/submit` - Submit form response
 
-### Development Commands
-- `cd fserver && npm run dev:server` - Start backend server only
-- `cd fserver && npm run dev:client` - Start frontend only  
-- `cd fserver && npm run dev` - Start both concurrently
+### Development Commands (Updated August 10, 2025)
+- `cd fserver && npm run dev` - Start single server (both API and frontend)
 - `cd fserver && npm run build` - Production build
+- `cd fserver && npm start` - Production server
 
 ### Integrated Startup Options
 - `./start-all-servers.sh` - Start main application + form server (all components)

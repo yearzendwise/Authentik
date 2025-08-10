@@ -1,12 +1,12 @@
 import express from 'express';
-// import cors from 'cors';
+import { createServer } from 'http';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { formRouter } from './routes/forms.js';
-// import { serveStatic } from './middleware/static.js';
+import { setupVite, serveStatic, log } from './vite.js';
 
 dotenv.config({ path: '../.env' });
 
@@ -71,32 +71,63 @@ app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// API routes
-app.use('/api/forms', formRouter);
+// Add request logging middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  const path = req.path;
+  let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
-// Serve static files in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'dist')));
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-  });
-} else {
-  // Development: Vite will handle the frontend separately
-  app.get('*', (req, res) => {
-    res.status(404).json({ error: 'API endpoint not found' });
-  });
-}
+  const originalResJson = res.json;
+  res.json = function (bodyJson, ...args) {
+    capturedJsonResponse = bodyJson;
+    return originalResJson.apply(res, [bodyJson, ...args]);
+  };
 
-// Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('Error:', err);
-  res.status(500).json({ 
-    error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    if (path.startsWith("/api")) {
+      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      if (capturedJsonResponse) {
+        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      }
+
+      if (logLine.length > 80) {
+        logLine = logLine.slice(0, 79) + "…";
+      }
+
+      log(logLine);
+    }
   });
+
+  next();
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Form Frontend Server running on port ${PORT}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
-});
+(async () => {
+  // API routes
+  app.use('/api/forms', formRouter);
+
+  // Create HTTP server
+  const server = createServer(app);
+
+  // Error handling middleware
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+
+    console.error('Server error:', err);
+    res.status(status).json({ message });
+  });
+
+  // Setup Vite in development, serve static in production
+  // This should be after all API routes so the catch-all doesn't interfere
+  if (process.env.NODE_ENV !== 'production') {
+    await setupVite(app, server);
+  } else {
+    serveStatic(app);
+  }
+
+  server.listen(PORT, '0.0.0.0', () => {
+    log(`🚀 Form Server running on port ${PORT}`);
+    log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  });
+})();

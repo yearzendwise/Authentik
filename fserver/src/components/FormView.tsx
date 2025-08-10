@@ -41,7 +41,7 @@ const FormView: React.FC<FormViewProps> = ({ formId }) => {
     const fetchForm = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://localhost:3001/api/forms/${formId}`);
+        const response = await fetch(`/api/forms/${formId}`);
         
         if (!response.ok) {
           if (response.status === 404) {
@@ -86,7 +86,7 @@ const FormView: React.FC<FormViewProps> = ({ formId }) => {
 
     setSubmitting(true);
     try {
-      const response = await fetch(`http://localhost:3001/api/forms/${formId}/submit`, {
+      const response = await fetch(`/api/forms/${formId}/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

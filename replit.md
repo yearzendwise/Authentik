@@ -34,6 +34,7 @@ The application adopts a monorepo architecture, separating client, server, and s
 -   **Subscription Management**: Interface for managing subscription plans with upgrade/downgrade options and Stripe integration.
 -   **Form Server Architecture**: Single-server architecture for the public form frontend, serving both API routes and the React frontend from a single Express server to eliminate CORS issues and simplify deployment.
 -   **Newsletter System**: Integrated CRUD interface for newsletter management with preview, statistics, and multi-tenant isolation.
+-   **Theme System**: Comprehensive theme support with 16 predefined themes (modern, neon, nature, luxury, glassmorphism, professional, retro, minimal, aurora, cosmic, elegant, playful, brutalist, pastel-dream, neo-modern, modern-bold) ensuring consistent styling across all form displays.
 
 ## External Dependencies
 -   **@neondatabase/serverless**: PostgreSQL database connection.

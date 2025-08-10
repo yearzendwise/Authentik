@@ -195,6 +195,114 @@ export const themes: Record<string, ThemeStyles> = {
     checkbox: 'h-4 w-4 text-indigo-400 focus:ring-indigo-400 border-indigo-400 rounded',
     button: 'w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:via-purple-500 hover:to-pink-500 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg shadow-indigo-400/30 hover:shadow-xl hover:shadow-indigo-400/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none',
     background: 'bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900'
+  },
+
+  'elegant': {
+    id: 'elegant',
+    name: 'Elegant',
+    container: 'min-h-screen py-8',
+    card: 'bg-white rounded-lg shadow-xl border border-gray-200',
+    header: 'p-8 border-b border-gray-100',
+    title: 'text-3xl font-serif text-gray-800 tracking-tight',
+    description: 'text-gray-600 mt-3 font-light leading-relaxed',
+    label: 'text-sm font-semibold text-gray-700 uppercase tracking-wide',
+    input: 'w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg transition-all duration-300 focus:border-gray-400 focus:ring-2 focus:ring-gray-400/10 focus:outline-none focus:bg-white',
+    textarea: 'w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg transition-all duration-300 focus:border-gray-400 focus:ring-2 focus:ring-gray-400/10 focus:outline-none focus:bg-white resize-none',
+    select: 'w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg transition-all duration-300 focus:border-gray-400 focus:ring-2 focus:ring-gray-400/10 focus:outline-none focus:bg-white',
+    radio: 'h-4 w-4 text-gray-700 focus:ring-gray-500 border-gray-300',
+    checkbox: 'h-4 w-4 text-gray-700 focus:ring-gray-500 border-gray-300 rounded',
+    button: 'w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-4 px-8 rounded-lg transition-all duration-300 transform hover:translate-y-[-1px] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none',
+    background: 'bg-gray-100'
+  },
+
+  'playful': {
+    id: 'playful',
+    name: 'Playful',
+    container: 'min-h-screen py-8',
+    card: 'bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border-4 border-pink-300',
+    header: 'p-6 border-b-4 border-pink-200',
+    title: 'text-2xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent',
+    description: 'text-gray-600 mt-2 font-medium',
+    label: 'text-sm font-bold text-purple-700',
+    input: 'w-full px-4 py-3 bg-pink-50 border-3 border-pink-300 rounded-2xl transition-all duration-200 focus:border-purple-400 focus:ring-4 focus:ring-purple-400/20 focus:outline-none',
+    textarea: 'w-full px-4 py-3 bg-pink-50 border-3 border-pink-300 rounded-2xl transition-all duration-200 focus:border-purple-400 focus:ring-4 focus:ring-purple-400/20 focus:outline-none resize-none',
+    select: 'w-full px-4 py-3 bg-pink-50 border-3 border-pink-300 rounded-2xl transition-all duration-200 focus:border-purple-400 focus:ring-4 focus:ring-purple-400/20 focus:outline-none',
+    radio: 'h-5 w-5 text-pink-600 focus:ring-pink-500 border-pink-300',
+    checkbox: 'h-5 w-5 text-pink-600 focus:ring-pink-500 border-pink-300 rounded-lg',
+    button: 'w-full bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none',
+    background: 'bg-gradient-to-br from-pink-100 via-purple-100 to-indigo-100'
+  },
+
+  'brutalist': {
+    id: 'brutalist',
+    name: 'Brutalist',
+    container: 'min-h-screen py-8',
+    card: 'bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]',
+    header: 'p-6 border-b-4 border-black',
+    title: 'text-3xl font-black text-black uppercase tracking-wider',
+    description: 'text-black mt-2 font-bold uppercase text-sm',
+    label: 'text-xs font-black text-black uppercase tracking-wider',
+    input: 'w-full px-4 py-3 bg-white border-4 border-black transition-all duration-100 focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:outline-none font-bold',
+    textarea: 'w-full px-4 py-3 bg-white border-4 border-black transition-all duration-100 focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:outline-none font-bold resize-none',
+    select: 'w-full px-4 py-3 bg-white border-4 border-black transition-all duration-100 focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:outline-none font-bold',
+    radio: 'h-5 w-5 text-black focus:ring-black border-2 border-black',
+    checkbox: 'h-5 w-5 text-black focus:ring-black border-2 border-black',
+    button: 'w-full bg-black hover:bg-gray-800 text-white font-black py-4 px-6 uppercase tracking-wider transition-all duration-100 transform hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,0.3)] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)] active:translate-x-1 active:translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none',
+    background: 'bg-white'
+  },
+
+  'pastel-dream': {
+    id: 'pastel-dream',
+    name: 'Pastel Dream',
+    container: 'min-h-screen py-8',
+    card: 'bg-white/70 backdrop-blur-lg rounded-3xl shadow-xl border-2 border-pink-200',
+    header: 'p-6 border-b-2 border-pink-200',
+    title: 'text-2xl font-light bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent',
+    description: 'text-purple-600 mt-2 font-light',
+    label: 'text-sm font-medium text-purple-600',
+    input: 'w-full px-4 py-3 bg-pink-50/50 border-2 border-pink-200 rounded-2xl backdrop-blur-sm transition-all duration-300 focus:border-purple-300 focus:ring-2 focus:ring-purple-300/20 focus:outline-none',
+    textarea: 'w-full px-4 py-3 bg-pink-50/50 border-2 border-pink-200 rounded-2xl backdrop-blur-sm transition-all duration-300 focus:border-purple-300 focus:ring-2 focus:ring-purple-300/20 focus:outline-none resize-none',
+    select: 'w-full px-4 py-3 bg-pink-50/50 border-2 border-pink-200 rounded-2xl backdrop-blur-sm transition-all duration-300 focus:border-purple-300 focus:ring-2 focus:ring-purple-300/20 focus:outline-none',
+    radio: 'h-4 w-4 text-pink-400 focus:ring-pink-400 border-pink-300',
+    checkbox: 'h-4 w-4 text-pink-400 focus:ring-pink-400 border-pink-300 rounded',
+    button: 'w-full bg-gradient-to-r from-pink-300 via-purple-300 to-blue-300 hover:from-pink-400 hover:via-purple-400 hover:to-blue-400 text-white font-medium py-4 px-6 rounded-2xl transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none',
+    background: 'bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50'
+  },
+
+  'neo-modern': {
+    id: 'neo-modern',
+    name: 'Neo Modern',
+    container: 'min-h-screen py-8',
+    card: 'bg-gray-900/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700',
+    header: 'p-6 border-b border-gray-700',
+    title: 'text-2xl font-bold text-white',
+    description: 'text-gray-300 mt-2',
+    label: 'text-sm font-medium text-gray-200',
+    input: 'w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-xl text-white placeholder-gray-400 transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none',
+    textarea: 'w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-xl text-white placeholder-gray-400 transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none resize-none',
+    select: 'w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-xl text-white transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none',
+    radio: 'h-4 w-4 text-blue-500 focus:ring-blue-500 border-gray-600',
+    checkbox: 'h-4 w-4 text-blue-500 focus:ring-blue-500 border-gray-600 rounded',
+    button: 'w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none',
+    background: 'bg-gray-900'
+  },
+
+  'modern-bold': {
+    id: 'modern-bold',
+    name: 'Modern Bold',
+    container: 'min-h-screen py-8',
+    card: 'bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border-2 border-blue-200',
+    header: 'p-6 border-b-2 border-blue-200',
+    title: 'text-3xl font-black text-gray-900',
+    description: 'text-gray-700 mt-2 font-semibold',
+    label: 'text-sm font-bold text-gray-800 uppercase tracking-wide',
+    input: 'w-full px-4 py-4 bg-white border-2 border-blue-300 rounded-xl transition-all duration-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/20 focus:outline-none font-semibold',
+    textarea: 'w-full px-4 py-4 bg-white border-2 border-blue-300 rounded-xl transition-all duration-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/20 focus:outline-none font-semibold resize-none',
+    select: 'w-full px-4 py-4 bg-white border-2 border-blue-300 rounded-xl transition-all duration-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/20 focus:outline-none font-semibold',
+    radio: 'h-5 w-5 text-blue-600 focus:ring-blue-600 border-2 border-blue-300',
+    checkbox: 'h-5 w-5 text-blue-600 focus:ring-blue-600 border-2 border-blue-300 rounded',
+    button: 'w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 px-6 rounded-xl uppercase tracking-wide transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none',
+    background: 'bg-gradient-to-br from-blue-50 to-indigo-100'
   }
 };
 

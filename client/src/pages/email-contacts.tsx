@@ -284,13 +284,16 @@ export default function EmailContacts() {
 
   // Handle single contact delete
   const handleDeleteContact = (contactId: string) => {
+    console.log('Delete contact clicked:', contactId);
     if (window.confirm('Are you sure you want to delete this contact? This action cannot be undone.')) {
+      console.log('Deleting contact:', contactId);
       deleteContactMutation.mutate(contactId);
     }
   };
 
   // Handle bulk delete
   const handleBulkDelete = () => {
+    console.log('Bulk delete clicked, selected contacts:', selectedContacts);
     if (selectedContacts.length === 0) return;
     
     const confirmMessage = selectedContacts.length === 1 
@@ -298,6 +301,7 @@ export default function EmailContacts() {
       : `Are you sure you want to delete ${selectedContacts.length} contacts? This action cannot be undone.`;
       
     if (window.confirm(confirmMessage)) {
+      console.log('Bulk deleting contacts:', selectedContacts);
       bulkDeleteMutation.mutate(selectedContacts);
     }
   };
@@ -471,7 +475,11 @@ export default function EmailContacts() {
                       variant="outline" 
                       size="sm" 
                       className="text-red-600"
-                      onClick={handleBulkDelete}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleBulkDelete();
+                      }}
                       disabled={bulkDeleteMutation.isPending}
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
@@ -628,7 +636,11 @@ export default function EmailContacts() {
                             <DropdownMenuSeparator />
                             <DropdownMenuItem 
                               className="text-red-600"
-                              onClick={() => handleDeleteContact(contact.id)}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleDeleteContact(contact.id);
+                              }}
                               disabled={deleteContactMutation.isPending}
                             >
                               <Trash2 className="w-4 h-4 mr-2" />

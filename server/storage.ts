@@ -74,7 +74,7 @@ import {
   type UpdateCampaignData
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gt, lt, desc, ne, or, ilike, count, sql } from "drizzle-orm";
+import { eq, and, gt, lt, desc, ne, or, ilike, count, sql, inArray } from "drizzle-orm";
 
 export interface DeviceInfo {
   deviceId?: string;
@@ -1471,7 +1471,7 @@ export class DatabaseStorage implements IStorage {
       .delete(emailContacts)
       .where(and(
         eq(emailContacts.tenantId, tenantId),
-        sql`${emailContacts.id} = ANY(${ids})`
+        inArray(emailContacts.id, ids)
       ));
   }
 
@@ -1926,7 +1926,7 @@ export class DatabaseStorage implements IStorage {
       .update(campaigns)
       .set({
         ...updates,
-        budget: updates.budget ? updates.budget.toString() : updates.budget,
+        budget: updates.budget !== undefined ? (updates.budget ? updates.budget.toString() : null) : undefined,
         updatedAt: new Date(),
       })
       .where(and(eq(campaigns.id, id), eq(campaigns.tenantId, tenantId)))

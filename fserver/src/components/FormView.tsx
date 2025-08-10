@@ -1,11 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Button } from './ui/Button';
-import { Input } from './ui/Input';
-import { Label } from './ui/Label';
-import { Textarea } from './ui/Textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/Card';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { parseTheme, ThemeStyles } from '../themes';
+import { FullName } from './ui/FullName';
 
 interface FormElement {
   id: string;
@@ -124,7 +120,6 @@ const FormView: React.FC<FormViewProps> = ({ formId }) => {
       case 'email-input':
       case 'tel':
       case 'url':
-      case 'full-name':
         return (
           <div key={id} className="space-y-2">
             <label htmlFor={id} className={theme?.label || 'text-sm font-medium text-gray-700'}>
@@ -133,6 +128,42 @@ const FormView: React.FC<FormViewProps> = ({ formId }) => {
             <input
               id={id}
               type={type === 'text-input' ? 'text' : type === 'email-input' ? 'email' : type}
+              placeholder={placeholder}
+              required={required}
+              value={formValues[id] || ''}
+              onChange={(e) => handleInputChange(id, e.target.value)}
+              className={theme?.input || 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'}
+            />
+          </div>
+        );
+
+      case 'full-name':
+        return (
+          <div key={id} className="space-y-2">
+            <FullName
+              id={id}
+              required={required}
+              firstNameValue={formValues[`${id}_first`] || ''}
+              lastNameValue={formValues[`${id}_last`] || ''}
+              onFirstNameChange={(value) => handleInputChange(`${id}_first`, value)}
+              onLastNameChange={(value) => handleInputChange(`${id}_last`, value)}
+              firstNamePlaceholder="First Name"
+              lastNamePlaceholder="Last Name"
+              theme={theme}
+            />
+          </div>
+        );
+
+      case 'first-name':
+      case 'last-name':
+        return (
+          <div key={id} className="space-y-2">
+            <label htmlFor={id} className={theme?.label || 'text-sm font-medium text-gray-700'}>
+              {label} {required && <span className="text-red-500">*</span>}
+            </label>
+            <input
+              id={id}
+              type="text"
               placeholder={placeholder}
               required={required}
               value={formValues[id] || ''}

@@ -261,9 +261,7 @@ export default function EmailContacts() {
   // Bulk delete contacts mutation
   const bulkDeleteMutation = useMutation({
     mutationFn: async (contactIds: string[]) => {
-      const response = await apiRequest('DELETE', '/api/email-contacts', {
-        body: JSON.stringify({ ids: contactIds })
-      });
+      const response = await apiRequest('DELETE', '/api/email-contacts', { ids: contactIds });
       return response.json();
     },
     onSuccess: (data, contactIds) => {

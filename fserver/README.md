@@ -10,9 +10,9 @@ Successfully migrated from a dual-server setup to a single-server architecture:
 
 ### Before:
 - **Backend**: Express server on port 3001 (`index.ts`)
-- **Frontend**: Vite dev server on port 3003
+- **Frontend**: Vite dev server on port 3004
 - **Coordination**: `start.sh` script to run both servers
-- **API calls**: Hardcoded to `http://localhost:3001`
+- **API calls**: Hardcoded to `http://localhost:3004`
 
 ### After:
 - **Single Server**: Express server on port 3001
@@ -48,13 +48,13 @@ npm start
 
 ### API Endpoint Test:
 ```bash
-curl http://localhost:3001/api/forms/test
+curl http://localhost:3004/api/forms/test
 # Returns: {"error":"Form not found or inactive"}
 ```
 
 ### Frontend Test:
 ```bash
-curl http://localhost:3001/
+curl http://localhost:3004/
 # Returns: HTML template
 ```
 

@@ -5,6 +5,7 @@ import { Label } from './ui/Label';
 import { Textarea } from './ui/Textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/Card';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { parseTheme, ThemeStyles } from '../themes';
 
 interface FormElement {
   id: string;
@@ -36,6 +37,7 @@ const FormView: React.FC<FormViewProps> = ({ formId }) => {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [formValues, setFormValues] = useState<Record<string, any>>({});
+  const [theme, setTheme] = useState<ThemeStyles | null>(null);
 
   useEffect(() => {
     const fetchForm = async () => {
@@ -54,6 +56,10 @@ const FormView: React.FC<FormViewProps> = ({ formId }) => {
 
         const formData = await response.json();
         setForm(formData);
+        
+        // Parse and set theme
+        const parsedTheme = parseTheme(formData.theme);
+        setTheme(parsedTheme);
         
         // Initialize form values
         const initialValues: Record<string, any> = {};
@@ -121,16 +127,17 @@ const FormView: React.FC<FormViewProps> = ({ formId }) => {
       case 'full-name':
         return (
           <div key={id} className="space-y-2">
-            <Label htmlFor={id}>
-              {label} {required && <span className="text-destructive">*</span>}
-            </Label>
-            <Input
+            <label htmlFor={id} className={theme?.label || 'text-sm font-medium text-gray-700'}>
+              {label} {required && <span className="text-red-500">*</span>}
+            </label>
+            <input
               id={id}
-              type={type}
+              type={type === 'text-input' ? 'text' : type === 'email-input' ? 'email' : type}
               placeholder={placeholder}
               required={required}
               value={formValues[id] || ''}
               onChange={(e) => handleInputChange(id, e.target.value)}
+              className={theme?.input || 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'}
             />
           </div>
         );
@@ -138,15 +145,17 @@ const FormView: React.FC<FormViewProps> = ({ formId }) => {
       case 'textarea':
         return (
           <div key={id} className="space-y-2">
-            <Label htmlFor={id}>
-              {label} {required && <span className="text-destructive">*</span>}
-            </Label>
-            <Textarea
+            <label htmlFor={id} className={theme?.label || 'text-sm font-medium text-gray-700'}>
+              {label} {required && <span className="text-red-500">*</span>}
+            </label>
+            <textarea
               id={id}
               placeholder={placeholder}
               required={required}
               value={formValues[id] || ''}
               onChange={(e) => handleInputChange(id, e.target.value)}
+              className={theme?.textarea || 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none'}
+              rows={4}
             />
           </div>
         );
@@ -154,15 +163,15 @@ const FormView: React.FC<FormViewProps> = ({ formId }) => {
       case 'select':
         return (
           <div key={id} className="space-y-2">
-            <Label htmlFor={id}>
-              {label} {required && <span className="text-destructive">*</span>}
-            </Label>
+            <label htmlFor={id} className={theme?.label || 'text-sm font-medium text-gray-700'}>
+              {label} {required && <span className="text-red-500">*</span>}
+            </label>
             <select
               id={id}
               required={required}
               value={formValues[id] || ''}
               onChange={(e) => handleInputChange(id, e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className={theme?.select || 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'}
             >
               <option value="">Select an option...</option>
               {options?.map((option, index) => (
@@ -177,9 +186,9 @@ const FormView: React.FC<FormViewProps> = ({ formId }) => {
       case 'radio':
         return (
           <div key={id} className="space-y-2">
-            <Label>
-              {label} {required && <span className="text-destructive">*</span>}
-            </Label>
+            <label className={theme?.label || 'text-sm font-medium text-gray-700'}>
+              {label} {required && <span className="text-red-500">*</span>}
+            </label>
             <div className="space-y-2">
               {options?.map((option, index) => (
                 <div key={index} className="flex items-center space-x-2">
@@ -191,11 +200,11 @@ const FormView: React.FC<FormViewProps> = ({ formId }) => {
                     required={required}
                     checked={formValues[id] === option}
                     onChange={(e) => handleInputChange(id, e.target.value)}
-                    className="h-4 w-4 border-gray-300 focus:ring-2 focus:ring-blue-500"
+                    className={theme?.radio || 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300'}
                   />
-                  <Label htmlFor={`${id}-${index}`} className="font-normal">
+                  <label htmlFor={`${id}-${index}`} className={theme?.label || 'text-sm font-normal text-gray-700'}>
                     {option}
-                  </Label>
+                  </label>
                 </div>
               ))}
             </div>
@@ -212,11 +221,11 @@ const FormView: React.FC<FormViewProps> = ({ formId }) => {
                 required={required}
                 checked={formValues[id] || false}
                 onChange={(e) => handleInputChange(id, e.target.checked)}
-                className="h-4 w-4 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                className={theme?.checkbox || 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'}
               />
-              <Label htmlFor={id} className="font-normal">
-                {label} {required && <span className="text-destructive">*</span>}
-              </Label>
+              <label htmlFor={id} className={theme?.label || 'text-sm font-normal text-gray-700'}>
+                {label} {required && <span className="text-red-500">*</span>}
+              </label>
             </div>
           </div>
         );
@@ -228,10 +237,10 @@ const FormView: React.FC<FormViewProps> = ({ formId }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className={`min-h-screen flex items-center justify-center ${theme?.background || 'bg-gray-50'}`}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading form...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading form...</p>
         </div>
       </div>
     );
@@ -239,66 +248,66 @@ const FormView: React.FC<FormViewProps> = ({ formId }) => {
 
   if (error || !form) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <AlertCircle className="h-5 w-5 text-destructive" />
+      <div className={`min-h-screen flex items-center justify-center ${theme?.background || 'bg-gray-50'}`}>
+        <div className={`w-full max-w-md ${theme?.card || 'bg-white rounded-lg shadow-md border border-gray-300'}`}>
+          <div className={theme?.header || 'p-6 border-b border-gray-200'}>
+            <h3 className={`flex items-center space-x-2 ${theme?.title || 'text-xl font-semibold text-gray-900'}`}>
+              <AlertCircle className="h-5 w-5 text-red-500" />
               <span>Error</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">{error || 'Form not found'}</p>
-          </CardContent>
-        </Card>
+            </h3>
+          </div>
+          <div className="p-6">
+            <p className={theme?.description || 'text-gray-600'}>{error || 'Form not found'}</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
+      <div className={`min-h-screen flex items-center justify-center ${theme?.background || 'bg-gray-50'}`}>
+        <div className={`w-full max-w-md ${theme?.card || 'bg-white rounded-lg shadow-md border border-gray-300'}`}>
+          <div className={theme?.header || 'p-6 border-b border-gray-200'}>
+            <h3 className={`flex items-center space-x-2 ${theme?.title || 'text-xl font-semibold text-gray-900'}`}>
               <CheckCircle2 className="h-5 w-5 text-green-600" />
               <span>Success!</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
+            </h3>
+          </div>
+          <div className="p-6">
+            <p className={theme?.description || 'text-gray-600'}>
               Thank you for your submission. Your response has been recorded.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background py-8">
+    <div className={`${theme?.container || 'min-h-screen py-8'} ${theme?.background || 'bg-gray-50'}`}>
       <div className="container mx-auto px-4 max-w-2xl">
-        <Card>
-          <CardHeader>
-            <CardTitle>{form.title}</CardTitle>
+        <div className={theme?.card || 'bg-white rounded-lg shadow-md border border-gray-300'}>
+          <div className={theme?.header || 'p-6 border-b border-gray-200'}>
+            <h1 className={theme?.title || 'text-2xl font-bold text-gray-900'}>{form.title}</h1>
             {form.description && (
-              <CardDescription>{form.description}</CardDescription>
+              <p className={theme?.description || 'text-gray-600 mt-2'}>{form.description}</p>
             )}
-          </CardHeader>
-          <CardContent>
+          </div>
+          <div className="p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               {form.formData.elements?.map(renderFormElement)}
               
-              <Button 
+              <button 
                 type="submit" 
                 disabled={submitting}
-                className="w-full"
+                className={theme?.button || 'w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed'}
               >
                 {submitting ? 'Submitting...' : 'Submit Form'}
-              </Button>
+              </button>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -16,6 +16,9 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = parseInt(process.env.FSERVER_PORT || '3001');
 
+// Trust proxy to handle X-Forwarded-For headers correctly
+app.set('trust proxy', true);
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {

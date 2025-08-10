@@ -21,6 +21,8 @@ UI/UX Design: Modern glass morphism design with enhanced dark mode support (July
 - **Verified Working**: Tested both API endpoints and frontend serving successfully from single server
 - **Benefits Achieved**: Eliminated CORS issues, simplified deployment, reduced resource usage, improved development experience
 - **Documentation Updated**: Created comprehensive README.md in fserver with before/after architecture comparison
+- **Environment Variable Configuration**: Replaced hardcoded "forms.zendwise.work" URLs with configurable VITE_FORMS_URL environment variable
+- **Proxy Configuration Fix**: Added `trust proxy` setting to handle Replit's X-Forwarded-For headers correctly, resolving express-rate-limit validation errors
 
 ## Previous Changes (August 9, 2025)
 

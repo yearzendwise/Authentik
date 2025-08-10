@@ -180,7 +180,7 @@ All database migrations are up-to-date and include current schema columns:
 - `POST /api/forms/:id/submit` - Submit form response
 
 ### Development Commands (Updated August 10, 2025)
-- `cd fserver && npm run dev` - Start single server (both API and frontend)
+- `cd fserver && DATABASE_URL="$DATABASE_URL" FSERVER_PORT=3003 NODE_ENV=development tsx index.ts` - Start single server (both API and frontend)
 - `cd fserver && npm run build` - Production build
 - `cd fserver && npm start` - Production server
 

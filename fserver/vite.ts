@@ -22,7 +22,21 @@ export async function setupVite(app: Express, server: Server) {
   const isDev = process.env.NODE_ENV === 'development';
   
   if (isDev) {
-    // Development mode: serve from src
+    // Development mode: serve static files from src directory
+    app.use('/src', express.static(path.resolve(__dirname, 'src'), {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.tsx') || filePath.endsWith('.ts')) {
+          res.setHeader('Content-Type', 'application/javascript');
+        } else if (filePath.endsWith('.css')) {
+          res.setHeader('Content-Type', 'text/css');
+        }
+      }
+    }));
+    
+    // Serve other static assets
+    app.use(express.static(path.resolve(__dirname, 'public')));
+    
+    // Handle routes - only serve HTML for non-asset requests
     app.use("*", async (req, res, next) => {
       const url = req.originalUrl;
       
@@ -30,10 +44,15 @@ export async function setupVite(app: Express, server: Server) {
       if (url.startsWith('/api')) {
         return next();
       }
+      
+      // Skip static assets
+      if (url.startsWith('/src/') || url.includes('.')) {
+        return next();
+      }
 
       try {
         const template = await fs.promises.readFile(
-          path.resolve(__dirname, "src", "index.html"),
+          path.resolve(__dirname, "index.html"),
           "utf-8"
         );
         

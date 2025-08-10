@@ -203,14 +203,34 @@ export function getTheme(themeId: string): ThemeStyles {
 }
 
 export function parseTheme(themeData: any): ThemeStyles {
+  console.log('🎨 [Theme] Parsing theme data:', themeData, typeof themeData);
+  
   if (typeof themeData === 'string') {
-    return getTheme(themeData);
+    console.log('🎨 [Theme] Parsing string theme:', themeData);
+    try {
+      // Try to parse as JSON first
+      const parsedTheme = JSON.parse(themeData);
+      console.log('🎨 [Theme] Parsed JSON theme:', parsedTheme);
+      if (parsedTheme.id) {
+        console.log('🎨 [Theme] Using theme ID:', parsedTheme.id);
+        const selectedTheme = getTheme(parsedTheme.id);
+        console.log('🎨 [Theme] Selected theme:', selectedTheme.name);
+        return selectedTheme;
+      }
+    } catch (e) {
+      // If not JSON, treat as theme ID
+      console.log('🎨 [Theme] Not JSON, treating as theme ID:', themeData);
+      return getTheme(themeData);
+    }
   }
   
   if (typeof themeData === 'object' && themeData !== null) {
     try {
       if (themeData.id) {
-        return getTheme(themeData.id);
+        console.log('🎨 [Theme] Using object theme ID:', themeData.id);
+        const selectedTheme = getTheme(themeData.id);
+        console.log('🎨 [Theme] Selected theme:', selectedTheme.name);
+        return selectedTheme;
       }
       // If it's a custom theme object, return it with fallbacks
       return {
@@ -223,5 +243,6 @@ export function parseTheme(themeData: any): ThemeStyles {
     }
   }
   
+  console.log('🎨 [Theme] Falling back to modern theme');
   return themes['modern'];
 }

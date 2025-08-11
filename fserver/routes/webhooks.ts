@@ -1,9 +1,35 @@
 import { Router } from 'express';
+import { createHmac } from 'crypto';
 import { db } from '../database.js';
 import { emailEvents } from '../schema.js';
 import { eq, and, desc } from 'drizzle-orm';
 
 const router = Router();
+
+// Resend webhook signing secret
+const RESEND_WEBHOOK_SECRET = 'whsec_f0Qe1KQ1+HNNPb54UExrkndtmfOj284A';
+
+// Function to verify webhook signature
+function verifyWebhookSignature(payload: string, signature: string, secret: string): boolean {
+  try {
+    // Remove the 'whsec_' prefix from the secret if present
+    const cleanSecret = secret.startsWith('whsec_') ? secret.substring(6) : secret;
+    
+    // Create HMAC signature
+    const hmac = createHmac('sha256', cleanSecret);
+    hmac.update(payload, 'utf8');
+    const expectedSignature = hmac.digest('hex');
+    
+    // Resend signatures are typically in the format: sha256=<signature>
+    const actualSignature = signature.startsWith('sha256=') ? signature.substring(7) : signature;
+    
+    // Use timing-safe comparison
+    return expectedSignature === actualSignature;
+  } catch (error) {
+    console.error('Error verifying webhook signature:', error);
+    return false;
+  }
+}
 
 // Type definitions for Resend webhook events
 interface ResendWebhookEvent {
@@ -76,6 +102,24 @@ function extractRecipientEmail(webhookData: ResendWebhookEvent['data']): string 
 // POST /api/webhooks/resend - Handle Resend webhook events
 router.post('/resend', async (req, res) => {
   try {
+    // Get raw body for signature verification
+    const rawBody = JSON.stringify(req.body);
+    const signature = req.headers['resend-signature'] as string;
+    
+    // Verify webhook signature if provided
+    if (signature && RESEND_WEBHOOK_SECRET) {
+      const isValid = verifyWebhookSignature(rawBody, signature, RESEND_WEBHOOK_SECRET);
+      if (!isValid) {
+        console.log('Invalid webhook signature received');
+        return res.status(401).json({
+          error: 'Invalid webhook signature'
+        });
+      }
+      console.log('Webhook signature verified successfully');
+    } else if (RESEND_WEBHOOK_SECRET) {
+      console.log('Warning: Webhook signature not provided but secret is configured');
+    }
+
     const payload: ResendWebhookPayload = req.body;
     
     // Validate webhook payload structure

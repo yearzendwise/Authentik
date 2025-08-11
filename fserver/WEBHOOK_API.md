@@ -22,6 +22,7 @@ Receives webhook events from Resend email service.
 **Request Headers:**
 - `Content-Type: application/json`
 - `X-Resend-Webhook-ID` (optional) - Webhook ID for deduplication
+- `Resend-Signature` (recommended) - HMAC SHA256 signature for webhook verification
 
 **Request Body Example:**
 ```json
@@ -41,6 +42,7 @@ Receives webhook events from Resend email service.
 **Response:**
 - `200 OK` - Event processed successfully
 - `400 Bad Request` - Invalid payload structure
+- `401 Unauthorized` - Invalid webhook signature
 - `500 Internal Server Error` - Processing error
 
 **Success Response Example:**
@@ -124,9 +126,10 @@ CREATE TABLE email_events (
    - Add new webhook with URL: `https://your-domain.com/api/webhooks/resend`
    - Select the email events you want to track
 
-2. **Security (Recommended):**
-   - Implement webhook signature verification
-   - Use HTTPS for webhook URL
+2. **Security (Implemented):**
+   - Webhook signature verification is configured with secret: `whsec_f0Qe1KQ1+HNNPb54UExrkndtmfOj284A`
+   - HMAC SHA256 signature verification for all incoming webhooks
+   - Use HTTPS for webhook URL in production
    - Consider IP whitelist for Resend webhook IPs
 
 3. **Monitoring:**

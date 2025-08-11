@@ -29,3 +29,17 @@ export const formResponses = pgTable("form_responses", {
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
 });
+
+// Email events table for tracking email lifecycle events from Resend webhooks
+export const emailEvents = pgTable("email_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull(),
+  emailId: varchar("email_id").notNull(), // Resend email ID
+  eventType: text("event_type").notNull(), // bounced, clicked, complained, delivered, delivery_delayed, failed, opened, scheduled, sent
+  eventData: text("event_data").notNull(), // JSON string of webhook payload
+  recipientEmail: text("recipient_email"),
+  timestamp: timestamp("timestamp").defaultNow(),
+  webhookId: varchar("webhook_id"), // Resend webhook ID for deduplication
+  processed: boolean("processed").default(false), // Track if event has been processed
+  createdAt: timestamp("created_at").defaultNow(),
+});

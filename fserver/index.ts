@@ -6,6 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { formRouter } from './routes/forms.js';
+import { webhookRouter } from './routes/webhooks.js';
 import { setupVite, serveStatic, log } from './viteServer.js';
 
 dotenv.config({ path: '../.env' });
@@ -112,6 +113,7 @@ app.use((req, res, next) => {
 (async () => {
   // API routes
   app.use('/api/forms', formRouter);
+  app.use('/api/webhooks', webhookRouter);
 
   // Create HTTP server
   const server = createServer(app);

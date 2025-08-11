@@ -19,6 +19,7 @@ The application adopts a monorepo architecture, separating client, server, and s
 -   **State Management**: TanStack Query.
 -   **Authentication**: JWT-based with access and refresh tokens, with token invalidation support for "logout all devices".
 -   **Email Tracking Microservice**: Go-based server with Temporal integration for robust email tracking.
+-   **Resend Webhook Integration**: Real-time email event tracking through webhooks in the form server.
 
 ### Key Architectural Decisions
 -   **Monorepo Structure**: Facilitates shared types and schemas between frontend and backend.
@@ -35,6 +36,7 @@ The application adopts a monorepo architecture, separating client, server, and s
 -   **Form Server Architecture**: Single-server architecture for the public form frontend, serving both API routes and the React frontend from a single Express server to eliminate CORS issues and simplify deployment.
 -   **Newsletter System**: Integrated CRUD interface for newsletter management with preview, statistics, and multi-tenant isolation.
 -   **Theme System**: Comprehensive theme support with 16 predefined themes (modern, neon, nature, luxury, glassmorphism, professional, retro, minimal, aurora, cosmic, elegant, playful, brutalist, pastel-dream, neo-modern, modern-bold) ensuring consistent styling across all form displays.
+-   **Email Event Tracking**: Real-time webhook integration with Resend for tracking email lifecycle events (sent, delivered, opened, clicked, bounced, failed, complained, delivery_delayed, scheduled) with comprehensive event storage and monitoring capabilities.
 
 ## External Dependencies
 -   **@neondatabase/serverless**: PostgreSQL database connection.

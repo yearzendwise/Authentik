@@ -322,6 +322,7 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                       onSelect={(range) => {
                         if (range && typeof range === 'object' && 'from' in range) {
                           setDateRange(range);
+                          // Only close when both dates are selected
                           if (range.from && range.to) {
                             setIsDatePickerOpen(false);
                           }
@@ -357,7 +358,7 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                         </div>
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        Bold dates have email activity. Hover for details.
+                        Dots indicate email activity. Hover over dots for details.
                       </div>
                     </div>
                   </div>
@@ -485,6 +486,7 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                     onSelect={(range) => {
                       if (range && typeof range === 'object' && 'from' in range) {
                         setDateRange(range);
+                        // Only close when both dates are selected
                         if (range.from && range.to) {
                           setIsDatePickerOpen(false);
                         }
@@ -520,7 +522,7 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                       </div>
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                      Bold dates have email activity. Hover for details.
+                      Dots indicate email activity. Hover over dots for details.
                     </div>
                   </div>
                 </div>

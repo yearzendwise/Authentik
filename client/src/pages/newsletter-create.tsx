@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocation } from "wouter";
-import { ArrowLeft, Save, Send, Eye, Users, Tag, User, Edit } from "lucide-react";
+import { ArrowLeft, Save, Send, Eye, Users, Tag, User, Edit, Server, CheckCircle, XCircle } from "lucide-react";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store";
 import { CustomerSegmentationModal } from "@/components/CustomerSegmentationModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +28,7 @@ export default function NewsletterCreatePage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const accessToken = useSelector((state: RootState) => state.auth.accessToken);
   const [isSegmentationModalOpen, setIsSegmentationModalOpen] = useState(false);
   const [segmentationData, setSegmentationData] = useState({
     recipientType: 'all' as 'all' | 'selected' | 'tags',
@@ -46,6 +49,17 @@ export default function NewsletterCreatePage() {
     },
   });
 
+  // Query to check Go server health
+  const { data: serverHealth, isLoading: healthLoading, error: healthError } = useQuery({
+    queryKey: ['/go-server-health'],
+    queryFn: async () => {
+      const response = await fetch('https://tengine.zendwise.work/health');
+      if (!response.ok) throw new Error('Go server not available');
+      return response.json();
+    },
+    refetchInterval: 10000, // Check health every 10 seconds
+  });
+
   // Create newsletter mutation
   const createNewsletterMutation = useMutation({
     mutationFn: (data: CreateNewsletterData) => 
@@ -63,6 +77,30 @@ export default function NewsletterCreatePage() {
       toast({
         title: "Error",
         description: error.message || "Failed to create newsletter",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Send newsletter mutation
+  const sendNewsletterMutation = useMutation({
+    mutationFn: async (newsletterId: string) => {
+      const response = await apiRequest('POST', `/api/newsletters/${newsletterId}/send`);
+      return response.json();
+    },
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/newsletters'] });
+      queryClient.invalidateQueries({ queryKey: ['/go-server-tracking'] });
+      toast({
+        title: "Newsletter Sent Successfully",
+        description: `Newsletter sent to ${response.successful} recipients${response.failed > 0 ? `, ${response.failed} failed` : ''}`,
+      });
+      setLocation('/newsletter');
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Send Newsletter",
+        description: error.message || "Failed to send newsletter",
         variant: "destructive",
       });
     },
@@ -98,12 +136,48 @@ export default function NewsletterCreatePage() {
 
   const handleSendNow = () => {
     const data = form.getValues();
+    
+    // Validate required fields
+    if (!data.title || !data.subject || !data.content) {
+      toast({
+        variant: "destructive",
+        title: "Missing Information",
+        description: "Please fill in title, subject, and content fields.",
+      });
+      return;
+    }
+
+    if (!serverHealth) {
+      toast({
+        variant: "destructive",
+        title: "Server Unavailable",
+        description: "Go server must be online to send newsletters",
+      });
+      return;
+    }
+
+    if (!accessToken) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Error",
+        description: "Please make sure you are logged in.",
+      });
+      return;
+    }
+
+    // First create the newsletter, then send it
     const newsletterData = {
       ...data,
       ...segmentationData,
-      status: "sent" as const,
+      status: "draft" as const, // Create as draft first
     };
-    createNewsletterMutation.mutate(newsletterData);
+    
+    createNewsletterMutation.mutate(newsletterData, {
+      onSuccess: (response) => {
+        // After creating, send the newsletter
+        sendNewsletterMutation.mutate(response.newsletter.id);
+      }
+    });
   };
 
   const handleSegmentationSave = (data: {
@@ -348,6 +422,46 @@ export default function NewsletterCreatePage() {
               </CardContent>
             </Card>
 
+            {/* Server Status */}
+            <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300">
+              <CardHeader>
+                <CardTitle className="text-gray-900 dark:text-gray-100 flex items-center">
+                  <div className="w-8 h-8 bg-gradient-to-br from-gray-500 to-gray-600 dark:from-gray-400 dark:to-gray-500 rounded-lg flex items-center justify-center mr-3">
+                    <Server className="h-4 w-4 text-white" />
+                  </div>
+                  Email Server
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between p-3 bg-gray-50/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-lg">
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Go Server:</span>
+                  {healthLoading ? (
+                    <Badge variant="outline" className="gap-1">
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600" />
+                      Checking...
+                    </Badge>
+                  ) : healthError ? (
+                    <Badge variant="destructive" className="gap-1">
+                      <XCircle className="h-3 w-3" />
+                      Offline
+                    </Badge>
+                  ) : serverHealth ? (
+                    <Badge variant="default" className="bg-green-600 gap-1">
+                      <CheckCircle className="h-3 w-3" />
+                      Online
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline">Unknown</Badge>
+                  )}
+                </div>
+                {!serverHealth && (
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+                    Server must be online to send newsletters
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Action Buttons */}
             <Card className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm border border-green-200/50 dark:border-green-700/30 hover:shadow-lg transition-all duration-300">
               <CardHeader>
@@ -385,19 +499,38 @@ export default function NewsletterCreatePage() {
                   type="button"
                   onClick={handleSendNow}
                   className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg transition-all duration-300"
-                  disabled={createNewsletterMutation.isPending}
+                  disabled={createNewsletterMutation.isPending || sendNewsletterMutation.isPending || !serverHealth}
                 >
-                  <Send className="h-4 w-4 mr-2" />
-                  Send Now
+                  {createNewsletterMutation.isPending || sendNewsletterMutation.isPending ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                      {createNewsletterMutation.isPending ? "Creating..." : "Sending..."}
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      Send Now
+                    </>
+                  )}
                 </Button>
 
-                {createNewsletterMutation.isPending && (
+                {(createNewsletterMutation.isPending || sendNewsletterMutation.isPending) && (
                   <div className="flex items-center justify-center p-2">
                     <div className="w-4 h-4 bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500 rounded-lg flex items-center justify-center mr-2">
                       <div className="animate-spin rounded-full h-2 w-2 border border-white border-t-transparent"></div>
                     </div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Creating newsletter...
+                      {createNewsletterMutation.isPending ? "Creating newsletter..." : 
+                       sendNewsletterMutation.isPending ? "Sending newsletter..." : "Processing..."}
+                    </p>
+                  </div>
+                )}
+
+                {!serverHealth && (
+                  <div className="flex items-center justify-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <XCircle className="h-4 w-4 text-amber-600" />
+                    <p className="text-sm text-amber-700 dark:text-amber-300">
+                      Go server must be online to send newsletters
                     </p>
                   </div>
                 )}

@@ -205,6 +205,10 @@ const CustomCalendar: React.FC<CalendarProps> = ({
             return (
               <button
                 key={dateStr}
+                onMouseDown={(e) => {
+                  // Prevent focus-induced scroll jumps in some browsers
+                  e.preventDefault();
+                }}
                 onClick={() => handleDateClick(date)}
                 className={getDateStyles()}
               >
@@ -238,8 +242,8 @@ const CustomCalendar: React.FC<CalendarProps> = ({
   const months = Array.from({ length: numberOfMonths }, (_, i) => addMonths(currentMonth, i));
 
   return (
-    <div className={`bg-white dark:bg-gray-900 border rounded-lg ${className}`}>
-      <div className={`grid ${numberOfMonths === 2 ? 'grid-cols-2' : 'grid-cols-1'} divide-x dark:divide-gray-700`}>
+    <div className={`bg-white dark:bg-gray-900 border rounded-lg min-w-0 ${className}`}>
+      <div className={`grid ${numberOfMonths === 2 ? 'grid-cols-2' : 'grid-cols-1'} divide-x dark:divide-gray-700 w-full`}>
         {months.map((month, index) => renderMonth(month, index))}
       </div>
     </div>

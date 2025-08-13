@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +20,7 @@ import {
   CalendarDays,
   X
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { addDays, format } from "date-fns";
 
 interface EmailActivity {
@@ -92,6 +92,19 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
   const queryClient = useQueryClient();
   const [dateRange, setDateRange] = useState<{from?: Date; to?: Date}>({});
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [holdScrollLock, setHoldScrollLock] = useState(false);
+  const [showManualLoading, setShowManualLoading] = useState(false);
+  
+  // Disable background scroll while the date range popover is open
+  useEffect(() => {
+    if (isDatePickerOpen || holdScrollLock) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isDatePickerOpen, holdScrollLock]);
   
   // Fetch all activities to get dates with activity for calendar indicators
   const { data: allActivitiesResponse } = useQuery({
@@ -102,6 +115,8 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
       return data;
     },
     enabled: !!contactId,
+    placeholderData: keepPreviousData,
+    staleTime: 30000, // Keep calendar data for 30 seconds as it changes less frequently
   });
   
   const { data: response, isLoading, error, refetch, dataUpdatedAt } = useQuery({
@@ -128,17 +143,30 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
       return data;
     },
     enabled: !!contactId,
+    placeholderData: keepPreviousData,
+    staleTime: 5000, // Keep data fresh for 5 seconds to avoid unnecessary refetches
   });
 
-  const activities: EmailActivity[] = response?.activities || [];
+  const activities: EmailActivity[] = (response as any)?.activities || [];
 
   const handleRefresh = () => {
+    // Show loading spinner for 2 seconds minimum
+    setShowManualLoading(true);
+    setTimeout(() => setShowManualLoading(false), 2000);
+    
+    // Invalidate both queries to ensure fresh data
+    queryClient.invalidateQueries({ 
+      queryKey: ['/api/email-contacts', contactId, 'activity']
+    });
     refetch();
   };
 
   const clearDateFilter = () => {
     setDateRange({});
     setIsDatePickerOpen(false);
+    // Hold scroll lock briefly to avoid scroll jump on close
+    setHoldScrollLock(true);
+    setTimeout(() => setHoldScrollLock(false), 150);
   };
 
   const hasDateFilter = dateRange.from || dateRange.to;
@@ -157,7 +185,7 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
   };
 
   // Get dates with activities for calendar indicators
-  const allActivities: EmailActivity[] = allActivitiesResponse?.activities || [];
+  const allActivities: EmailActivity[] = (allActivitiesResponse as any)?.activities || [];
   
   // Convert activities to calendar format
   const activityData = allActivities.reduce((acc, activity) => {
@@ -232,7 +260,7 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
     });
   };
 
-  if (isLoading) {
+  if (isLoading || showManualLoading) {
     return (
       <Card>
         <CardHeader>
@@ -300,21 +328,16 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
               <Popover 
                 open={isDatePickerOpen} 
                 onOpenChange={(open) => {
-                  // Allow opening, but prevent closing unless both dates are selected
-                  if (open) {
-                    setIsDatePickerOpen(true);
-                  } else if (dateRange?.from && dateRange?.to) {
-                    setIsDatePickerOpen(false);
-                  }
-                  // If open is false but we don't have both dates, ignore the close request
+                  // Keep open while selecting a range (has from but no to)
+                  setIsDatePickerOpen(open || (!!dateRange?.from && !dateRange?.to));
                 }}
+                modal={false}
               >
                 <PopoverTrigger asChild>
                   <Button
                     variant={hasDateFilter ? "default" : "outline"}
                     size="sm"
                     className="relative"
-                    onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
                   >
                     <CalendarDays className="w-4 h-4 mr-2" />
                     {formatDateRange()}
@@ -331,7 +354,18 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent
+                  className="w-[700px] p-0"
+                  align="start"
+                  side="bottom"
+                  sideOffset={4}
+                  onInteractOutside={(e) => {
+                    if (dateRange?.from && !dateRange?.to) e.preventDefault();
+                  }}
+                  onEscapeKeyDown={(e) => {
+                    if (dateRange?.from && !dateRange?.to) e.preventDefault();
+                  }}
+                >
                   <div className="relative">
                     <CustomCalendar
                       mode="range"
@@ -339,9 +373,17 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                       onSelect={(range) => {
                         if (range && typeof range === 'object' && 'from' in range) {
                           setDateRange(range);
+                          // Show loading spinner for 2 seconds when date range changes
+                          if (range.from && range.to) {
+                            setShowManualLoading(true);
+                            setTimeout(() => setShowManualLoading(false), 2000);
+                          }
                           // Only close when both dates are selected
                           if (range.from && range.to) {
                             setIsDatePickerOpen(false);
+                            // Hold scroll lock briefly after completing range
+                            setHoldScrollLock(true);
+                            setTimeout(() => setHoldScrollLock(false), 150);
                           }
                         } else {
                           setDateRange({});
@@ -389,6 +431,9 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                           const today = new Date();
                           const lastWeek = addDays(today, -7);
                           setDateRange({ from: lastWeek, to: today });
+                          // Show loading spinner for 2 seconds
+                          setShowManualLoading(true);
+                          setTimeout(() => setShowManualLoading(false), 2000);
                           setIsDatePickerOpen(false);
                         }}
                       >
@@ -401,6 +446,9 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                           const today = new Date();
                           const lastMonth = addDays(today, -30);
                           setDateRange({ from: lastMonth, to: today });
+                          // Show loading spinner for 2 seconds
+                          setShowManualLoading(true);
+                          setTimeout(() => setShowManualLoading(false), 2000);
                           setIsDatePickerOpen(false);
                         }}
                       >
@@ -421,9 +469,9 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                 variant="outline"
                 size="sm"
                 onClick={handleRefresh}
-                disabled={isLoading}
+                disabled={isLoading || showManualLoading}
               >
-                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 mr-2 ${(isLoading || showManualLoading) ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
             </div>
@@ -476,14 +524,10 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
             <Popover 
               open={isDatePickerOpen} 
               onOpenChange={(open) => {
-                // Allow opening, but prevent closing unless both dates are selected
-                if (open) {
-                  setIsDatePickerOpen(true);
-                } else if (dateRange?.from && dateRange?.to) {
-                  setIsDatePickerOpen(false);
-                }
-                // If open is false but we don't have both dates, ignore the close request
+                // Keep open while selecting a range (has from but no to)
+                setIsDatePickerOpen(open || (!!dateRange?.from && !dateRange?.to));
               }}
+              modal={false}
             >
               <PopoverTrigger asChild>
                 <Button
@@ -506,7 +550,18 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent
+                className="w-[700px] p-0"
+                align="start"
+                side="bottom"
+                sideOffset={4}
+                onInteractOutside={(e) => {
+                  if (dateRange?.from && !dateRange?.to) e.preventDefault();
+                }}
+                onEscapeKeyDown={(e) => {
+                  if (dateRange?.from && !dateRange?.to) e.preventDefault();
+                }}
+              >
                 <div className="relative">
                   <CustomCalendar
                     mode="range"
@@ -514,9 +569,17 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                     onSelect={(range) => {
                       if (range && typeof range === 'object' && 'from' in range) {
                         setDateRange(range);
+                        // Show loading spinner for 2 seconds when date range changes
+                        if (range.from && range.to) {
+                          setShowManualLoading(true);
+                          setTimeout(() => setShowManualLoading(false), 2000);
+                        }
                         // Only close when both dates are selected
                         if (range.from && range.to) {
                           setIsDatePickerOpen(false);
+                          // Hold scroll lock briefly after completing range
+                          setHoldScrollLock(true);
+                          setTimeout(() => setHoldScrollLock(false), 150);
                         }
                       } else {
                         setDateRange({});
@@ -563,7 +626,13 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                         const today = new Date();
                         const lastWeek = addDays(today, -7);
                         setDateRange({ from: lastWeek, to: today });
+                        // Show loading spinner for 2 seconds
+                        setShowManualLoading(true);
+                        setTimeout(() => setShowManualLoading(false), 2000);
                         setIsDatePickerOpen(false);
+                        // Hold scroll lock briefly to avoid scroll jump on close
+                        setHoldScrollLock(true);
+                        setTimeout(() => setHoldScrollLock(false), 150);
                       }}
                     >
                       Last 7 days
@@ -575,7 +644,13 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                         const today = new Date();
                         const lastMonth = addDays(today, -30);
                         setDateRange({ from: lastMonth, to: today });
+                        // Show loading spinner for 2 seconds
+                        setShowManualLoading(true);
+                        setTimeout(() => setShowManualLoading(false), 2000);
                         setIsDatePickerOpen(false);
+                        // Hold scroll lock briefly to avoid scroll jump on close
+                        setHoldScrollLock(true);
+                        setTimeout(() => setHoldScrollLock(false), 150);
                       }}
                     >
                       Last 30 days
@@ -595,9 +670,9 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
               variant="outline"
               size="sm"
               onClick={handleRefresh}
-              disabled={isLoading}
+              disabled={isLoading || showManualLoading}
             >
-              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 mr-2 ${(isLoading || showManualLoading) ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
           </div>

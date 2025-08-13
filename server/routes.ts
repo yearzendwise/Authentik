@@ -4353,6 +4353,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Send newsletter via Go backend (similar to email-test)
+  app.post("/api/newsletters/:id/send", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Get newsletter details
+      const newsletter = await storage.getNewsletter(id, req.user.tenantId);
+      if (!newsletter) {
+        return res.status(404).json({ message: "Newsletter not found" });
+      }
+
+      // Get recipients based on newsletter segmentation
+      let recipients: any[] = [];
+      if (newsletter.recipientType === 'all') {
+        recipients = await storage.getAllEmailContacts(req.user.tenantId);
+      } else if (newsletter.recipientType === 'selected' && newsletter.selectedContactIds) {
+        // Get contacts by individual IDs
+        const contactPromises = newsletter.selectedContactIds.map(id => 
+          storage.getEmailContact(id, req.user.tenantId)
+        );
+        const contacts = await Promise.all(contactPromises);
+        recipients = contacts.filter(Boolean); // Remove any undefined contacts
+      } else if (newsletter.recipientType === 'tags' && newsletter.selectedTagIds) {
+        // Get all contacts and filter by tags
+        const allContacts = await storage.getAllEmailContacts(req.user.tenantId);
+        recipients = allContacts.filter(contact => 
+          contact.tags && contact.tags.some((tag: any) => 
+            newsletter.selectedTagIds?.includes(tag.id)
+          )
+        );
+      }
+
+      if (recipients.length === 0) {
+        return res.status(400).json({ message: "No recipients found for this newsletter" });
+      }
+
+      // Get user's access token for Go server authentication
+      const accessToken = req.headers.authorization?.replace('Bearer ', '');
+      if (!accessToken) {
+        return res.status(401).json({ message: "Authentication token required" });
+      }
+
+      // Send newsletter to each recipient via Go backend
+      const emailId = `newsletter-${id}-${Date.now()}`;
+      const sendPromises = recipients.map(async (recipient, index) => {
+        const individualEmailId = `${emailId}-${index}`;
+        
+        const payload = {
+          emailId: individualEmailId,
+          status: "queued",
+          temporalWorkflow: `newsletter-workflow-${individualEmailId}`,
+          metadata: {
+            recipient: recipient.email,
+            subject: newsletter.subject,
+            content: newsletter.content,
+            templateType: "newsletter",
+            priority: "normal",
+            newsletterId: newsletter.id,
+            newsletterTitle: newsletter.title,
+            to: recipient.email,
+            sentAt: new Date().toISOString(),
+          }
+        };
+
+        try {
+          const response = await fetch('https://tengine.zendwise.work/api/email-tracking', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (!response.ok) {
+            const error = await response.text();
+            console.error(`Failed to queue email for ${recipient.email}:`, error);
+            return { success: false, email: recipient.email, error };
+          }
+
+          const result = await response.json();
+          return { success: true, email: recipient.email, result };
+        } catch (error) {
+          console.error(`Error sending to ${recipient.email}:`, error);
+          return { success: false, email: recipient.email, error: error instanceof Error ? error.message : String(error) };
+        }
+      });
+
+      const results = await Promise.all(sendPromises);
+      const successful = results.filter(r => r.success);
+      const failed = results.filter(r => !r.success);
+
+      // Update newsletter status to sent
+      await storage.updateNewsletter(id, { status: "sent" }, req.user.tenantId);
+
+      res.json({
+        message: "Newsletter sending initiated",
+        totalRecipients: recipients.length,
+        successful: successful.length,
+        failed: failed.length,
+        emailId,
+        results: {
+          successful: successful.map(r => r.email),
+          failed: failed.map(r => ({ email: r.email, error: r.error }))
+        }
+      });
+
+    } catch (error) {
+      console.error("Send newsletter error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // ====================================
   // CAMPAIGN ROUTES
   // ====================================

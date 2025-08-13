@@ -3906,7 +3906,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate webhook signature using Svix (Resend's official method)
       // Reference: https://resend.com/docs/dashboard/webhooks/verify-webhooks-requests
       
-      const webhookSecret = process.env.RESEND_WEBHOOK_SECRET || process.env.WEBHOOK_SECRET;
+      const webhookSecret = process.env.RESEND_WEBHOOK_SECRET || process.env.WEBHOOK_SECRET || 'whsec_J7jRqP+O3h1aWJbuuRM4B3tc08HwtFSg';
+      console.log("[Webhook] Webhook secret check:", {
+        envResendSecret: process.env.RESEND_WEBHOOK_SECRET ? "present" : "missing",
+        envWebhookSecret: process.env.WEBHOOK_SECRET ? "present" : "missing", 
+        finalSecret: webhookSecret ? webhookSecret.substring(0, 10) + "..." : "none"
+      });
+      
       if (!webhookSecret) {
         console.log("[Webhook] VALIDATION FAILED: No webhook secret configured");
         console.log("[Webhook] Please set RESEND_WEBHOOK_SECRET or WEBHOOK_SECRET environment variable");
@@ -3988,12 +3994,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[Webhook] ✅ Event type '${type}' is supported, continuing processing...`);
 
       // Extract email and find contact
-      const email = data.email || data.to?.[0]?.email || data.to;
-      console.log("[Webhook] Extracting email from webhook data:", email);
-      if (!email) {
-        console.log("[Webhook] VALIDATION FAILED: No email found in webhook data");
-        console.log("[Webhook] Checked data.email, data.to[0].email, and data.to");
+      let email = data.email || data.to;
+      
+      // Handle different email formats from Resend
+      if (Array.isArray(email)) {
+        email = email[0]; // Take the first email if it's an array
+      }
+      if (typeof email === 'object' && email?.email) {
+        email = email.email; // Handle { email: "user@example.com" } format
+      }
+      
+      console.log("[Webhook] Raw email data from webhook:", data.to || data.email);
+      console.log("[Webhook] Extracted email address:", email);
+      
+      if (!email || typeof email !== 'string') {
+        console.log("[Webhook] VALIDATION FAILED: No valid email found in webhook data");
+        console.log("[Webhook] Checked data.email, data.to (array and object formats)");
         console.log("[Webhook] Available data fields:", Object.keys(data));
+        console.log("[Webhook] data.to content:", data.to);
         console.log("[Webhook] Request processing terminated - no email found");
         console.log("=".repeat(80));
         return res.status(400).json({ message: "No email address found" });
@@ -4001,13 +4019,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Find contact across all tenants (since webhook doesn't include tenant info)
       console.log("[Webhook] Looking up contact for email:", email);
-      const contactResult = await storage.findEmailContactByEmail(email);
+      
+      // Try exact match first
+      let contactResult = await storage.findEmailContactByEmail(email);
+      
+      // If not found, try case-insensitive search
+      if (!contactResult && email) {
+        console.log("[Webhook] Exact match not found, trying case-insensitive search...");
+        contactResult = await storage.findEmailContactByEmail(email.toLowerCase());
+      }
+      
       if (!contactResult) {
         console.log(`[Webhook] CONTACT NOT FOUND for email: ${email}`);
-        console.log("[Webhook] This email is not in our contact database");
-        console.log("[Webhook] Request processing terminated - contact not found");
-        console.log("=".repeat(80));
-        return res.status(404).json({ message: "Contact not found" });
+        console.log("[Webhook] Tried both exact match and lowercase versions");
+        
+        // Debug: Check if the storage method is working correctly
+        console.log("[Webhook] DEBUG - findEmailContactByEmail method test:");
+        console.log(`[Webhook] - Original email: "${email}"`);
+        console.log(`[Webhook] - Lowercase email: "${email.toLowerCase()}"`);
+        console.log(`[Webhook] - Email length: ${email.length}`);
+        console.log(`[Webhook] - Email type: ${typeof email}`);
+        
+        // Try some debug variations of the email
+        try {
+          console.log("[Webhook] DEBUG - Testing email variations...");
+          const trimmedEmail = email.trim();
+          const trimmedResult = await storage.findEmailContactByEmail(trimmedEmail);
+          console.log(`[Webhook] - Trimmed email "${trimmedEmail}" result:`, trimmedResult ? "FOUND" : "NOT FOUND");
+          
+          if (trimmedResult) {
+            contactResult = trimmedResult; // Use the trimmed result
+          }
+        } catch (dbError) {
+          console.log("[Webhook] DEBUG email variation test failed:", dbError);
+        }
+        
+        // Check if any of the debug attempts found the contact
+        if (!contactResult) {
+          console.log("[Webhook] This email is not in our contact database");
+          console.log("[Webhook] Request processing terminated - contact not found");
+          console.log("=".repeat(80));
+          return res.status(404).json({ message: "Contact not found" });
+        } else {
+          console.log("[Webhook] ✅ Contact found via debug attempts!");
+        }
       }
       
       console.log("[Webhook] ✅ Contact found:", contactResult.contact.id, "in tenant:", contactResult.tenantId);

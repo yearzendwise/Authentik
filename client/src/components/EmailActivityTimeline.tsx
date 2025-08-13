@@ -290,34 +290,64 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    initialFocus
-                    mode="range"
-                    defaultMonth={dateRange?.from}
-                    selected={dateRange.from && dateRange.to ? { from: dateRange.from, to: dateRange.to } : undefined}
-                    onSelect={(range) => {
-                      if (range?.from || range?.to) {
-                        setDateRange({ from: range?.from, to: range?.to });
-                        if (range?.from && range?.to) {
-                          setIsDatePickerOpen(false);
+                  <div className="relative">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={dateRange?.from}
+                      selected={dateRange.from && dateRange.to ? { from: dateRange.from, to: dateRange.to } : undefined}
+                      onSelect={(range) => {
+                        if (range?.from || range?.to) {
+                          setDateRange({ from: range?.from, to: range?.to });
+                          if (range?.from && range?.to) {
+                            setIsDatePickerOpen(false);
+                          }
+                        } else {
+                          setDateRange({});
                         }
-                      } else {
-                        setDateRange({});
-                      }
-                    }}
-                    numberOfMonths={2}
-                    modifiers={{
-                      hasActivity: (date) => {
-                        const dateStr = format(date, 'yyyy-MM-dd');
-                        return allActivities.some(activity => 
-                          format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr
-                        );
-                      }
-                    }}
-                    modifiersClassNames={{
-                      hasActivity: "font-bold text-blue-600 dark:text-blue-400"
-                    }}
-                  />
+                      }}
+                      numberOfMonths={2}
+                      modifiers={{
+                        hasActivity: (date) => {
+                          const dateStr = format(date, 'yyyy-MM-dd');
+                          return allActivities.some(activity => 
+                            format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr
+                          );
+                        }
+                      }}
+                      modifiersClassNames={{
+                        hasActivity: "font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                      }}
+                    />
+                    
+                    {/* Activity Legend */}
+                    <div className="border-t p-3 bg-gray-50 dark:bg-gray-800">
+                      <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Activity Legend:
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                          <span>Issues</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                          <span>Clicked</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                          <span>Opened</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-green-300"></div>
+                          <span>Delivered</span>
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        Bold dates have email activity. Hover for details.
+                      </div>
+                    </div>
+                  </div>
 
                   <div className="p-3 border-t">
                     <div className="flex items-center justify-between">
@@ -435,34 +465,64 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  initialFocus
-                  mode="range"
-                  defaultMonth={dateRange?.from}
-                  selected={dateRange.from && dateRange.to ? { from: dateRange.from, to: dateRange.to } : undefined}
-                  onSelect={(range) => {
-                    if (range?.from || range?.to) {
-                      setDateRange({ from: range?.from, to: range?.to });
-                      if (range?.from && range?.to) {
-                        setIsDatePickerOpen(false);
+                <div className="relative">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateRange?.from}
+                    selected={dateRange.from && dateRange.to ? { from: dateRange.from, to: dateRange.to } : undefined}
+                    onSelect={(range) => {
+                      if (range?.from || range?.to) {
+                        setDateRange({ from: range?.from, to: range?.to });
+                        if (range?.from && range?.to) {
+                          setIsDatePickerOpen(false);
+                        }
+                      } else {
+                        setDateRange({});
                       }
-                    } else {
-                      setDateRange({});
-                    }
-                  }}
-                  numberOfMonths={2}
-                  modifiers={{
-                    hasActivity: (date) => {
-                      const dateStr = format(date, 'yyyy-MM-dd');
-                      return allActivities.some(activity => 
-                        format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr
-                      );
-                    }
-                  }}
-                  modifiersClassNames={{
-                    hasActivity: "font-bold text-blue-600 dark:text-blue-400"
-                  }}
-                />
+                    }}
+                    numberOfMonths={2}
+                    modifiers={{
+                      hasActivity: (date) => {
+                        const dateStr = format(date, 'yyyy-MM-dd');
+                        return allActivities.some(activity => 
+                          format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr
+                        );
+                      }
+                    }}
+                    modifiersClassNames={{
+                      hasActivity: "font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                    }}
+                  />
+                  
+                  {/* Activity Legend */}
+                  <div className="border-t p-3 bg-gray-50 dark:bg-gray-800">
+                    <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Activity Legend:
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                        <span>Issues</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        <span>Clicked</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                        <span>Opened</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-green-300"></div>
+                        <span>Delivered</span>
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                      Bold dates have email activity. Hover for details.
+                    </div>
+                  </div>
+                </div>
                 <div className="p-3 border-t">
                   <div className="flex items-center justify-between">
                     <Button

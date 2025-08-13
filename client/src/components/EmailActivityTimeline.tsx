@@ -1,7 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { 
   Mail, 
   Eye, 
@@ -12,7 +13,8 @@ import {
   UserMinus,
   Check,
   Clock,
-  Zap
+  Zap,
+  RefreshCw
 } from "lucide-react";
 
 interface EmailActivity {
@@ -81,7 +83,9 @@ const formatDateTime = (dateString: string) => {
 };
 
 export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailActivityTimelineProps) {
-  const { data: response, isLoading, error } = useQuery({
+  const queryClient = useQueryClient();
+  
+  const { data: response, isLoading, error, refetch } = useQuery({
     queryKey: ['/api/email-contacts', contactId, 'activity', { limit }],
     queryFn: async () => {
       const apiResponse = await apiRequest('GET', `/api/email-contacts/${contactId}/activity?limit=${limit}`);
@@ -92,6 +96,10 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
   });
 
   const activities: EmailActivity[] = response?.activities || [];
+
+  const handleRefresh = () => {
+    refetch();
+  };
 
   if (isLoading) {
     return (
@@ -156,13 +164,27 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Zap className="w-5 h-5" />
-          Activity Timeline
-        </CardTitle>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Recent email activities for this contact
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="w-5 h-5" />
+              Activity Timeline
+            </CardTitle>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Recent email activities for this contact
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="ml-auto"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="relative">

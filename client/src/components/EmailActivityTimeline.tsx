@@ -154,15 +154,16 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
   const allActivities: EmailActivity[] = allActivitiesResponse?.activities || [];
   
   // Debug logging
-  console.log('Calendar Debug:', {
+  console.log('Calendar Debug - Full:', {
     allActivitiesResponse,
     allActivities,
     activitiesCount: allActivities.length,
-    sampleDates: allActivities.slice(0, 3).map(a => ({
+    allDates: allActivities.map(a => ({
       date: a.occurredAt,
       formatted: format(new Date(a.occurredAt), 'yyyy-MM-dd'),
       type: a.activityType
-    }))
+    })),
+    todayFormatted: format(new Date(), 'yyyy-MM-dd')
   });
   
   const activityDates = new Set(
@@ -286,6 +287,10 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                     variant={hasDateFilter ? "default" : "outline"}
                     size="sm"
                     className="relative"
+                    onClick={() => {
+                      console.log('Date picker button clicked, opening:', !isDatePickerOpen);
+                      setIsDatePickerOpen(!isDatePickerOpen);
+                    }}
                   >
                     <CalendarDays className="w-4 h-4 mr-2" />
                     {formatDateRange()}
@@ -501,7 +506,11 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                         const hasAct = allActivities.some(activity => 
                           format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr
                         );
-                        console.log(`Checking date ${dateStr}:`, hasAct);
+                        if (hasAct) {
+                          console.log(`✓ Date ${dateStr} has activities:`, allActivities.filter(a => 
+                            format(new Date(a.occurredAt), 'yyyy-MM-dd') === dateStr
+                          ).map(a => a.activityType));
+                        }
                         return hasAct;
                       }
                     }}

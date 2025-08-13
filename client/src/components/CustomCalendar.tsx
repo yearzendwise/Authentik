@@ -182,7 +182,6 @@ const CustomCalendar: React.FC<CalendarProps> = ({
               const baseClasses = `
                 relative h-10 text-sm rounded-md transition-colors
                 ${isCurrentMonth ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-600'}
-                ${isTodayDate ? 'font-bold' : ''}
               `;
 
               // Range mode styling

@@ -306,69 +306,63 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                       }
                     }}
                     numberOfMonths={2}
-                    modifiers={{
-                      hasActivity: (date) => {
+                    components={{
+                      Day: ({ date, ...dayProps }) => {
                         const dateStr = format(date, 'yyyy-MM-dd');
-                        return allActivities.some(activity => 
+                        const dayActivities = allActivities.filter(activity => 
                           format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr
                         );
-                      },
-                      hasIssue: (date) => {
-                        const dateStr = format(date, 'yyyy-MM-dd');
-                        return allActivities.some(activity => 
-                          format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr &&
-                          (activity.activityType === 'bounced' || activity.activityType === 'complained')
-                        );
-                      },
-                      hasClick: (date) => {
-                        const dateStr = format(date, 'yyyy-MM-dd');
-                        return allActivities.some(activity => 
-                          format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr &&
-                          activity.activityType === 'clicked'
-                        );
-                      },
-                      hasOpen: (date) => {
-                        const dateStr = format(date, 'yyyy-MM-dd');
-                        return allActivities.some(activity => 
-                          format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr &&
-                          activity.activityType === 'opened'
+                        const hasActivity = dayActivities.length > 0;
+                        const uniqueActivityTypes = Array.from(new Set(dayActivities.map(a => a.activityType)));
+                        
+                        // Get primary activity color (prioritize issues first)
+                        const getPrimaryColor = () => {
+                          if (uniqueActivityTypes.some(t => t === 'bounced' || t === 'complained')) return 'bg-red-500';
+                          if (uniqueActivityTypes.includes('clicked')) return 'bg-orange-500';
+                          if (uniqueActivityTypes.includes('opened')) return 'bg-blue-500';
+                          if (uniqueActivityTypes.includes('delivered')) return 'bg-green-400';
+                          return 'bg-gray-400';
+                        };
+
+                        return (
+                          <div className="relative group">
+                            <button {...dayProps} className="relative w-9 h-9 p-0 font-normal hover:bg-accent hover:text-accent-foreground rounded-md">
+                              {date.getDate()}
+                              {hasActivity && (
+                                <div className={`absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 rounded-full ${getPrimaryColor()}`} />
+                              )}
+                            </button>
+                            
+                            {/* Tooltip */}
+                            {hasActivity && (
+                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 min-w-max">
+                                <div className="text-center mb-2 font-medium">
+                                  {format(date, 'MMM d, yyyy')}
+                                </div>
+                                <div className="space-y-1">
+                                  {uniqueActivityTypes.map(activityType => {
+                                    const count = dayActivities.filter(a => a.activityType === activityType).length;
+                                    const color = getDotColorForActivityType(activityType);
+                                    const bgColor = color.replace('bg-', 'bg-');
+                                    return (
+                                      <div key={activityType} className="flex items-center gap-2">
+                                        <div className={`w-2 h-2 rounded-full ${bgColor}`} />
+                                        <span className="capitalize text-xs">
+                                          {activityType} ({count})
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-gray-100 rotate-45"></div>
+                              </div>
+                            )}
+                          </div>
                         );
                       }
                     }}
-                    modifiersClassNames={{
-                      hasActivity: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-gray-400",
-                      hasIssue: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-red-500",
-                      hasClick: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-orange-500",
-                      hasOpen: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-blue-500"
-                    }}
                   />
-                  {allActivities.length > 0 && (
-                    <div className="p-3 border-t border-b">
-                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Activity indicators:</p>
-                      <div className="flex flex-wrap gap-3 text-xs">
-                        <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                          <span className="text-gray-600 dark:text-gray-400">Issues</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                          <span className="text-gray-600 dark:text-gray-400">Clicked</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                          <span className="text-gray-600 dark:text-gray-400">Opened</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full bg-green-400"></div>
-                          <span className="text-gray-600 dark:text-gray-400">Delivered</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                          <span className="text-gray-600 dark:text-gray-400">Sent</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+
                   <div className="p-3 border-t">
                     <div className="flex items-center justify-between">
                       <Button
@@ -501,69 +495,62 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                     }
                   }}
                   numberOfMonths={2}
-                  modifiers={{
-                    hasActivity: (date) => {
+                  components={{
+                    Day: ({ date, ...dayProps }) => {
                       const dateStr = format(date, 'yyyy-MM-dd');
-                      return allActivities.some(activity => 
+                      const dayActivities = allActivities.filter(activity => 
                         format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr
                       );
-                    },
-                    hasIssue: (date) => {
-                      const dateStr = format(date, 'yyyy-MM-dd');
-                      return allActivities.some(activity => 
-                        format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr &&
-                        (activity.activityType === 'bounced' || activity.activityType === 'complained')
-                      );
-                    },
-                    hasClick: (date) => {
-                      const dateStr = format(date, 'yyyy-MM-dd');
-                      return allActivities.some(activity => 
-                        format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr &&
-                        activity.activityType === 'clicked'
-                      );
-                    },
-                    hasOpen: (date) => {
-                      const dateStr = format(date, 'yyyy-MM-dd');
-                      return allActivities.some(activity => 
-                        format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr &&
-                        activity.activityType === 'opened'
+                      const hasActivity = dayActivities.length > 0;
+                      const uniqueActivityTypes = Array.from(new Set(dayActivities.map(a => a.activityType)));
+                      
+                      // Get primary activity color (prioritize issues first)
+                      const getPrimaryColor = () => {
+                        if (uniqueActivityTypes.some(t => t === 'bounced' || t === 'complained')) return 'bg-red-500';
+                        if (uniqueActivityTypes.includes('clicked')) return 'bg-orange-500';
+                        if (uniqueActivityTypes.includes('opened')) return 'bg-blue-500';
+                        if (uniqueActivityTypes.includes('delivered')) return 'bg-green-400';
+                        return 'bg-gray-400';
+                      };
+
+                      return (
+                        <div className="relative group">
+                          <button {...dayProps} className="relative w-9 h-9 p-0 font-normal hover:bg-accent hover:text-accent-foreground rounded-md">
+                            {date.getDate()}
+                            {hasActivity && (
+                              <div className={`absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 rounded-full ${getPrimaryColor()}`} />
+                            )}
+                          </button>
+                          
+                          {/* Tooltip */}
+                          {hasActivity && (
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 min-w-max">
+                              <div className="text-center mb-2 font-medium">
+                                {format(date, 'MMM d, yyyy')}
+                              </div>
+                              <div className="space-y-1">
+                                {uniqueActivityTypes.map(activityType => {
+                                  const count = dayActivities.filter(a => a.activityType === activityType).length;
+                                  const color = getDotColorForActivityType(activityType);
+                                  const bgColor = color.replace('bg-', 'bg-');
+                                  return (
+                                    <div key={activityType} className="flex items-center gap-2">
+                                      <div className={`w-2 h-2 rounded-full ${bgColor}`} />
+                                      <span className="capitalize text-xs">
+                                        {activityType} ({count})
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-gray-100 rotate-45"></div>
+                            </div>
+                          )}
+                        </div>
                       );
                     }
                   }}
-                  modifiersClassNames={{
-                    hasActivity: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-gray-400",
-                    hasIssue: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-red-500",
-                    hasClick: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-orange-500",
-                    hasOpen: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-blue-500"
-                  }}
                 />
-{allActivities.length > 0 && (
-                  <div className="p-3 border-t border-b">
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Activity indicators:</p>
-                    <div className="flex flex-wrap gap-3 text-xs">
-                      <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                        <span className="text-gray-600 dark:text-gray-400">Issues</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                        <span className="text-gray-600 dark:text-gray-400">Clicked</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                        <span className="text-gray-600 dark:text-gray-400">Opened</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 rounded-full bg-green-400"></div>
-                        <span className="text-gray-600 dark:text-gray-400">Delivered</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                        <span className="text-gray-600 dark:text-gray-400">Sent</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
                 <div className="p-3 border-t">
                   <div className="flex items-center justify-between">
                     <Button

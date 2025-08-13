@@ -3889,10 +3889,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fromDate = req.query.from ? new Date(req.query.from) : undefined;
       const toDate = req.query.to ? new Date(req.query.to) : undefined;
       
-      // Adjust toDate to include the entire day
-      if (toDate) {
-        toDate.setHours(23, 59, 59, 999);
-      }
+      // No need to adjust dates - frontend now sends proper timestamps
 
       const activities = await storage.getContactActivity(contactId, req.user.tenantId, limit, fromDate, toDate);
       res.json({ activities });

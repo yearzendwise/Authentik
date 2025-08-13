@@ -111,10 +111,16 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
       params.append('limit', limit.toString());
       
       if (dateRange.from) {
-        params.append('from', dateRange.from.toISOString().split('T')[0]);
+        // Send from date as start of day in local timezone
+        const fromDate = new Date(dateRange.from);
+        fromDate.setHours(0, 0, 0, 0);
+        params.append('from', fromDate.toISOString());
       }
       if (dateRange.to) {
-        params.append('to', dateRange.to.toISOString().split('T')[0]);
+        // Send to date as end of day in local timezone
+        const toDate = new Date(dateRange.to);
+        toDate.setHours(23, 59, 59, 999);
+        params.append('to', toDate.toISOString());
       }
       
       const apiResponse = await apiRequest('GET', `/api/email-contacts/${contactId}/activity?${params.toString()}`);

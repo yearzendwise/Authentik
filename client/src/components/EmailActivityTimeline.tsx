@@ -306,53 +306,17 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                       }
                     }}
                     numberOfMonths={2}
-                    components={{
-                      Day: ({ date, ...dayProps }) => {
+                    modifiers={{
+                      hasActivity: (date) => {
                         const dateStr = format(date, 'yyyy-MM-dd');
-                        const dayActivities = allActivities.filter(activity => 
+                        return allActivities.some(activity => 
                           format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr
                         );
-                        const hasActivity = dayActivities.length > 0;
-                        const uniqueActivityTypes = Array.from(new Set(dayActivities.map(a => a.activityType)));
-
-                        // Extract existing style if present
-                        const existingStyle = dayProps.style || {};
-                        const newStyle = hasActivity ? { ...existingStyle, fontWeight: 'bold' } : existingStyle;
-
-                        return (
-                          <div className="relative group">
-                            <button 
-                              {...dayProps}
-                              style={newStyle}
-                            >
-                              {date.getDate()}
-                            </button>
-                            
-                            {/* Tooltip */}
-                            {hasActivity && (
-                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 min-w-max">
-                                <div className="text-center mb-2 font-medium">
-                                  {format(date, 'MMM d, yyyy')}
-                                </div>
-                                <div className="space-y-1">
-                                  {uniqueActivityTypes.map(activityType => {
-                                    const count = dayActivities.filter(a => a.activityType === activityType).length;
-                                    const color = getDotColorForActivityType(activityType);
-                                    return (
-                                      <div key={activityType} className="flex items-center gap-2">
-                                        <div className={`w-2 h-2 rounded-full ${color}`} />
-                                        <span className="capitalize text-xs">
-                                          {activityType} ({count})
-                                        </span>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-gray-100 rotate-45"></div>
-                              </div>
-                            )}
-                          </div>
-                        );
+                      }
+                    }}
+                    modifiersStyles={{
+                      hasActivity: {
+                        fontWeight: 'bold'
                       }
                     }}
                   />
@@ -489,53 +453,17 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                     }
                   }}
                   numberOfMonths={2}
-                  components={{
-                    Day: ({ date, ...dayProps }) => {
+                  modifiers={{
+                    hasActivity: (date) => {
                       const dateStr = format(date, 'yyyy-MM-dd');
-                      const dayActivities = allActivities.filter(activity => 
+                      return allActivities.some(activity => 
                         format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr
                       );
-                      const hasActivity = dayActivities.length > 0;
-                      const uniqueActivityTypes = Array.from(new Set(dayActivities.map(a => a.activityType)));
-
-                      // Extract existing style if present
-                      const existingStyle = dayProps.style || {};
-                      const newStyle = hasActivity ? { ...existingStyle, fontWeight: 'bold' } : existingStyle;
-
-                      return (
-                        <div className="relative group">
-                          <button 
-                            {...dayProps}
-                            style={newStyle}
-                          >
-                            {date.getDate()}
-                          </button>
-                          
-                          {/* Tooltip */}
-                          {hasActivity && (
-                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 min-w-max">
-                              <div className="text-center mb-2 font-medium">
-                                {format(date, 'MMM d, yyyy')}
-                              </div>
-                              <div className="space-y-1">
-                                {uniqueActivityTypes.map(activityType => {
-                                  const count = dayActivities.filter(a => a.activityType === activityType).length;
-                                  const color = getDotColorForActivityType(activityType);
-                                  return (
-                                    <div key={activityType} className="flex items-center gap-2">
-                                      <div className={`w-2 h-2 rounded-full ${color}`} />
-                                      <span className="capitalize text-xs">
-                                        {activityType} ({count})
-                                      </span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-gray-100 rotate-45"></div>
-                            </div>
-                          )}
-                        </div>
-                      );
+                    }
+                  }}
+                  modifiersStyles={{
+                    hasActivity: {
+                      fontWeight: 'bold'
                     }
                   }}
                 />

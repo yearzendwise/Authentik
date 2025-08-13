@@ -42,6 +42,7 @@ import { UAParser } from "ua-parser-js";
 import { createHash } from "crypto";
 import { emailService } from "./emailService";
 import { Resend } from 'resend';
+import { Webhook } from 'svix';
 const resend = new Resend(process.env.RESEND_API_KEY);
 import {
   sanitizeUserInput,
@@ -3874,6 +3875,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Webhook endpoint for Resend - GET handler
   app.get("/api/webhooks/resend", async (req, res) => {
+    console.log("[Webhook] GET request received on /api/webhooks/resend");
+    console.log("[Webhook] Headers:", JSON.stringify(req.headers, null, 2));
+    console.log("[Webhook] Query params:", JSON.stringify(req.query, null, 2));
+    console.log("[Webhook] IP address:", req.ip || req.connection.remoteAddress);
+    console.log("[Webhook] User agent:", req.get('User-Agent'));
+    
     res.status(200).json({ 
       message: "Nothing to see here",
       endpoint: "POST /api/webhooks/resend",
@@ -3883,90 +3890,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Webhook endpoint for Resend - POST handler
   app.post("/api/webhooks/resend", async (req, res) => {
+    // Log ALL incoming POST requests to this endpoint
+    console.log("=".repeat(80));
+    console.log("[Webhook] POST request received on /api/webhooks/resend");
+    console.log("[Webhook] Timestamp:", new Date().toISOString());
+    console.log("[Webhook] IP address:", req.ip || req.connection.remoteAddress);
+    console.log("[Webhook] User agent:", req.get('User-Agent'));
+    console.log("[Webhook] Content-Type:", req.get('Content-Type'));
+    console.log("[Webhook] Content-Length:", req.get('Content-Length'));
+    console.log("[Webhook] Headers:", JSON.stringify(req.headers, null, 2));
+    console.log("[Webhook] Raw body:", JSON.stringify(req.body, null, 2));
+    console.log("=".repeat(80));
+    
     try {
-      // Validate webhook signature for security
-      const signature = req.get('resend-signature');
-      const webhookSecret = process.env.RESEND_WEBHOOK_SECRET || 'whsec_J7jRqP+O3h1aWJbuuRM4B3tc08HwtFSg';
+      // Validate webhook signature using Svix (Resend's official method)
+      // Reference: https://resend.com/docs/dashboard/webhooks/verify-webhooks-requests
       
-      if (!signature) {
-        console.log("[Webhook] Missing resend-signature header");
-        return res.status(401).json({ message: "Missing signature header" });
+      const webhookSecret = process.env.RESEND_WEBHOOK_SECRET || process.env.WEBHOOK_SECRET;
+      if (!webhookSecret) {
+        console.log("[Webhook] VALIDATION FAILED: No webhook secret configured");
+        console.log("[Webhook] Please set RESEND_WEBHOOK_SECRET or WEBHOOK_SECRET environment variable");
+        console.log("[Webhook] Request processing terminated - no webhook secret");
+        console.log("=".repeat(80));
+        return res.status(500).json({ message: "Webhook secret not configured" });
       }
 
-      // Verify the webhook signature
-      const crypto = require('crypto');
-      const body = JSON.stringify(req.body);
+      // Extract Svix headers as required by Resend
+      const svixId = req.get('svix-id');
+      const svixTimestamp = req.get('svix-timestamp');
+      const svixSignature = req.get('svix-signature');
       
-      // Create expected signature using the webhook secret
-      const secret = webhookSecret.replace('whsec_', '');
-      const expectedSignature = crypto
-        .createHmac('sha256', secret)
-        .update(body)
-        .digest('base64');
+      console.log("[Webhook] Checking Svix headers:");
+      console.log("[Webhook] svix-id:", svixId);
+      console.log("[Webhook] svix-timestamp:", svixTimestamp);
+      console.log("[Webhook] svix-signature:", svixSignature ? "present" : "missing");
       
-      // Extract timestamp and signature from header (Resend format: t=timestamp,v1=signature)
-      const parts = signature.split(',');
-      let timestamp = '';
-      let receivedSignature = '';
-      
-      for (const part of parts) {
-        const [key, ...valueParts] = part.trim().split('=');
-        const value = valueParts.join('='); // Handle signatures that contain '=' character
-        if (key === 't') timestamp = value;
-        if (key === 'v1') receivedSignature = value;
-      }
-      
-      if (!timestamp || !receivedSignature) {
-        console.log("[Webhook] Invalid signature format");
-        return res.status(401).json({ message: "Invalid signature format" });
-      }
-      
-      // Verify timestamp (5 minute tolerance)
-      const currentTime = Math.floor(Date.now() / 1000);
-      const webhookTime = parseInt(timestamp);
-      if (Math.abs(currentTime - webhookTime) > 300) {
-        console.log("[Webhook] Signature timestamp too old");
-        return res.status(401).json({ message: "Signature timestamp too old" });
-      }
-      
-      // Verify signature
-      if (expectedSignature !== receivedSignature) {
-        console.log(`[Webhook] Signature mismatch - Expected: ${expectedSignature}, Received: ${receivedSignature}`);
-        return res.status(401).json({ message: "Invalid signature" });
+      if (!svixId || !svixTimestamp || !svixSignature) {
+        console.log("[Webhook] VALIDATION FAILED: Missing required Svix headers");
+        console.log("[Webhook] Required headers: svix-id, svix-timestamp, svix-signature");
+        console.log("[Webhook] Available headers:", Object.keys(req.headers).filter(h => h.startsWith('svix')));
+        console.log("[Webhook] Request processing terminated - missing Svix headers");
+        console.log("=".repeat(80));
+        return res.status(401).json({ message: "Missing required webhook headers" });
       }
 
+      // Prepare headers for Svix verification
+      const headers = {
+        'svix-id': svixId,
+        'svix-timestamp': svixTimestamp,
+        'svix-signature': svixSignature,
+      };
+
+      // Get raw payload as string (crucial for signature verification)
+      const payload = JSON.stringify(req.body);
+      
+      try {
+        const wh = new Webhook(webhookSecret);
+        // Throws on error, returns the verified content on success
+        const verifiedPayload = wh.verify(payload, headers);
+        console.log("[Webhook] ✅ Svix signature verification PASSED");
+        console.log("[Webhook] Verified payload:", JSON.stringify(verifiedPayload, null, 2));
+      } catch (verifyError) {
+        console.log("[Webhook] VALIDATION FAILED: Svix signature verification failed");
+        console.log("[Webhook] Verification error:", verifyError instanceof Error ? verifyError.message : String(verifyError));
+        console.log("[Webhook] Webhook secret (first 10 chars):", webhookSecret.substring(0, 10) + "...");
+        console.log("[Webhook] Payload length:", payload.length);
+        console.log("[Webhook] Request processing terminated - invalid signature");
+        console.log("=".repeat(80));
+        return res.status(401).json({ message: "Invalid webhook signature" });
+      }
+      
       const webhookData = req.body;
-      console.log("[Webhook] Resend webhook received and verified:", JSON.stringify(webhookData, null, 2));
+      console.log("[Webhook] Processing verified webhook data:", JSON.stringify(webhookData, null, 2));
 
       // Extract essential information from webhook
       const { type, data } = webhookData;
       
       if (!type || !data) {
-        console.log("[Webhook] Invalid webhook format - missing type or data");
+        console.log("[Webhook] VALIDATION FAILED: Invalid webhook format - missing type or data");
+        console.log("[Webhook] Type:", type, "Data:", data ? "present" : "missing");
+        console.log("[Webhook] Request processing terminated - invalid format");
+        console.log("=".repeat(80));
         return res.status(400).json({ message: "Invalid webhook format" });
       }
 
       // Handle different webhook types
-      const supportedEvents = ['email.sent', 'email.delivered', 'email.delivery_delayed', 'email.bounced', 'email.complained', 'email.opened', 'email.clicked', 'email.unsubscribed'];
+      const supportedEvents = ['email.sent', 'email.delivered', 'email.delivery_delayed', 'email.bounced', 'email.complained', 'email.opened', 'email.clicked', 'email.failed', 'email.scheduled', 'email.unsubscribed'];
       
       if (!supportedEvents.includes(type)) {
-        console.log(`[Webhook] Unsupported event type: ${type}`);
+        console.log(`[Webhook] UNSUPPORTED EVENT: ${type}`);
+        console.log("[Webhook] Supported events:", supportedEvents.join(", "));
+        console.log("[Webhook] Request processing terminated - unsupported event type");
+        console.log("=".repeat(80));
         return res.status(200).json({ message: "Event type not handled" });
       }
+      
+      console.log(`[Webhook] ✅ Event type '${type}' is supported, continuing processing...`);
 
       // Extract email and find contact
       const email = data.email || data.to?.[0]?.email || data.to;
+      console.log("[Webhook] Extracting email from webhook data:", email);
       if (!email) {
-        console.log("[Webhook] No email found in webhook data");
+        console.log("[Webhook] VALIDATION FAILED: No email found in webhook data");
+        console.log("[Webhook] Checked data.email, data.to[0].email, and data.to");
+        console.log("[Webhook] Available data fields:", Object.keys(data));
+        console.log("[Webhook] Request processing terminated - no email found");
+        console.log("=".repeat(80));
         return res.status(400).json({ message: "No email address found" });
       }
 
       // Find contact across all tenants (since webhook doesn't include tenant info)
+      console.log("[Webhook] Looking up contact for email:", email);
       const contactResult = await storage.findEmailContactByEmail(email);
       if (!contactResult) {
-        console.log(`[Webhook] Contact not found for email: ${email}`);
+        console.log(`[Webhook] CONTACT NOT FOUND for email: ${email}`);
+        console.log("[Webhook] This email is not in our contact database");
+        console.log("[Webhook] Request processing terminated - contact not found");
+        console.log("=".repeat(80));
         return res.status(404).json({ message: "Contact not found" });
       }
+      
+      console.log("[Webhook] ✅ Contact found:", contactResult.contact.id, "in tenant:", contactResult.tenantId);
 
       const { contact, tenantId } = contactResult;
 
@@ -3979,6 +4023,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'email.complained': 'complained',
         'email.opened': 'opened',
         'email.clicked': 'clicked',
+        'email.failed': 'failed',
+        'email.scheduled': 'scheduled',
         'email.unsubscribed': 'unsubscribed'
       };
 
@@ -4026,18 +4072,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: 'bounced' as any,
           lastActivity: new Date() 
         }, tenantId);
+      } else if (activityType === 'complained') {
+        await storage.updateEmailContact(contact.id, { 
+          status: 'complained' as any,
+          lastActivity: new Date() 
+        }, tenantId);
       } else if (activityType === 'unsubscribed') {
         await storage.updateEmailContact(contact.id, { 
           status: 'unsubscribed' as any,
           lastActivity: new Date() 
         }, tenantId);
+      } else if (activityType === 'failed') {
+        // For failed emails, we might want to track this but not change status immediately
+        // as it could be a temporary issue. Consider implementing retry logic or failure count.
+        await storage.updateEmailContact(contact.id, { 
+          lastActivity: new Date() 
+        }, tenantId);
+      } else if (activityType === 'clicked') {
+        await storage.updateEmailContact(contact.id, { 
+          lastActivity: new Date() 
+        }, tenantId);
+      } else {
+        // For other events (sent, delivered, delivery_delayed, scheduled), just update last activity
+        await storage.updateEmailContact(contact.id, { 
+          lastActivity: new Date() 
+        }, tenantId);
       }
 
       console.log(`[Webhook] Successfully processed ${activityType} activity for contact: ${email}`);
+      console.log("[Webhook] Request processing completed successfully");
+      console.log("=".repeat(80));
       res.status(200).json({ message: "Webhook processed successfully", activityId: activity.id });
 
     } catch (error) {
-      console.error("[Webhook] Error processing Resend webhook:", error);
+      console.error("=".repeat(80));
+      console.error("[Webhook] ERROR processing Resend webhook:");
+      console.error("[Webhook] Error message:", error instanceof Error ? error.message : String(error));
+      console.error("[Webhook] Error stack:", error instanceof Error ? error.stack : 'No stack trace available');
+      console.error("[Webhook] Request body that caused error:", JSON.stringify(req.body, null, 2));
+      console.error("[Webhook] Request headers that caused error:", JSON.stringify(req.headers, null, 2));
+      console.error("=".repeat(80));
       res.status(500).json({ message: "Internal server error" });
     }
   });

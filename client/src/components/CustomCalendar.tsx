@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday } from 'date-fns';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, startOfDay } from 'date-fns';
 import { Button } from '@/components/ui/button';
 
 interface ActivityIndicator {
@@ -82,21 +82,44 @@ const CustomCalendar: React.FC<CalendarProps> = ({
       } else {
         const range = selected as { from?: Date; to?: Date } | undefined;
         if (!range) return false;
-        if (range.from && range.to) {
-          return date >= range.from && date <= range.to;
+        
+        // Normalize dates to start of day for accurate comparison
+        const normalizedDate = startOfDay(date);
+        const normalizedFrom = range.from ? startOfDay(range.from) : null;
+        const normalizedTo = range.to ? startOfDay(range.to) : null;
+        
+        if (normalizedFrom && normalizedTo) {
+          return normalizedDate.getTime() >= normalizedFrom.getTime() && normalizedDate.getTime() <= normalizedTo.getTime();
         }
-        return range.from ? isSameDay(date, range.from) : false;
+        return normalizedFrom && range.from ? isSameDay(date, range.from) : false;
       }
     };
 
     const isDateInRange = (date: Date): 'start' | 'end' | 'middle' | false => {
       if (mode !== 'range') return false;
       const range = selected as { from?: Date; to?: Date } | undefined;
-      if (!range?.from || !range?.to) return false;
+      if (!range?.from) return false;
       
-      if (isSameDay(date, range.from)) return 'start';
-      if (isSameDay(date, range.to)) return 'end';
-      if (date > range.from && date < range.to) return 'middle';
+      // Handle single date selection (only 'from' is set)
+      if (range.from && !range.to) {
+        return isSameDay(date, range.from) ? 'start' : false;
+      }
+      
+      // Handle complete range selection
+      if (range.from && range.to) {
+        if (isSameDay(date, range.from)) return 'start';
+        if (isSameDay(date, range.to)) return 'end';
+        
+        // Use normalized dates for middle comparison
+        const normalizedDate = startOfDay(date);
+        const normalizedFrom = startOfDay(range.from);
+        const normalizedTo = startOfDay(range.to);
+        
+        if (normalizedDate > normalizedFrom && normalizedDate < normalizedTo) {
+          return 'middle';
+        }
+      }
+      
       return false;
     };
 
@@ -154,18 +177,37 @@ const CustomCalendar: React.FC<CalendarProps> = ({
             const isCurrentMonth = isSameMonth(date, monthDate);
             const isTodayDate = isToday(date);
 
+            // Determine styling based on range position and selection
+            const getDateStyles = () => {
+              const baseClasses = `
+                relative h-10 text-sm rounded-md transition-colors
+                ${isCurrentMonth ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-600'}
+                ${isTodayDate ? 'font-bold' : ''}
+              `;
+
+              // Range mode styling
+              if (mode === 'range' && rangePosition) {
+                if (rangePosition === 'start' || rangePosition === 'end') {
+                  return `${baseClasses} bg-primary text-primary-foreground`;
+                } else if (rangePosition === 'middle') {
+                  return `${baseClasses} bg-primary/20 text-primary border-0`;
+                }
+              }
+
+              // Single mode or unselected dates
+              if (isSelected && mode === 'single') {
+                return `${baseClasses} bg-primary text-primary-foreground`;
+              }
+
+              // Default hover state
+              return `${baseClasses} hover:bg-gray-100 dark:hover:bg-gray-800`;
+            };
+
             return (
               <button
                 key={dateStr}
                 onClick={() => handleDateClick(date)}
-                className={`
-                  relative h-10 text-sm rounded-md transition-colors
-                  ${isCurrentMonth ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-600'}
-                  ${isTodayDate ? 'font-bold' : ''}
-                  ${isSelected || rangePosition ? 'bg-primary text-primary-foreground' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}
-                  ${rangePosition === 'start' || rangePosition === 'end' ? 'bg-primary text-primary-foreground' : ''}
-                  ${rangePosition === 'middle' ? 'bg-primary/20 text-primary' : ''}
-                `}
+                className={getDateStyles()}
               >
                 <span className="relative z-10">
                   {format(date, 'd')}

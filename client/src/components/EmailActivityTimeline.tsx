@@ -85,7 +85,7 @@ const formatDateTime = (dateString: string) => {
 export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailActivityTimelineProps) {
   const queryClient = useQueryClient();
   
-  const { data: response, isLoading, error, refetch } = useQuery({
+  const { data: response, isLoading, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['/api/email-contacts', contactId, 'activity', { limit }],
     queryFn: async () => {
       const apiResponse = await apiRequest('GET', `/api/email-contacts/${contactId}/activity?limit=${limit}`);
@@ -99,6 +99,15 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
 
   const handleRefresh = () => {
     refetch();
+  };
+
+  const formatLastUpdated = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
   };
 
   if (isLoading) {
@@ -170,9 +179,16 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
               <Zap className="w-5 h-5" />
               Activity Timeline
             </CardTitle>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Recent email activities for this contact
-            </p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Recent email activities for this contact
+              </p>
+              {dataUpdatedAt && (
+                <p className="text-xs text-gray-500 dark:text-gray-500">
+                  Last updated: {formatLastUpdated(dataUpdatedAt)}
+                </p>
+              )}
+            </div>
           </div>
           <Button
             variant="outline"

@@ -315,27 +315,14 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                         );
                         const hasActivity = dayActivities.length > 0;
                         const uniqueActivityTypes = Array.from(new Set(dayActivities.map(a => a.activityType)));
-                        
-                        // Get primary activity color (prioritize issues first)
-                        const getPrimaryColor = () => {
-                          if (uniqueActivityTypes.some(t => t === 'bounced' || t === 'complained')) return 'bg-red-500';
-                          if (uniqueActivityTypes.includes('clicked')) return 'bg-orange-500';
-                          if (uniqueActivityTypes.includes('opened')) return 'bg-blue-500';
-                          if (uniqueActivityTypes.includes('delivered')) return 'bg-green-400';
-                          return 'bg-gray-400';
-                        };
 
                         return (
                           <div className="relative group">
                             <button 
                               {...props}
-                              className={`${props.className} relative`}
-                              style={{ position: 'relative' }}
+                              className={`${props.className} ${hasActivity ? 'font-bold' : ''}`}
                             >
                               {date.getDate()}
-                              {hasActivity && (
-                                <div className={`absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 rounded-full ${getPrimaryColor()}`} />
-                              )}
                             </button>
                             
                             {/* Tooltip */}
@@ -508,27 +495,14 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                       );
                       const hasActivity = dayActivities.length > 0;
                       const uniqueActivityTypes = Array.from(new Set(dayActivities.map(a => a.activityType)));
-                      
-                      // Get primary activity color (prioritize issues first)
-                      const getPrimaryColor = () => {
-                        if (uniqueActivityTypes.some(t => t === 'bounced' || t === 'complained')) return 'bg-red-500';
-                        if (uniqueActivityTypes.includes('clicked')) return 'bg-orange-500';
-                        if (uniqueActivityTypes.includes('opened')) return 'bg-blue-500';
-                        if (uniqueActivityTypes.includes('delivered')) return 'bg-green-400';
-                        return 'bg-gray-400';
-                      };
 
                       return (
                         <div className="relative group">
                           <button 
                             {...props}
-                            className={`${props.className} relative`}
-                            style={{ position: 'relative' }}
+                            className={`${props.className} ${hasActivity ? 'font-bold' : ''}`}
                           >
                             {date.getDate()}
-                            {hasActivity && (
-                              <div className={`absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 rounded-full ${getPrimaryColor()}`} />
-                            )}
                           </button>
                           
                           {/* Tooltip */}

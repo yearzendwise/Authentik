@@ -190,17 +190,129 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Zap className="w-5 h-5" />
-            Activity Timeline
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="w-5 h-5" />
+                Activity Timeline
+              </CardTitle>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Recent email activities for this contact
+                  {hasDateFilter && (
+                    <span className="ml-2 text-blue-600 dark:text-blue-400 font-medium">
+                      • Filtered
+                    </span>
+                  )}
+                </p>
+                {dataUpdatedAt && (
+                  <p className="text-xs text-gray-500 dark:text-gray-500">
+                    Last updated: {formatLastUpdated(dataUpdatedAt)}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 ml-auto">
+              <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={hasDateFilter ? "default" : "outline"}
+                    size="sm"
+                    className="relative"
+                  >
+                    <CalendarDays className="w-4 h-4 mr-2" />
+                    {formatDateRange()}
+                    {hasDateFilter && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          clearDateFilter();
+                        }}
+                        className="ml-2 hover:bg-white hover:bg-opacity-20 rounded-full p-0.5"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateRange?.from}
+                    selected={dateRange.from && dateRange.to ? { from: dateRange.from, to: dateRange.to } : undefined}
+                    onSelect={(range) => {
+                      if (range?.from || range?.to) {
+                        setDateRange({ from: range?.from, to: range?.to });
+                        if (range?.from && range?.to) {
+                          setIsDatePickerOpen(false);
+                        }
+                      } else {
+                        setDateRange({});
+                      }
+                    }}
+                    numberOfMonths={2}
+                  />
+                  <div className="p-3 border-t">
+                    <div className="flex items-center justify-between">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const today = new Date();
+                          const lastWeek = addDays(today, -7);
+                          setDateRange({ from: lastWeek, to: today });
+                          setIsDatePickerOpen(false);
+                        }}
+                      >
+                        Last 7 days
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const today = new Date();
+                          const lastMonth = addDays(today, -30);
+                          setDateRange({ from: lastMonth, to: today });
+                          setIsDatePickerOpen(false);
+                        }}
+                      >
+                        Last 30 days
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={clearDateFilter}
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isLoading}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
             <Clock className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-            <p className="text-gray-600 dark:text-gray-400">No activity recorded yet</p>
+            <p className="text-gray-600 dark:text-gray-400">
+              {hasDateFilter ? "No activities found for the selected date range" : "No activity recorded yet"}
+            </p>
             <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
-              Email activities will appear here when emails are sent to this contact
+              {hasDateFilter 
+                ? "Try adjusting the date range or clearing the filter to see more activities"
+                : "Email activities will appear here when emails are sent to this contact"
+              }
             </p>
           </div>
         </CardContent>
@@ -261,11 +373,15 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                   initialFocus
                   mode="range"
                   defaultMonth={dateRange?.from}
-                  selected={dateRange}
+                  selected={dateRange.from && dateRange.to ? { from: dateRange.from, to: dateRange.to } : undefined}
                   onSelect={(range) => {
-                    setDateRange(range || {});
-                    if (range?.from && range?.to) {
-                      setIsDatePickerOpen(false);
+                    if (range?.from || range?.to) {
+                      setDateRange({ from: range?.from, to: range?.to });
+                      if (range?.from && range?.to) {
+                        setIsDatePickerOpen(false);
+                      }
+                    } else {
+                      setDateRange({});
                     }
                   }}
                   numberOfMonths={2}

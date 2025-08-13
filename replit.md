@@ -109,5 +109,19 @@ The Email Activity Timeline provides comprehensive webhook-based email event tra
 - **Database Verification**: SQL queries to verify webhook data storage
 - **End-to-End**: Complete workflow from webhook receipt to timeline display
 
+## Recent Enhancements
+
+### Email Activity Timeline Date Filtering (August 13, 2025)
+- **Date Filter Integration**: Added comprehensive date filtering functionality to email activity timeline
+- **UI/UX Features**: 
+  - Date filter button positioned left of refresh button in timeline header
+  - Calendar popup with dual-month view for intuitive date range selection
+  - Quick preset buttons for common ranges (Last 7 days, Last 30 days)
+  - Clear filter option with visual feedback
+  - Persistent controls remain visible even when no results are found
+- **Backend Support**: Enhanced API endpoint and storage layer to handle date range parameters (from/to dates)
+- **Smart Messaging**: Context-aware empty state messages differentiate between no activities vs no activities in selected date range
+- **Visual Indicators**: "Filtered" badge and highlighted button state when date filters are active
+
 *Last Updated: August 13, 2025*
 ```

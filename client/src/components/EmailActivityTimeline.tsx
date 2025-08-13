@@ -293,13 +293,13 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                         const hasActivity = activityDates.has(format(date, 'yyyy-MM-dd'));
                         const dotColor = hasActivity ? getDotColorForDate(date) : '';
                         return (
-                          <div className="relative" {...props}>
-                            <div className="w-9 h-9 flex items-center justify-center text-sm">
+                          <div className="relative">
+                            <button {...props} className={`${props.className || ''} relative`}>
                               {date.getDate()}
-                            </div>
-                            {hasActivity && (
-                              <div className={`absolute top-1 right-1 w-2 h-2 rounded-full ${dotColor}`} />
-                            )}
+                              {hasActivity && (
+                                <div className={`absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full ${dotColor}`} />
+                              )}
+                            </button>
                           </div>
                         );
                       }
@@ -442,13 +442,13 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                       const hasActivity = activityDates.has(format(date, 'yyyy-MM-dd'));
                       const dotColor = hasActivity ? getDotColorForDate(date) : '';
                       return (
-                        <div className="relative" {...props}>
-                          <div className="w-9 h-9 flex items-center justify-center text-sm">
+                        <div className="relative">
+                          <button {...props} className={`${props.className || ''} relative`}>
                             {date.getDate()}
-                          </div>
-                          {hasActivity && (
-                            <div className={`absolute top-1 right-1 w-2 h-2 rounded-full ${dotColor}`} />
-                          )}
+                            {hasActivity && (
+                              <div className={`absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full ${dotColor}`} />
+                            )}
+                          </button>
                         </div>
                       );
                     }

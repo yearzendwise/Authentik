@@ -294,10 +294,13 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
               <Popover 
                 open={isDatePickerOpen} 
                 onOpenChange={(open) => {
-                  // Only allow closing if user explicitly closes or both dates are selected
-                  if (!open || (dateRange?.from && dateRange?.to)) {
-                    setIsDatePickerOpen(open);
+                  // Allow opening, but prevent closing unless both dates are selected
+                  if (open) {
+                    setIsDatePickerOpen(true);
+                  } else if (dateRange?.from && dateRange?.to) {
+                    setIsDatePickerOpen(false);
                   }
+                  // If open is false but we don't have both dates, ignore the close request
                 }}
               >
                 <PopoverTrigger asChild>
@@ -467,10 +470,13 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
             <Popover 
               open={isDatePickerOpen} 
               onOpenChange={(open) => {
-                // Only allow closing if user explicitly closes or both dates are selected
-                if (!open || (dateRange?.from && dateRange?.to)) {
-                  setIsDatePickerOpen(open);
+                // Allow opening, but prevent closing unless both dates are selected
+                if (open) {
+                  setIsDatePickerOpen(true);
+                } else if (dateRange?.from && dateRange?.to) {
+                  setIsDatePickerOpen(false);
                 }
+                // If open is false but we don't have both dates, ignore the close request
               }}
             >
               <PopoverTrigger asChild>

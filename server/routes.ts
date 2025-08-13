@@ -3884,8 +3884,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Webhook endpoint for Resend - POST handler
   app.post("/api/webhooks/resend", async (req, res) => {
     try {
+      // Validate webhook signature for security
+      const signature = req.get('resend-signature');
+      const webhookSecret = process.env.RESEND_WEBHOOK_SECRET || 'whsec_J7jRqP+O3h1aWJbuuRM4B3tc08HwtFSg';
+      
+      if (!signature) {
+        console.log("[Webhook] Missing resend-signature header");
+        return res.status(401).json({ message: "Missing signature header" });
+      }
+
+      // Verify the webhook signature
+      const crypto = require('crypto');
+      const body = JSON.stringify(req.body);
+      
+      // Create expected signature using the webhook secret
+      const secret = webhookSecret.replace('whsec_', '');
+      const expectedSignature = crypto
+        .createHmac('sha256', secret)
+        .update(body)
+        .digest('base64');
+      
+      // Extract timestamp and signature from header (Resend format: t=timestamp,v1=signature)
+      const parts = signature.split(',');
+      let timestamp = '';
+      let receivedSignature = '';
+      
+      for (const part of parts) {
+        const [key, ...valueParts] = part.trim().split('=');
+        const value = valueParts.join('='); // Handle signatures that contain '=' character
+        if (key === 't') timestamp = value;
+        if (key === 'v1') receivedSignature = value;
+      }
+      
+      if (!timestamp || !receivedSignature) {
+        console.log("[Webhook] Invalid signature format");
+        return res.status(401).json({ message: "Invalid signature format" });
+      }
+      
+      // Verify timestamp (5 minute tolerance)
+      const currentTime = Math.floor(Date.now() / 1000);
+      const webhookTime = parseInt(timestamp);
+      if (Math.abs(currentTime - webhookTime) > 300) {
+        console.log("[Webhook] Signature timestamp too old");
+        return res.status(401).json({ message: "Signature timestamp too old" });
+      }
+      
+      // Verify signature
+      if (expectedSignature !== receivedSignature) {
+        console.log(`[Webhook] Signature mismatch - Expected: ${expectedSignature}, Received: ${receivedSignature}`);
+        return res.status(401).json({ message: "Invalid signature" });
+      }
+
       const webhookData = req.body;
-      console.log("[Webhook] Resend webhook received:", JSON.stringify(webhookData, null, 2));
+      console.log("[Webhook] Resend webhook received and verified:", JSON.stringify(webhookData, null, 2));
 
       // Extract essential information from webhook
       const { type, data } = webhookData;

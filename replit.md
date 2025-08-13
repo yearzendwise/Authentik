@@ -19,7 +19,7 @@ The application adopts a monorepo architecture, separating client, server, and s
 -   **State Management**: TanStack Query.
 -   **Authentication**: JWT-based with access and refresh tokens, with token invalidation support for "logout all devices".
 -   **Email Tracking Microservice**: Go-based server with Temporal integration for robust email tracking.
--   **Resend Webhook Integration**: Real-time email event tracking through webhooks in the form server.
+-   **Resend Webhook Integration**: Real-time email event tracking through webhooks with signature validation for security.
 
 ### Key Architectural Decisions
 -   **Monorepo Structure**: Facilitates shared types and schemas between frontend and backend.
@@ -69,8 +69,14 @@ The Email Activity Timeline provides comprehensive webhook-based email event tra
 
 #### API Endpoints
 - **GET /api/email-contacts/:contactId/activity**: Retrieves chronological activity timeline for a contact
-- **POST /api/webhooks/resend**: Webhook endpoint for receiving Resend email events
+- **POST /api/webhooks/resend**: Webhook endpoint for receiving Resend email events with signature validation security
 - **Multi-tenant Support**: All activities are properly scoped to tenant isolation
+
+#### Webhook Security
+- **Signature Validation**: Implements HMAC-SHA256 signature verification using Resend webhook secret
+- **Timestamp Verification**: Validates webhook timestamps to prevent replay attacks (5-minute tolerance)
+- **Secret Management**: Uses environment variable RESEND_WEBHOOK_SECRET with fallback to hardcoded secret
+- **Request Authentication**: Validates resend-signature header format (t=timestamp,v1=signature)
 
 #### Frontend Components
 - **EmailActivityTimeline**: React component with visual timeline display

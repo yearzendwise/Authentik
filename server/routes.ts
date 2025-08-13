@@ -3877,7 +3877,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(200).json({ 
       message: "Nothing to see here",
       endpoint: "POST /api/webhooks/resend",
-      description: "This endpoint receives webhook events from Resend email service"
+      description: "This endpoint should not be called directly. Access attempt will be logged."
     });
   });
 

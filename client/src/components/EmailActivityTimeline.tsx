@@ -306,43 +306,69 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                       }
                     }}
                     numberOfMonths={2}
-                    components={{
-                      Day: ({ date, ...props }) => {
+                    modifiers={{
+                      hasActivity: (date) => {
                         const dateStr = format(date, 'yyyy-MM-dd');
-                        const dayActivities = allActivities.filter(activity => 
+                        return allActivities.some(activity => 
                           format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr
                         );
-                        
-                        // Get unique activity types for this day
-                        const uniqueActivityTypes = Array.from(new Set(dayActivities.map(a => a.activityType)));
-                        
-                        return (
-                          <div className="relative flex flex-col items-center">
-                            <button {...props} className={`relative mb-1`}>
-                              {date.getDate()}
-                            </button>
-                            {uniqueActivityTypes.length > 0 && (
-                              <div className="flex gap-0.5 justify-center">
-                                {uniqueActivityTypes.slice(0, 4).map((activityType, index) => {
-                                  const dotColor = getDotColorForActivityType(activityType);
-                                  return (
-                                    <div
-                                      key={activityType}
-                                      className={`w-1 h-1 rounded-full ${dotColor}`}
-                                      title={activityType}
-                                    />
-                                  );
-                                })}
-                                {uniqueActivityTypes.length > 4 && (
-                                  <div className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" title={`+${uniqueActivityTypes.length - 4} more`} />
-                                )}
-                              </div>
-                            )}
-                          </div>
+                      },
+                      hasIssue: (date) => {
+                        const dateStr = format(date, 'yyyy-MM-dd');
+                        return allActivities.some(activity => 
+                          format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr &&
+                          (activity.activityType === 'bounced' || activity.activityType === 'complained')
+                        );
+                      },
+                      hasClick: (date) => {
+                        const dateStr = format(date, 'yyyy-MM-dd');
+                        return allActivities.some(activity => 
+                          format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr &&
+                          activity.activityType === 'clicked'
+                        );
+                      },
+                      hasOpen: (date) => {
+                        const dateStr = format(date, 'yyyy-MM-dd');
+                        return allActivities.some(activity => 
+                          format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr &&
+                          activity.activityType === 'opened'
                         );
                       }
                     }}
+                    modifiersClassNames={{
+                      hasActivity: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-gray-400",
+                      hasIssue: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-red-500",
+                      hasClick: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-orange-500",
+                      hasOpen: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-blue-500"
+                    }}
                   />
+                  {allActivities.length > 0 && (
+                    <div className="p-3 border-t border-b">
+                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Activity indicators:</p>
+                      <div className="flex flex-wrap gap-3 text-xs">
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                          <span className="text-gray-600 dark:text-gray-400">Issues</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                          <span className="text-gray-600 dark:text-gray-400">Clicked</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                          <span className="text-gray-600 dark:text-gray-400">Opened</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                          <span className="text-gray-600 dark:text-gray-400">Delivered</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                          <span className="text-gray-600 dark:text-gray-400">Sent</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <div className="p-3 border-t">
                     <div className="flex items-center justify-between">
                       <Button
@@ -475,41 +501,40 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                     }
                   }}
                   numberOfMonths={2}
-                  components={{
-                    Day: ({ date, ...props }) => {
+                  modifiers={{
+                    hasActivity: (date) => {
                       const dateStr = format(date, 'yyyy-MM-dd');
-                      const dayActivities = allActivities.filter(activity => 
+                      return allActivities.some(activity => 
                         format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr
                       );
-                      
-                      // Get unique activity types for this day
-                      const uniqueActivityTypes = Array.from(new Set(dayActivities.map(a => a.activityType)));
-                      
-                      return (
-                        <div className="relative flex flex-col items-center">
-                          <button {...props} className={`relative mb-1`}>
-                            {date.getDate()}
-                          </button>
-                          {uniqueActivityTypes.length > 0 && (
-                            <div className="flex gap-0.5 justify-center">
-                              {uniqueActivityTypes.slice(0, 4).map((activityType, index) => {
-                                const dotColor = getDotColorForActivityType(activityType);
-                                return (
-                                  <div
-                                    key={activityType}
-                                    className={`w-1 h-1 rounded-full ${dotColor}`}
-                                    title={activityType}
-                                  />
-                                );
-                              })}
-                              {uniqueActivityTypes.length > 4 && (
-                                <div className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" title={`+${uniqueActivityTypes.length - 4} more`} />
-                              )}
-                            </div>
-                          )}
-                        </div>
+                    },
+                    hasIssue: (date) => {
+                      const dateStr = format(date, 'yyyy-MM-dd');
+                      return allActivities.some(activity => 
+                        format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr &&
+                        (activity.activityType === 'bounced' || activity.activityType === 'complained')
+                      );
+                    },
+                    hasClick: (date) => {
+                      const dateStr = format(date, 'yyyy-MM-dd');
+                      return allActivities.some(activity => 
+                        format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr &&
+                        activity.activityType === 'clicked'
+                      );
+                    },
+                    hasOpen: (date) => {
+                      const dateStr = format(date, 'yyyy-MM-dd');
+                      return allActivities.some(activity => 
+                        format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr &&
+                        activity.activityType === 'opened'
                       );
                     }
+                  }}
+                  modifiersClassNames={{
+                    hasActivity: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-gray-400",
+                    hasIssue: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-red-500",
+                    hasClick: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-orange-500",
+                    hasOpen: "relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-blue-500"
                   }}
                 />
 {allActivities.length > 0 && (

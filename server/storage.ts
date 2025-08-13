@@ -1759,17 +1759,29 @@ export class DatabaseStorage implements IStorage {
       .from(emailLists)
       .where(eq(emailLists.tenantId, tenantId));
 
-    // Calculate average engagement rate
-    const [engagementResult] = await db
-      .select({
-        totalSent: sql<number>`COALESCE(SUM(${emailContacts.emailsSent}), 0)`,
-        totalOpened: sql<number>`COALESCE(SUM(${emailContacts.emailsOpened}), 0)`,
-      })
-      .from(emailContacts)
-      .where(eq(emailContacts.tenantId, tenantId));
+    // Calculate average engagement rate from actual email activities
+    const [sentActivitiesResult] = await db
+      .select({ count: count() })
+      .from(emailActivity)
+      .innerJoin(emailContacts, eq(emailActivity.contactId, emailContacts.id))
+      .where(and(
+        eq(emailContacts.tenantId, tenantId),
+        eq(emailActivity.activityType, 'sent')
+      ));
 
-    const averageEngagementRate = engagementResult.totalSent > 0 
-      ? Math.round((engagementResult.totalOpened / engagementResult.totalSent) * 100) 
+    const [openedActivitiesResult] = await db
+      .select({ count: count() })
+      .from(emailActivity)
+      .innerJoin(emailContacts, eq(emailActivity.contactId, emailContacts.id))
+      .where(and(
+        eq(emailContacts.tenantId, tenantId),
+        eq(emailActivity.activityType, 'opened')
+      ));
+
+    const totalSent = sentActivitiesResult.count;
+    const totalOpened = openedActivitiesResult.count;
+    const averageEngagementRate = totalSent > 0 
+      ? Math.round((totalOpened / totalSent) * 100) 
       : 0;
 
     return {
@@ -1780,6 +1792,94 @@ export class DatabaseStorage implements IStorage {
       pendingContacts: pendingResult.count,
       totalLists: listsResult.count,
       averageEngagementRate,
+    };
+  }
+
+  async getContactEngagementStats(contactId: string, tenantId: string): Promise<{
+    emailsSent: number;
+    emailsOpened: number;
+    emailsClicked: number;
+    emailsBounced: number;
+    emailsDelivered: number;
+    openRate: number;
+    clickRate: number;
+    bounceRate: number;
+  }> {
+    // Get sent emails count
+    const [sentResult] = await db
+      .select({ count: count() })
+      .from(emailActivity)
+      .innerJoin(emailContacts, eq(emailActivity.contactId, emailContacts.id))
+      .where(and(
+        eq(emailActivity.contactId, contactId),
+        eq(emailContacts.tenantId, tenantId),
+        eq(emailActivity.activityType, 'sent')
+      ));
+
+    // Get opened emails count
+    const [openedResult] = await db
+      .select({ count: count() })
+      .from(emailActivity)
+      .innerJoin(emailContacts, eq(emailActivity.contactId, emailContacts.id))
+      .where(and(
+        eq(emailActivity.contactId, contactId),
+        eq(emailContacts.tenantId, tenantId),
+        eq(emailActivity.activityType, 'opened')
+      ));
+
+    // Get clicked emails count
+    const [clickedResult] = await db
+      .select({ count: count() })
+      .from(emailActivity)
+      .innerJoin(emailContacts, eq(emailActivity.contactId, emailContacts.id))
+      .where(and(
+        eq(emailActivity.contactId, contactId),
+        eq(emailContacts.tenantId, tenantId),
+        eq(emailActivity.activityType, 'clicked')
+      ));
+
+    // Get bounced emails count
+    const [bouncedResult] = await db
+      .select({ count: count() })
+      .from(emailActivity)
+      .innerJoin(emailContacts, eq(emailActivity.contactId, emailContacts.id))
+      .where(and(
+        eq(emailActivity.contactId, contactId),
+        eq(emailContacts.tenantId, tenantId),
+        eq(emailActivity.activityType, 'bounced')
+      ));
+
+    // Get delivered emails count
+    const [deliveredResult] = await db
+      .select({ count: count() })
+      .from(emailActivity)
+      .innerJoin(emailContacts, eq(emailActivity.contactId, emailContacts.id))
+      .where(and(
+        eq(emailActivity.contactId, contactId),
+        eq(emailContacts.tenantId, tenantId),
+        eq(emailActivity.activityType, 'delivered')
+      ));
+
+    const emailsSent = sentResult.count;
+    const emailsOpened = openedResult.count;
+    const emailsClicked = clickedResult.count;
+    const emailsBounced = bouncedResult.count;
+    const emailsDelivered = deliveredResult.count;
+
+    // Calculate rates
+    const openRate = emailsSent > 0 ? Math.round((emailsOpened / emailsSent) * 100) : 0;
+    const clickRate = emailsSent > 0 ? Math.round((emailsClicked / emailsSent) * 100) : 0;
+    const bounceRate = emailsSent > 0 ? Math.round((emailsBounced / emailsSent) * 100) : 0;
+
+    return {
+      emailsSent,
+      emailsOpened,
+      emailsClicked,
+      emailsBounced,
+      emailsDelivered,
+      openRate,
+      clickRate,
+      bounceRate,
     };
   }
 

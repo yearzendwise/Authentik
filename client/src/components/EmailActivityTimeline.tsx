@@ -307,8 +307,7 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                     }}
                     numberOfMonths={2}
                     components={{
-                      Day: (props) => {
-                        const { date } = props;
+                      Day: ({ date, ...dayProps }) => {
                         const dateStr = format(date, 'yyyy-MM-dd');
                         const dayActivities = allActivities.filter(activity => 
                           format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr
@@ -316,11 +315,15 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                         const hasActivity = dayActivities.length > 0;
                         const uniqueActivityTypes = Array.from(new Set(dayActivities.map(a => a.activityType)));
 
+                        // Extract existing style if present
+                        const existingStyle = dayProps.style || {};
+                        const newStyle = hasActivity ? { ...existingStyle, fontWeight: 'bold' } : existingStyle;
+
                         return (
                           <div className="relative group">
                             <button 
-                              {...props}
-                              className={`${props.className} ${hasActivity ? 'font-bold' : ''}`}
+                              {...dayProps}
+                              style={newStyle}
                             >
                               {date.getDate()}
                             </button>
@@ -487,8 +490,7 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                   }}
                   numberOfMonths={2}
                   components={{
-                    Day: (props) => {
-                      const { date } = props;
+                    Day: ({ date, ...dayProps }) => {
                       const dateStr = format(date, 'yyyy-MM-dd');
                       const dayActivities = allActivities.filter(activity => 
                         format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr
@@ -496,11 +498,15 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                       const hasActivity = dayActivities.length > 0;
                       const uniqueActivityTypes = Array.from(new Set(dayActivities.map(a => a.activityType)));
 
+                      // Extract existing style if present
+                      const existingStyle = dayProps.style || {};
+                      const newStyle = hasActivity ? { ...existingStyle, fontWeight: 'bold' } : existingStyle;
+
                       return (
                         <div className="relative group">
                           <button 
-                            {...props}
-                            className={`${props.className} ${hasActivity ? 'font-bold' : ''}`}
+                            {...dayProps}
+                            style={newStyle}
                           >
                             {date.getDate()}
                           </button>

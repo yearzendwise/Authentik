@@ -3872,7 +3872,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Webhook endpoint for Resend
+  // Webhook endpoint for Resend - GET handler
+  app.get("/api/webhooks/resend", async (req, res) => {
+    res.status(200).json({ 
+      message: "Nothing to see here",
+      endpoint: "POST /api/webhooks/resend",
+      description: "This endpoint receives webhook events from Resend email service"
+    });
+  });
+
+  // Webhook endpoint for Resend - POST handler
   app.post("/api/webhooks/resend", async (req, res) => {
     try {
       const webhookData = req.body;

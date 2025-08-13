@@ -119,6 +119,13 @@ The Email Activity Timeline provides comprehensive webhook-based email event tra
   - Quick preset buttons for common ranges (Last 7 days, Last 30 days)
   - Clear filter option with visual feedback
   - Persistent controls remain visible even when no results are found
+- **Activity Indicators**: Color-coded dots on calendar days with email activity
+  - Red dots: Issues (bounced, complained emails)
+  - Green dots: Clicked emails (high engagement)
+  - Blue dots: Opened emails
+  - Light green dots: Delivered emails
+  - Gray dots: Sent emails
+  - Activity legend displayed below calendar for user guidance
 - **Backend Support**: Enhanced API endpoint and storage layer to handle date range parameters (from/to dates)
 - **Smart Messaging**: Context-aware empty state messages differentiate between no activities vs no activities in selected date range
 - **Visual Indicators**: "Filtered" badge and highlighted button state when date filters are active

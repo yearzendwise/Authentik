@@ -93,6 +93,17 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
   const [dateRange, setDateRange] = useState<{from?: Date; to?: Date}>({});
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   
+  // Fetch all activities to get dates with activity for calendar indicators
+  const { data: allActivitiesResponse } = useQuery({
+    queryKey: ['/api/email-contacts', contactId, 'activity', 'all'],
+    queryFn: async () => {
+      const apiResponse = await apiRequest('GET', `/api/email-contacts/${contactId}/activity?limit=1000`);
+      const data = await apiResponse.json();
+      return data;
+    },
+    enabled: !!contactId && isDatePickerOpen,
+  });
+  
   const { data: response, isLoading, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['/api/email-contacts', contactId, 'activity', { limit, dateRange }],
     queryFn: async () => {
@@ -137,6 +148,31 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
       return `Until ${format(dateRange.to, "MMM d, yyyy")}`;
     }
     return "Filter by date";
+  };
+
+  // Get dates with activities for calendar indicators
+  const allActivities: EmailActivity[] = allActivitiesResponse?.activities || [];
+  const activityDates = new Set(
+    allActivities.map(activity => format(new Date(activity.occurredAt), 'yyyy-MM-dd'))
+  );
+
+  // Get activity types for a specific date to determine dot color
+  const getActivityTypesForDate = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return allActivities
+      .filter(activity => format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr)
+      .map(activity => activity.activityType);
+  };
+
+  // Determine dot color based on activity types (prioritize important activities)
+  const getDotColorForDate = (date: Date) => {
+    const activityTypes = getActivityTypesForDate(date);
+    if (activityTypes.includes('bounced') || activityTypes.includes('complained')) return 'bg-red-500';
+    if (activityTypes.includes('clicked')) return 'bg-green-500';
+    if (activityTypes.includes('opened')) return 'bg-blue-500';
+    if (activityTypes.includes('delivered')) return 'bg-green-400';
+    if (activityTypes.includes('sent')) return 'bg-gray-400';
+    return 'bg-gray-400';
   };
 
   const formatLastUpdated = (timestamp: number) => {
@@ -252,6 +288,22 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                       }
                     }}
                     numberOfMonths={2}
+                    components={{
+                      Day: ({ date, ...props }) => {
+                        const hasActivity = activityDates.has(format(date, 'yyyy-MM-dd'));
+                        const dotColor = hasActivity ? getDotColorForDate(date) : '';
+                        return (
+                          <div className="relative" {...props}>
+                            <div className="w-9 h-9 flex items-center justify-center text-sm">
+                              {date.getDate()}
+                            </div>
+                            {hasActivity && (
+                              <div className={`absolute top-1 right-1 w-2 h-2 rounded-full ${dotColor}`} />
+                            )}
+                          </div>
+                        );
+                      }
+                    }}
                   />
                   <div className="p-3 border-t">
                     <div className="flex items-center justify-between">
@@ -385,7 +437,50 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                     }
                   }}
                   numberOfMonths={2}
+                  components={{
+                    Day: ({ date, ...props }) => {
+                      const hasActivity = activityDates.has(format(date, 'yyyy-MM-dd'));
+                      const dotColor = hasActivity ? getDotColorForDate(date) : '';
+                      return (
+                        <div className="relative" {...props}>
+                          <div className="w-9 h-9 flex items-center justify-center text-sm">
+                            {date.getDate()}
+                          </div>
+                          {hasActivity && (
+                            <div className={`absolute top-1 right-1 w-2 h-2 rounded-full ${dotColor}`} />
+                          )}
+                        </div>
+                      );
+                    }
+                  }}
                 />
+{allActivities.length > 0 && (
+                  <div className="p-3 border-t border-b">
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Activity indicators:</p>
+                    <div className="flex flex-wrap gap-3 text-xs">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                        <span className="text-gray-600 dark:text-gray-400">Issues</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        <span className="text-gray-600 dark:text-gray-400">Clicked</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                        <span className="text-gray-600 dark:text-gray-400">Opened</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                        <span className="text-gray-600 dark:text-gray-400">Delivered</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                        <span className="text-gray-600 dark:text-gray-400">Sent</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="p-3 border-t">
                   <div className="flex items-center justify-between">
                     <Button

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
+import CustomCalendar from "./CustomCalendar";
 import { 
   Mail, 
   Eye, 
@@ -153,17 +153,32 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
   // Get dates with activities for calendar indicators
   const allActivities: EmailActivity[] = allActivitiesResponse?.activities || [];
   
+  // Convert activities to calendar format
+  const activityData = allActivities.reduce((acc, activity) => {
+    const dateStr = format(new Date(activity.occurredAt), 'yyyy-MM-dd');
+    if (!acc[dateStr]) {
+      acc[dateStr] = [];
+    }
+    
+    // Check if this activity type already exists for this date
+    const existingActivity = acc[dateStr].find(a => a.type === activity.activityType);
+    if (existingActivity) {
+      existingActivity.count++;
+    } else {
+      acc[dateStr].push({
+        type: activity.activityType,
+        count: 1
+      });
+    }
+    
+    return acc;
+  }, {} as Record<string, Array<{ type: EmailActivity['activityType']; count: number }>>);
+  
   // Debug logging
-  console.log('Calendar Debug - Full:', {
-    allActivitiesResponse,
-    allActivities,
-    activitiesCount: allActivities.length,
-    allDates: allActivities.map(a => ({
-      date: a.occurredAt,
-      formatted: format(new Date(a.occurredAt), 'yyyy-MM-dd'),
-      type: a.activityType
-    })),
-    todayFormatted: format(new Date(), 'yyyy-MM-dd')
+  console.log('Calendar Debug:', {
+    allActivities: allActivities.length,
+    activityData,
+    sampleDates: Object.keys(activityData).slice(0, 3)
   });
   
   const activityDates = new Set(
@@ -309,15 +324,13 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <div className="relative">
-                    <Calendar
-                      initialFocus
+                    <CustomCalendar
                       mode="range"
-                      defaultMonth={dateRange?.from}
-                      selected={dateRange.from && dateRange.to ? { from: dateRange.from, to: dateRange.to } : undefined}
+                      selected={dateRange}
                       onSelect={(range) => {
-                        if (range?.from || range?.to) {
-                          setDateRange({ from: range?.from, to: range?.to });
-                          if (range?.from && range?.to) {
+                        if (range && typeof range === 'object' && 'from' in range) {
+                          setDateRange(range);
+                          if (range.from && range.to) {
                             setIsDatePickerOpen(false);
                           }
                         } else {
@@ -325,17 +338,7 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                         }
                       }}
                       numberOfMonths={2}
-                      modifiers={{
-                        hasActivity: (date) => {
-                          const dateStr = format(date, 'yyyy-MM-dd');
-                          return allActivities.some(activity => 
-                            format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr
-                          );
-                        }
-                      }}
-                      modifiersClassNames={{
-                        hasActivity: "font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                      }}
+                      activityData={activityData}
                     />
                     
                     {/* Activity Legend */}
@@ -484,15 +487,13 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <div className="relative">
-                  <Calendar
-                    initialFocus
+                  <CustomCalendar
                     mode="range"
-                    defaultMonth={dateRange?.from}
-                    selected={dateRange.from && dateRange.to ? { from: dateRange.from, to: dateRange.to } : undefined}
+                    selected={dateRange}
                     onSelect={(range) => {
-                      if (range?.from || range?.to) {
-                        setDateRange({ from: range?.from, to: range?.to });
-                        if (range?.from && range?.to) {
+                      if (range && typeof range === 'object' && 'from' in range) {
+                        setDateRange(range);
+                        if (range.from && range.to) {
                           setIsDatePickerOpen(false);
                         }
                       } else {
@@ -500,24 +501,7 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                       }
                     }}
                     numberOfMonths={2}
-                    modifiers={{
-                      hasActivity: (date) => {
-                        const dateStr = format(date, 'yyyy-MM-dd');
-                        const hasAct = allActivities.some(activity => 
-                          format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr
-                        );
-                        if (hasAct) {
-                          console.log(`✓ Date ${dateStr} has activities:`, allActivities.filter(a => 
-                            format(new Date(a.occurredAt), 'yyyy-MM-dd') === dateStr
-                          ).map(a => a.activityType));
-                        }
-                        return hasAct;
-                      }
-                    }}
-                    modifiersClassNames={{
-                      hasActivity: "font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                    }}
-
+                    activityData={activityData}
                   />
                   
                   {/* Activity Legend */}

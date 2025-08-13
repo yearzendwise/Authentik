@@ -168,7 +168,7 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
   const getDotColorForDate = (date: Date) => {
     const activityTypes = getActivityTypesForDate(date);
     if (activityTypes.includes('bounced') || activityTypes.includes('complained')) return 'bg-red-500';
-    if (activityTypes.includes('clicked')) return 'bg-green-500';
+    if (activityTypes.includes('clicked')) return 'bg-orange-500';
     if (activityTypes.includes('opened')) return 'bg-blue-500';
     if (activityTypes.includes('delivered')) return 'bg-green-400';
     if (activityTypes.includes('sent')) return 'bg-gray-400';
@@ -181,7 +181,7 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
       case 'complained':
         return 'bg-red-500';
       case 'clicked':
-        return 'bg-green-500';
+        return 'bg-orange-500';
       case 'opened':
         return 'bg-blue-500';
       case 'delivered':
@@ -521,7 +521,7 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                         <span className="text-gray-600 dark:text-gray-400">Issues</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        <div className="w-2 h-2 rounded-full bg-orange-500"></div>
                         <span className="text-gray-600 dark:text-gray-400">Clicked</span>
                       </div>
                       <div className="flex items-center gap-1">

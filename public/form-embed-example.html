@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentik Forms - Embedding Example</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .hero {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .hero p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .examples {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 40px;
+            margin-top: 40px;
+        }
+        
+        .example-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .example-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .form-container {
+            margin: 20px 0;
+            min-height: 400px;
+        }
+        
+        .note {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .warning {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        /* Override Tailwind for demo purposes */
+        .demo-override {
+            background: rgba(255, 255, 255, 0.95) !important;
+            border: 2px solid #667eea !important;
+            border-radius: 16px !important;
+            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.2) !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>🚀 Authentik Forms</h1>
+            <p>Embed beautiful, responsive forms anywhere on the web with just a few lines of code</p>
+        </div>
+
+        <div class="examples">
+            <!-- Method 1: HTML Data Attributes -->
+            <div class="example-section">
+                <h2>📝 Method 1: HTML Data Attributes (Automatic)</h2>
+                <p>The simplest way to embed a form. Just add the data attributes and the form will automatically load:</p>
+                
+                <div class="code-block">
+&lt;!-- Include the Authentik Forms script --&gt;
+&lt;script src="https://zendwise.work/js/authentik-forms.js"&gt;&lt;/script&gt;
+
+&lt;!-- Create a container with data attributes --&gt;
+&lt;div id="my-form-1" 
+     data-authentik-form="dc1ebca2-8aeb-4057-ab32-4b4ce248eb04"
+     data-authentik-theme="minimal"
+     data-authentik-show-title="true"
+     data-authentik-show-description="true"&gt;
+&lt;/div&gt;
+                </div>
+
+                <div class="note">
+                    <strong>Note:</strong> Replace "YOUR_FORM_ID" with an actual form ID from your Authentik dashboard. 
+                    This demo uses a placeholder since we don't have a real form set up yet.
+                </div>
+
+                <!-- Demo Form Container -->
+                <div class="form-container">
+                    <div id="demo-form-1" 
+                         data-authentik-form="demo-form-id"
+                         data-authentik-theme="minimal"
+                         data-authentik-show-title="true"
+                         data-authentik-show-description="true">
+                        <div class="demo-override" style="padding: 40px; text-align: center; color: #666;">
+                            <h3>📋 Demo Form Placeholder</h3>
+                            <p>This would be your actual form once you have a valid form ID.</p>
+                            <p>The form will automatically load with the minimal theme.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Method 2: JavaScript API -->
+            <div class="example-section">
+                <h2>⚡ Method 2: JavaScript API (Programmatic)</h2>
+                <p>For more control, use the JavaScript API to embed forms programmatically:</p>
+                
+                <div class="code-block">
+&lt;!-- Include the script --&gt;
+&lt;script src="https://zendwise.work/js/authentik-forms.js"&gt;&lt;/script&gt;
+
+&lt;!-- Create a container --&gt;
+&lt;div id="my-form-2"&gt;&lt;/div&gt;
+
+&lt;script&gt;
+// Configure the base URL (optional)
+AuthentikForms.configure({
+    baseUrl: 'https://zendwise.work'
+});
+
+// Embed the form
+const form = AuthentikForms.embed('Hello Form', 'dc1ebca2-8aeb-4057-ab32-4b4ce248eb04', {
+    theme: 'modern',
+    showTitle: true,
+    showDescription: true,
+    onSuccess: function(response) {
+        console.log('Form submitted successfully!', response);
+        alert('Thank you for your submission!');
+    },
+    onError: function(error) {
+        console.error('Form submission failed:', error);
+        alert('There was an error submitting the form.');
+    }
+});
+&lt;/script&gt;
+                </div>
+
+                <!-- Demo Form Container -->
+                <div class="form-container">
+                    <div id="demo-form-2">
+                        <div class="demo-override" style="padding: 40px; text-align: center; color: #666; background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)) !important;">
+                            <h3>🎨 Modern Theme Demo</h3>
+                            <p>This would show your form with the modern theme.</p>
+                            <p>Includes custom success/error handlers.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuration Options -->
+            <div class="example-section">
+                <h2>⚙️ Configuration Options</h2>
+                <p>Customize the form appearance and behavior with these options:</p>
+                
+                <div class="code-block">
+// Available themes
+themes: ['minimal', 'modern']
+
+// HTML Data Attributes
+data-authentik-form="dc1ebca2-8aeb-4057-ab32-4b4ce248eb04"           // Required: Your form ID
+data-authentik-theme="minimal"          // Optional: Theme (default: minimal)
+data-authentik-show-title="true"        // Optional: Show form title
+data-authentik-show-description="true"  // Optional: Show form description
+
+// JavaScript API Options
+AuthentikForms.embed('container-id', 'dc1ebca2-8aeb-4057-ab32-4b4ce248eb04', {
+    theme: 'minimal',                    // Theme to use
+    showTitle: true,                     // Show form title
+    showDescription: true,               // Show form description
+    onSuccess: function(response) { },   // Success callback
+    onError: function(error) { }         // Error callback
+});
+                </div>
+
+                <div class="warning">
+                    <strong>Important:</strong> Make sure your Authentik server is running and accessible. 
+                    Update the script src URL to match your server's domain.
+                </div>
+            </div>
+
+            <!-- Features -->
+            <div class="example-section">
+                <h2>✨ Features</h2>
+                <ul style="font-size: 16px; line-height: 1.8;">
+                    <li>🎨 <strong>Multiple Themes:</strong> Minimal and Modern themes with beautiful styling</li>
+                    <li>📱 <strong>Responsive Design:</strong> Works perfectly on all devices</li>
+                    <li>🔒 <strong>Secure:</strong> All form submissions are handled securely by your Authentik server</li>
+                    <li>⚡ <strong>Fast Loading:</strong> Lightweight script with minimal dependencies</li>
+                    <li>🎯 <strong>Easy Integration:</strong> Simple HTML attributes or JavaScript API</li>
+                    <li>🔧 <strong>Customizable:</strong> Multiple configuration options</li>
+                    <li>💫 <strong>Auto-styling:</strong> Includes Tailwind CSS automatically if not present</li>
+                    <li>📊 <strong>Form Validation:</strong> Built-in client-side and server-side validation</li>
+                    <li>🔄 <strong>Real-time Feedback:</strong> Success and error messages</li>
+                    <li>🌐 <strong>Cross-domain:</strong> Works across different domains with CORS support</li>
+                </ul>
+            </div>
+
+            <!-- Getting Started -->
+            <div class="example-section">
+                <h2>🚀 Getting Started</h2>
+                <ol style="font-size: 16px; line-height: 1.8;">
+                    <li><strong>Create a form</strong> in your Authentik dashboard</li>
+                    <li><strong>Copy the form ID</strong> from the form settings</li>
+                    <li><strong>Include the script</strong> on your website</li>
+                    <li><strong>Add a container</strong> with the form ID</li>
+                    <li><strong>Customize</strong> the appearance and behavior</li>
+                </ol>
+                
+                <div class="note">
+                    <strong>Need help?</strong> Check the Authentik documentation or contact support for assistance with form embedding.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include the Authentik Forms script -->
+    <script src="https://zendwise.work/js/authentik-forms.js"></script>
+    
+    <!-- Demo initialization script -->
+    <script>
+        // This is just for demonstration - in a real implementation, 
+        // you would use actual form IDs from your Authentik dashboard
+        
+        console.log('Authentik Forms widget loaded and ready!');
+        console.log('Available methods:', Object.keys(window.AuthentikForms));
+        
+        // Example of programmatic form loading (commented out since we don't have real forms)
+        /*
+        AuthentikForms.embed('demo-form-2', 'dc1ebca2-8aeb-4057-ab32-4b4ce248eb04', {
+            theme: 'modern',
+            showTitle: true,
+            showDescription: true,
+            onSuccess: function(response) {
+                console.log('Success:', response);
+            },
+            onError: function(error) {
+                console.error('Error:', error);
+            }
+        });
+        */
+    </script>
+</body>
+</html>

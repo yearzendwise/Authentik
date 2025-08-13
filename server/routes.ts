@@ -1,5 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import path from "path";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
 import { storage } from "./storage";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
@@ -218,6 +221,10 @@ const generateTokens = (userId: string, tenantId: string) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // ES module equivalent of __dirname
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
+  
   app.use(cookieParser());
 
   // Clean up expired tokens periodically
@@ -2893,6 +2900,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     },
   );
+
+  // Public form endpoints for embedding (no authentication required)
+  
+  // CORS middleware for public endpoints
+  const setCORSHeaders = (res: any) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    // Remove CSP for public endpoints to allow embedding
+    res.removeHeader('Content-Security-Policy');
+  };
+
+  // Handle preflight requests for public endpoints
+  app.options("/api/public/*", (req: any, res) => {
+    setCORSHeaders(res);
+    res.sendStatus(200);
+  });
+  
+  // Get public form data for embedding
+  app.get("/api/public/forms/:id", async (req: any, res) => {
+    setCORSHeaders(res);
+    try {
+      const { id } = req.params;
+      
+      // Get form from any tenant (we'll identify tenant from the form)
+      const form = await storage.getPublicForm(id);
+      if (!form || !form.isActive || !form.isEmbeddable) {
+        return res.status(404).json({ message: "Form not found, inactive, or not embeddable" });
+      }
+
+      // Return only the necessary data for rendering
+      const publicFormData = {
+        id: form.id,
+        title: form.title,
+        description: form.description,
+        formData: form.formData,
+        theme: form.theme,
+        tenantId: form.tenantId // Needed for submissions
+      };
+
+      res.json(publicFormData);
+    } catch (error) {
+      console.error("Get public form error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Submit form response from external website
+  app.post("/api/public/forms/:id/submit", async (req: any, res) => {
+    setCORSHeaders(res);
+    try {
+      const { id } = req.params;
+      const { responseData } = req.body;
+      
+      if (!responseData) {
+        return res.status(400).json({ message: "Response data is required" });
+      }
+
+      // Get form to verify it exists and is active
+      const form = await storage.getPublicForm(id);
+      if (!form || !form.isActive || !form.isEmbeddable) {
+        return res.status(404).json({ message: "Form not found, inactive, or not embeddable" });
+      }
+
+      // Prepare submission data
+      const submissionData = {
+        formId: id,
+        responseData: typeof responseData === 'string' ? responseData : JSON.stringify(responseData),
+        ipAddress: req.ip || req.connection.remoteAddress,
+        userAgent: req.get('User-Agent')
+      };
+
+      // Submit the response
+      const response = await storage.submitFormResponse(submissionData, form.tenantId);
+
+      res.status(201).json({
+        message: "Form submitted successfully",
+        responseId: response.id
+      });
+    } catch (error) {
+      console.error("Submit public form error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Serve the AuthentikForms widget JavaScript
+  app.get("/js/authentik-forms.js", (req: any, res) => {
+    setCORSHeaders(res);
+    res.type('application/javascript');
+    res.sendFile(path.join(__dirname, '../public/authentik-forms.js'));
+  });
+
+  // Serve the form embedding example page
+  app.get("/embed-example", (req: any, res) => {
+    res.sendFile(path.join(__dirname, '../public/form-embed-example.html'));
+  });
+
+  // Serve the simple embedding example page
+  app.get("/simple-example", (req: any, res) => {
+    res.sendFile(path.join(__dirname, '../public/simple-example.html'));
+  });
 
   // Company API Routes (single company per user)
 

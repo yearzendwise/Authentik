@@ -14,7 +14,7 @@ export function FormQRCode({ formId, formTitle }: FormQRCodeProps) {
   const [isGenerating, setIsGenerating] = useState(true);
   const { toast } = useToast();
   
-  const formUrl = `https://forms.zendwise.work/id/${formId}`;
+  const formUrl = `${import.meta.env.VITE_FORMS_URL}/form/${formId}`;
 
   useEffect(() => {
     const generateQRCode = async () => {

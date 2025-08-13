@@ -74,7 +74,7 @@ import {
   type UpdateCampaignData
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gt, lt, desc, ne, or, ilike, count, sql } from "drizzle-orm";
+import { eq, and, gt, lt, desc, ne, or, ilike, count, sql, inArray } from "drizzle-orm";
 
 export interface DeviceInfo {
   deviceId?: string;
@@ -140,6 +140,7 @@ export interface IStorage {
   // Forms operations (tenant-aware)
   createForm(formData: CreateFormData, userId: string, tenantId: string): Promise<Form>;
   getForm(id: string, tenantId: string): Promise<Form | undefined>;
+  getPublicForm(id: string): Promise<Form | undefined>;
   getUserForms(userId: string, tenantId: string): Promise<Form[]>;
   getTenantForms(tenantId: string): Promise<FormWithDetails[]>;
   updateForm(id: string, updates: UpdateFormData, tenantId: string): Promise<Form | undefined>;
@@ -689,6 +690,11 @@ export class DatabaseStorage implements IStorage {
   async getForm(id: string, tenantId: string): Promise<Form | undefined> {
     const [form] = await db.select().from(forms)
       .where(and(eq(forms.id, id), eq(forms.tenantId, tenantId)));
+    return form;
+  }
+
+  async getPublicForm(id: string): Promise<Form | undefined> {
+    const [form] = await db.select().from(forms).where(eq(forms.id, id));
     return form;
   }
 
@@ -1465,7 +1471,7 @@ export class DatabaseStorage implements IStorage {
       .delete(emailContacts)
       .where(and(
         eq(emailContacts.tenantId, tenantId),
-        sql`${emailContacts.id} = ANY(${ids})`
+        inArray(emailContacts.id, ids)
       ));
   }
 
@@ -1920,7 +1926,7 @@ export class DatabaseStorage implements IStorage {
       .update(campaigns)
       .set({
         ...updates,
-        budget: updates.budget ? updates.budget.toString() : updates.budget,
+        budget: updates.budget !== undefined ? (updates.budget ? updates.budget.toString() : null) : undefined,
         updatedAt: new Date(),
       })
       .where(and(eq(campaigns.id, id), eq(campaigns.tenantId, tenantId)))

@@ -314,10 +314,8 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                         );
                       }
                     }}
-                    modifiersStyles={{
-                      hasActivity: {
-                        fontWeight: 'bold'
-                      }
+                    modifiersClassNames={{
+                      hasActivity: "font-bold text-blue-600 dark:text-blue-400"
                     }}
                   />
 
@@ -461,10 +459,8 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                       );
                     }
                   }}
-                  modifiersStyles={{
-                    hasActivity: {
-                      fontWeight: 'bold'
-                    }
+                  modifiersClassNames={{
+                    hasActivity: "font-bold text-blue-600 dark:text-blue-400"
                   }}
                 />
                 <div className="p-3 border-t">

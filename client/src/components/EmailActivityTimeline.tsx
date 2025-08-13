@@ -175,6 +175,24 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
     return 'bg-gray-400';
   };
 
+  const getDotColorForActivityType = (activityType: string): string => {
+    switch (activityType) {
+      case 'bounced':
+      case 'complained':
+        return 'bg-red-500';
+      case 'clicked':
+        return 'bg-green-500';
+      case 'opened':
+        return 'bg-blue-500';
+      case 'delivered':
+        return 'bg-green-400';
+      case 'sent':
+        return 'bg-gray-400';
+      default:
+        return 'bg-gray-400';
+    }
+  };
+
   const formatLastUpdated = (timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString("en-US", {
@@ -290,16 +308,36 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                     numberOfMonths={2}
                     components={{
                       Day: ({ date, ...props }) => {
-                        const hasActivity = activityDates.has(format(date, 'yyyy-MM-dd'));
-                        const dotColor = hasActivity ? getDotColorForDate(date) : '';
+                        const dateStr = format(date, 'yyyy-MM-dd');
+                        const dayActivities = allActivities.filter(activity => 
+                          format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr
+                        );
+                        
+                        // Get unique activity types for this day
+                        const uniqueActivityTypes = [...new Set(dayActivities.map(a => a.activityType))];
+                        
                         return (
-                          <div className="relative">
-                            <button {...props} className={`${props.className || ''} relative`}>
+                          <div className="relative flex flex-col items-center">
+                            <button {...props} className={`${props.className || ''} relative mb-1`}>
                               {date.getDate()}
-                              {hasActivity && (
-                                <div className={`absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full ${dotColor}`} />
-                              )}
                             </button>
+                            {uniqueActivityTypes.length > 0 && (
+                              <div className="flex gap-0.5 justify-center">
+                                {uniqueActivityTypes.slice(0, 4).map((activityType, index) => {
+                                  const dotColor = getDotColorForActivityType(activityType);
+                                  return (
+                                    <div
+                                      key={activityType}
+                                      className={`w-1 h-1 rounded-full ${dotColor}`}
+                                      title={activityType}
+                                    />
+                                  );
+                                })}
+                                {uniqueActivityTypes.length > 4 && (
+                                  <div className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" title={`+${uniqueActivityTypes.length - 4} more`} />
+                                )}
+                              </div>
+                            )}
                           </div>
                         );
                       }
@@ -439,16 +477,36 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                   numberOfMonths={2}
                   components={{
                     Day: ({ date, ...props }) => {
-                      const hasActivity = activityDates.has(format(date, 'yyyy-MM-dd'));
-                      const dotColor = hasActivity ? getDotColorForDate(date) : '';
+                      const dateStr = format(date, 'yyyy-MM-dd');
+                      const dayActivities = allActivities.filter(activity => 
+                        format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr
+                      );
+                      
+                      // Get unique activity types for this day
+                      const uniqueActivityTypes = [...new Set(dayActivities.map(a => a.activityType))];
+                      
                       return (
-                        <div className="relative">
-                          <button {...props} className={`${props.className || ''} relative`}>
+                        <div className="relative flex flex-col items-center">
+                          <button {...props} className={`${props.className || ''} relative mb-1`}>
                             {date.getDate()}
-                            {hasActivity && (
-                              <div className={`absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full ${dotColor}`} />
-                            )}
                           </button>
+                          {uniqueActivityTypes.length > 0 && (
+                            <div className="flex gap-0.5 justify-center">
+                              {uniqueActivityTypes.slice(0, 4).map((activityType, index) => {
+                                const dotColor = getDotColorForActivityType(activityType);
+                                return (
+                                  <div
+                                    key={activityType}
+                                    className={`w-1 h-1 rounded-full ${dotColor}`}
+                                    title={activityType}
+                                  />
+                                );
+                              })}
+                              {uniqueActivityTypes.length > 4 && (
+                                <div className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" title={`+${uniqueActivityTypes.length - 4} more`} />
+                              )}
+                            </div>
+                          )}
                         </div>
                       );
                     }

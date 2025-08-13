@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import EmailActivityTimeline from "@/components/EmailActivityTimeline";
 import { 
   ArrowLeft,
   Mail, 
@@ -380,6 +381,9 @@ export default function ViewContact() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Email Activity Timeline */}
+          <EmailActivityTimeline contactId={contact.id} />
         </div>
 
         {/* Sidebar */}

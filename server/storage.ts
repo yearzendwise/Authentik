@@ -16,6 +16,7 @@ import {
   contactTagAssignments,
   newsletters,
   campaigns,
+  emailActivity,
   type User, 
   type InsertUser, 
   type RefreshToken, 
@@ -71,7 +72,10 @@ import {
   type Campaign,
   type InsertCampaign,
   type CreateCampaignData,
-  type UpdateCampaignData
+  type UpdateCampaignData,
+  type EmailActivity,
+  type InsertEmailActivity,
+  type CreateEmailActivityData
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gt, lt, desc, ne, or, ilike, count, sql, inArray } from "drizzle-orm";
@@ -253,6 +257,13 @@ export interface IStorage {
     draftCampaigns: number;
     completedCampaigns: number;
   }>;
+
+  // Email activity operations for webhook tracking
+  createEmailActivity(activityData: CreateEmailActivityData, tenantId: string): Promise<EmailActivity>;
+  getEmailActivity(id: string, tenantId: string): Promise<EmailActivity | undefined>;
+  getContactActivity(contactId: string, tenantId: string, limit?: number): Promise<EmailActivity[]>;
+  getActivityByWebhookId(webhookId: string, tenantId: string): Promise<EmailActivity | undefined>;
+  findEmailContactByEmail(email: string): Promise<{ contact: EmailContact; tenantId: string } | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1980,6 +1991,72 @@ export class DatabaseStorage implements IStorage {
       activeCampaigns: activeResult.count,
       draftCampaigns: draftResult.count,
       completedCampaigns: completedResult.count,
+    };
+  }
+
+  // Email activity operations for webhook tracking
+  async createEmailActivity(activityData: CreateEmailActivityData, tenantId: string): Promise<EmailActivity> {
+    const [activity] = await db
+      .insert(emailActivity)
+      .values({
+        ...activityData,
+        tenantId,
+      })
+      .returning();
+    return activity;
+  }
+
+  async getEmailActivity(id: string, tenantId: string): Promise<EmailActivity | undefined> {
+    const [activity] = await db
+      .select()
+      .from(emailActivity)
+      .where(and(eq(emailActivity.id, id), eq(emailActivity.tenantId, tenantId)));
+    return activity;
+  }
+
+  async getContactActivity(contactId: string, tenantId: string, limit?: number): Promise<EmailActivity[]> {
+    const query = db
+      .select()
+      .from(emailActivity)
+      .where(and(
+        eq(emailActivity.contactId, contactId),
+        eq(emailActivity.tenantId, tenantId)
+      ))
+      .orderBy(desc(emailActivity.occurredAt));
+    
+    if (limit) {
+      query.limit(limit);
+    }
+    
+    return await query;
+  }
+
+  async getActivityByWebhookId(webhookId: string, tenantId: string): Promise<EmailActivity | undefined> {
+    const [activity] = await db
+      .select()
+      .from(emailActivity)
+      .where(and(
+        eq(emailActivity.webhookId, webhookId),
+        eq(emailActivity.tenantId, tenantId)
+      ));
+    return activity;
+  }
+
+  async findEmailContactByEmail(email: string): Promise<{ contact: EmailContact; tenantId: string } | undefined> {
+    const [result] = await db
+      .select({
+        contact: emailContacts,
+        tenantId: emailContacts.tenantId,
+      })
+      .from(emailContacts)
+      .where(eq(emailContacts.email, email))
+      .limit(1);
+    
+    if (!result) return undefined;
+    
+    return {
+      contact: result.contact,
+      tenantId: result.tenantId,
     };
   }
 

@@ -1,0 +1,269 @@
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Mail, 
+  Eye, 
+  MousePointer, 
+  AlertTriangle, 
+  Ban, 
+  Shield, 
+  UserMinus,
+  Check,
+  Clock,
+  Zap
+} from "lucide-react";
+
+interface EmailActivity {
+  id: string;
+  activityType: 'sent' | 'delivered' | 'opened' | 'clicked' | 'bounced' | 'complained' | 'unsubscribed';
+  occurredAt: string;
+  activityData?: string;
+  userAgent?: string;
+  ipAddress?: string;
+  webhookId?: string;
+}
+
+interface EmailActivityTimelineProps {
+  contactId: string;
+  limit?: number;
+}
+
+const getActivityIcon = (activityType: EmailActivity['activityType']) => {
+  const iconMap = {
+    sent: Mail,
+    delivered: Check,
+    opened: Eye,
+    clicked: MousePointer,
+    bounced: AlertTriangle,
+    complained: Shield,
+    unsubscribed: UserMinus,
+  };
+  return iconMap[activityType] || Clock;
+};
+
+const getActivityColor = (activityType: EmailActivity['activityType']) => {
+  const colorMap = {
+    sent: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    delivered: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+    opened: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+    clicked: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+    bounced: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+    complained: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+    unsubscribed: "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400",
+  };
+  return colorMap[activityType] || "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400";
+};
+
+const getActivityDescription = (activityType: EmailActivity['activityType']) => {
+  const descriptionMap = {
+    sent: "Email was sent",
+    delivered: "Email was delivered successfully",
+    opened: "Email was opened",
+    clicked: "Link in email was clicked",
+    bounced: "Email bounced and couldn't be delivered",
+    complained: "Recipient marked as spam",
+    unsubscribed: "Recipient unsubscribed",
+  };
+  return descriptionMap[activityType] || "Activity recorded";
+};
+
+const formatDateTime = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailActivityTimelineProps) {
+  const { data: response, isLoading, error } = useQuery({
+    queryKey: ['/api/email-contacts', contactId, 'activity', { limit }],
+    queryFn: async () => {
+      const apiResponse = await apiRequest('GET', `/api/email-contacts/${contactId}/activity?limit=${limit}`);
+      const data = await apiResponse.json();
+      return data;
+    },
+    enabled: !!contactId,
+  });
+
+  const activities: EmailActivity[] = response?.activities || [];
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Zap className="w-5 h-5" />
+            Activity Timeline
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Loading activity...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Zap className="w-5 h-5" />
+            Activity Timeline
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-2" />
+            <p className="text-red-600 dark:text-red-400">Failed to load activity timeline</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (activities.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Zap className="w-5 h-5" />
+            Activity Timeline
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <Clock className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+            <p className="text-gray-600 dark:text-gray-400">No activity recorded yet</p>
+            <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
+              Email activities will appear here when emails are sent to this contact
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Zap className="w-5 h-5" />
+          Activity Timeline
+        </CardTitle>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Recent email activities for this contact
+        </p>
+      </CardHeader>
+      <CardContent>
+        <div className="relative">
+          {/* Timeline line */}
+          <div className="absolute left-4 top-0 bottom-0 w-px bg-gray-200 dark:bg-gray-700" />
+          
+          <div className="space-y-4">
+            {activities.map((activity, index) => {
+              const Icon = getActivityIcon(activity.activityType);
+              const colorClass = getActivityColor(activity.activityType);
+              const description = getActivityDescription(activity.activityType);
+              
+              let parsedActivityData = null;
+              try {
+                parsedActivityData = activity.activityData ? JSON.parse(activity.activityData) : null;
+              } catch {
+                // Ignore JSON parsing errors
+              }
+
+              return (
+                <div key={activity.id} className="relative flex items-start gap-3">
+                  {/* Timeline dot */}
+                  <div className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full ${colorClass.includes('blue') ? 'bg-blue-100 dark:bg-blue-900/30' : 
+                    colorClass.includes('green') ? 'bg-green-100 dark:bg-green-900/30' :
+                    colorClass.includes('purple') ? 'bg-purple-100 dark:bg-purple-900/30' :
+                    colorClass.includes('orange') ? 'bg-orange-100 dark:bg-orange-900/30' :
+                    colorClass.includes('red') ? 'bg-red-100 dark:bg-red-900/30' :
+                    colorClass.includes('yellow') ? 'bg-yellow-100 dark:bg-yellow-900/30' :
+                    'bg-gray-100 dark:bg-gray-900/30'
+                  } border-2 border-white dark:border-gray-800`}>
+                    <Icon className={`h-4 w-4 ${
+                      colorClass.includes('blue') ? 'text-blue-600 dark:text-blue-400' :
+                      colorClass.includes('green') ? 'text-green-600 dark:text-green-400' :
+                      colorClass.includes('purple') ? 'text-purple-600 dark:text-purple-400' :
+                      colorClass.includes('orange') ? 'text-orange-600 dark:text-orange-400' :
+                      colorClass.includes('red') ? 'text-red-600 dark:text-red-400' :
+                      colorClass.includes('yellow') ? 'text-yellow-600 dark:text-yellow-400' :
+                      'text-gray-600 dark:text-gray-400'
+                    }`} />
+                  </div>
+
+                  {/* Timeline content */}
+                  <div className="flex-1 min-w-0 pb-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge className={colorClass}>
+                          {activity.activityType}
+                        </Badge>
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {description}
+                        </p>
+                      </div>
+                      <time className="text-xs text-gray-500 dark:text-gray-400">
+                        {formatDateTime(activity.occurredAt)}
+                      </time>
+                    </div>
+                    
+                    {/* Additional details */}
+                    {parsedActivityData && (
+                      <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                        {parsedActivityData.subject && (
+                          <p><span className="font-medium">Subject:</span> {parsedActivityData.subject}</p>
+                        )}
+                        {parsedActivityData.messageId && (
+                          <p><span className="font-medium">Message ID:</span> {parsedActivityData.messageId}</p>
+                        )}
+                        {parsedActivityData.tags && parsedActivityData.tags.length > 0 && (
+                          <p><span className="font-medium">Tags:</span> {parsedActivityData.tags.join(', ')}</p>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* User agent and IP for certain activities */}
+                    {(activity.activityType === 'opened' || activity.activityType === 'clicked') && (activity.userAgent || activity.ipAddress) && (
+                      <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        {activity.ipAddress && (
+                          <p><span className="font-medium">IP:</span> {activity.ipAddress}</p>
+                        )}
+                        {activity.userAgent && (
+                          <p><span className="font-medium">User Agent:</span> {activity.userAgent}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {activities.length >= limit && (
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 text-center">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Showing latest {limit} activities. 
+              <span className="ml-1 text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">
+                Load more
+              </span>
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

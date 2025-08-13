@@ -3855,6 +3855,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ====================================
+  // EMAIL ACTIVITY ROUTES (for webhook tracking)
+  // ====================================
+
+  // Get contact activity (timeline)
+  app.get("/api/email-contacts/:contactId/activity", authenticateToken, async (req: any, res) => {
+    try {
+      const { contactId } = req.params;
+      const limit = req.query.limit ? parseInt(req.query.limit) : 50;
+
+      const activities = await storage.getContactActivity(contactId, req.user.tenantId, limit);
+      res.json({ activities });
+    } catch (error) {
+      console.error("Get contact activity error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Webhook endpoint for Resend
+  app.post("/api/webhooks/resend", async (req, res) => {
+    try {
+      const webhookData = req.body;
+      console.log("[Webhook] Resend webhook received:", JSON.stringify(webhookData, null, 2));
+
+      // Extract essential information from webhook
+      const { type, data } = webhookData;
+      
+      if (!type || !data) {
+        console.log("[Webhook] Invalid webhook format - missing type or data");
+        return res.status(400).json({ message: "Invalid webhook format" });
+      }
+
+      // Handle different webhook types
+      const supportedEvents = ['email.sent', 'email.delivered', 'email.delivery_delayed', 'email.bounced', 'email.complained', 'email.opened', 'email.clicked', 'email.unsubscribed'];
+      
+      if (!supportedEvents.includes(type)) {
+        console.log(`[Webhook] Unsupported event type: ${type}`);
+        return res.status(200).json({ message: "Event type not handled" });
+      }
+
+      // Extract email and find contact
+      const email = data.email || data.to?.[0]?.email || data.to;
+      if (!email) {
+        console.log("[Webhook] No email found in webhook data");
+        return res.status(400).json({ message: "No email address found" });
+      }
+
+      // Find contact across all tenants (since webhook doesn't include tenant info)
+      const contactResult = await storage.findEmailContactByEmail(email);
+      if (!contactResult) {
+        console.log(`[Webhook] Contact not found for email: ${email}`);
+        return res.status(404).json({ message: "Contact not found" });
+      }
+
+      const { contact, tenantId } = contactResult;
+
+      // Map webhook event types to activity types
+      const eventTypeMapping: Record<string, string> = {
+        'email.sent': 'sent',
+        'email.delivered': 'delivered',
+        'email.delivery_delayed': 'delivered',
+        'email.bounced': 'bounced',
+        'email.complained': 'complained',
+        'email.opened': 'opened',
+        'email.clicked': 'clicked',
+        'email.unsubscribed': 'unsubscribed'
+      };
+
+      const activityType = eventTypeMapping[type];
+      if (!activityType) {
+        console.log(`[Webhook] Unknown activity type for event: ${type}`);
+        return res.status(200).json({ message: "Event type mapping not found" });
+      }
+
+      // Create activity record
+      const activityData = {
+        contactId: contact.id,
+        activityType: activityType as any,
+        activityData: JSON.stringify({
+          messageId: data.message_id,
+          subject: data.subject,
+          tags: data.tags,
+        }),
+        userAgent: data.user_agent,
+        ipAddress: data.ip,
+        webhookId: data.message_id || data.id,
+        webhookData: JSON.stringify(webhookData),
+        occurredAt: new Date(data.created_at || Date.now()),
+      };
+
+      // Check if we already processed this webhook
+      if (activityData.webhookId) {
+        const existingActivity = await storage.getActivityByWebhookId(activityData.webhookId, tenantId);
+        if (existingActivity) {
+          console.log(`[Webhook] Activity already processed for webhook ID: ${activityData.webhookId}`);
+          return res.status(200).json({ message: "Activity already processed" });
+        }
+      }
+
+      const activity = await storage.createEmailActivity(activityData, tenantId);
+      
+      // Update contact statistics based on activity type
+      if (activityType === 'opened') {
+        await storage.updateEmailContact(contact.id, { 
+          emailsOpened: (contact.emailsOpened || 0) + 1,
+          lastActivity: new Date() 
+        }, tenantId);
+      } else if (activityType === 'bounced') {
+        await storage.updateEmailContact(contact.id, { 
+          status: 'bounced' as any,
+          lastActivity: new Date() 
+        }, tenantId);
+      } else if (activityType === 'unsubscribed') {
+        await storage.updateEmailContact(contact.id, { 
+          status: 'unsubscribed' as any,
+          lastActivity: new Date() 
+        }, tenantId);
+      }
+
+      console.log(`[Webhook] Successfully processed ${activityType} activity for contact: ${email}`);
+      res.status(200).json({ message: "Webhook processed successfully", activityId: activity.id });
+
+    } catch (error) {
+      console.error("[Webhook] Error processing Resend webhook:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // ====================================
   // NEWSLETTER ROUTES
   // ====================================
 

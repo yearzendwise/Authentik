@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, Tag, Users, X, Check, User } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -44,13 +45,21 @@ export function CustomerSegmentationModal({
   // Fetch contacts
   const { data: contactsData, isLoading: contactsLoading } = useQuery({
     queryKey: ['/api/email-contacts'],
-    enabled: isOpen && activeTab === 'selected',
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/email-contacts');
+      return response.json();
+    },
+    enabled: isOpen,
   });
 
   // Fetch tags
   const { data: tagsData, isLoading: tagsLoading } = useQuery({
     queryKey: ['/api/contact-tags'],
-    enabled: isOpen && activeTab === 'tags',
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/contact-tags');
+      return response.json();
+    },
+    enabled: isOpen,
   });
 
   const contacts: EmailContactWithDetails[] = (contactsData as any)?.contacts || [];
@@ -109,7 +118,11 @@ export function CustomerSegmentationModal({
       case 'selected':
         return `${tempSelectedContacts.length} selected customers`;
       case 'tags':
-        return `${tempSelectedTags.length} selected tags`;
+        const tagNames = tempSelectedTags.map(tagId => {
+          const tag = tags.find(t => t.id === tagId);
+          return tag?.name || tagId;
+        }).join(', ');
+        return `${tempSelectedTags.length} selected tags${tagNames ? `: ${tagNames}` : ''}`;
       default:
         return '';
     }

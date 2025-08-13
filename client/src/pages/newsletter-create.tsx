@@ -188,18 +188,45 @@ export default function NewsletterCreatePage() {
     setSegmentationData(data);
   };
 
+  // Query to get contact and tag counts for display
+  const { data: contactsData } = useQuery({
+    queryKey: ['/api/email-contacts'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/email-contacts');
+      return response.json();
+    },
+  });
+
+  const { data: tagsData } = useQuery({
+    queryKey: ['/api/contact-tags'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/contact-tags');
+      return response.json();
+    },
+  });
+
+  const contacts = (contactsData as any)?.contacts || [];
+  const tags = (tagsData as any)?.tags || [];
+
   const getSegmentationSummary = () => {
     switch (segmentationData.recipientType) {
       case 'all':
-        return { text: 'All customers', icon: Users };
+        return { 
+          text: `All customers (${contacts.length} total)`, 
+          icon: Users 
+        };
       case 'selected':
         return { 
           text: `${segmentationData.selectedContactIds.length} selected customers`, 
           icon: User 
         };
       case 'tags':
+        const selectedTagNames = segmentationData.selectedTagIds.map(tagId => {
+          const tag = tags.find((t: any) => t.id === tagId);
+          return tag?.name || 'Unknown Tag';
+        });
         return { 
-          text: `${segmentationData.selectedTagIds.length} selected tags`, 
+          text: `${segmentationData.selectedTagIds.length} selected tags${selectedTagNames.length > 0 ? ` (${selectedTagNames.join(', ')})` : ''}`, 
           icon: Tag 
         };
       default:

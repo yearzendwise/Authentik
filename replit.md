@@ -113,22 +113,26 @@ The Email Activity Timeline provides comprehensive webhook-based email event tra
 
 ### Email Activity Timeline Date Filtering (August 13, 2025)
 - **Date Filter Integration**: Added comprehensive date filtering functionality to email activity timeline
+- **Custom Calendar Component**: Built CustomCalendar component with multi-dot activity indicators replacing shadcn Calendar
 - **UI/UX Features**: 
   - Date filter button positioned left of refresh button in timeline header
   - Calendar popup with dual-month view for intuitive date range selection
   - Quick preset buttons for common ranges (Last 7 days, Last 30 days)
   - Clear filter option with visual feedback
   - Persistent controls remain visible even when no results are found
-- **Activity Indicators**: Color-coded dots on calendar days with email activity
+- **Activity Indicators**: Color-coded small dots under calendar dates with email activity
   - Red dots: Issues (bounced, complained emails)
   - Green dots: Clicked emails (high engagement)
   - Blue dots: Opened emails
   - Light green dots: Delivered emails
   - Gray dots: Sent emails
+  - Orange dots: Unsubscribed emails
   - Activity legend displayed below calendar for user guidance
+  - Visual dots appear without bold text styling for clean presentation
 - **Backend Support**: Enhanced API endpoint and storage layer to handle date range parameters (from/to dates)
 - **Smart Messaging**: Context-aware empty state messages differentiate between no activities vs no activities in selected date range
 - **Visual Indicators**: "Filtered" badge and highlighted button state when date filters are active
+- **Technical Implementation**: Complete TypeScript compatibility with proper activity type mapping and error handling
 
 *Last Updated: August 13, 2025*
 ```

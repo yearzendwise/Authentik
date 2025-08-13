@@ -174,12 +174,7 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
     return acc;
   }, {} as Record<string, Array<{ type: EmailActivity['activityType']; count: number }>>);
   
-  // Debug logging
-  console.log('Calendar Debug:', {
-    allActivities: allActivities.length,
-    activityData,
-    sampleDates: Object.keys(activityData).slice(0, 3)
-  });
+  // Activity data prepared for calendar
   
   const activityDates = new Set(
     allActivities.map(activity => format(new Date(activity.occurredAt), 'yyyy-MM-dd'))
@@ -302,10 +297,7 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                     variant={hasDateFilter ? "default" : "outline"}
                     size="sm"
                     className="relative"
-                    onClick={() => {
-                      console.log('Date picker button clicked, opening:', !isDatePickerOpen);
-                      setIsDatePickerOpen(!isDatePickerOpen);
-                    }}
+                    onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
                   >
                     <CalendarDays className="w-4 h-4 mr-2" />
                     {formatDateRange()}

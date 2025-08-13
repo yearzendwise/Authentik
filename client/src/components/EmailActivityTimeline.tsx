@@ -291,7 +291,15 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
               </div>
             </div>
             <div className="flex items-center gap-2 ml-auto">
-              <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+              <Popover 
+                open={isDatePickerOpen} 
+                onOpenChange={(open) => {
+                  // Only allow closing if user explicitly closes or both dates are selected
+                  if (!open || (dateRange?.from && dateRange?.to)) {
+                    setIsDatePickerOpen(open);
+                  }
+                }}
+              >
                 <PopoverTrigger asChild>
                   <Button
                     variant={hasDateFilter ? "default" : "outline"}
@@ -456,7 +464,15 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
             </div>
           </div>
           <div className="flex items-center gap-2 ml-auto">
-            <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+            <Popover 
+              open={isDatePickerOpen} 
+              onOpenChange={(open) => {
+                // Only allow closing if user explicitly closes or both dates are selected
+                if (!open || (dateRange?.from && dateRange?.to)) {
+                  setIsDatePickerOpen(open);
+                }
+              }}
+            >
               <PopoverTrigger asChild>
                 <Button
                   variant={hasDateFilter ? "default" : "outline"}

@@ -15,6 +15,7 @@ interface CalendarProps {
   numberOfMonths?: number;
   activityData?: Record<string, ActivityIndicator[]>; // Date string -> activities
   className?: string;
+  onRangeComplete?: () => void; // Called when range selection is complete
 }
 
 const getActivityColor = (type: string): string => {

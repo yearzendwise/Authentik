@@ -314,11 +314,11 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                         );
                         
                         // Get unique activity types for this day
-                        const uniqueActivityTypes = [...new Set(dayActivities.map(a => a.activityType))];
+                        const uniqueActivityTypes = Array.from(new Set(dayActivities.map(a => a.activityType)));
                         
                         return (
                           <div className="relative flex flex-col items-center">
-                            <button {...props} className={`${props.className || ''} relative mb-1`}>
+                            <button {...props} className={`relative mb-1`}>
                               {date.getDate()}
                             </button>
                             {uniqueActivityTypes.length > 0 && (
@@ -483,11 +483,11 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                       );
                       
                       // Get unique activity types for this day
-                      const uniqueActivityTypes = [...new Set(dayActivities.map(a => a.activityType))];
+                      const uniqueActivityTypes = Array.from(new Set(dayActivities.map(a => a.activityType)));
                       
                       return (
                         <div className="relative flex flex-col items-center">
-                          <button {...props} className={`${props.className || ''} relative mb-1`}>
+                          <button {...props} className={`relative mb-1`}>
                             {date.getDate()}
                           </button>
                           {uniqueActivityTypes.length > 0 && (

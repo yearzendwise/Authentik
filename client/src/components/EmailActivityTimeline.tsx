@@ -3,6 +3,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { 
   Mail, 
   Eye, 
@@ -14,8 +16,12 @@ import {
   Check,
   Clock,
   Zap,
-  RefreshCw
+  RefreshCw,
+  CalendarDays,
+  X
 } from "lucide-react";
+import { useState } from "react";
+import { addDays, format } from "date-fns";
 
 interface EmailActivity {
   id: string;
@@ -84,11 +90,23 @@ const formatDateTime = (dateString: string) => {
 
 export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailActivityTimelineProps) {
   const queryClient = useQueryClient();
+  const [dateRange, setDateRange] = useState<{from?: Date; to?: Date}>({});
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   
   const { data: response, isLoading, error, refetch, dataUpdatedAt } = useQuery({
-    queryKey: ['/api/email-contacts', contactId, 'activity', { limit }],
+    queryKey: ['/api/email-contacts', contactId, 'activity', { limit, dateRange }],
     queryFn: async () => {
-      const apiResponse = await apiRequest('GET', `/api/email-contacts/${contactId}/activity?limit=${limit}`);
+      const params = new URLSearchParams();
+      params.append('limit', limit.toString());
+      
+      if (dateRange.from) {
+        params.append('from', dateRange.from.toISOString().split('T')[0]);
+      }
+      if (dateRange.to) {
+        params.append('to', dateRange.to.toISOString().split('T')[0]);
+      }
+      
+      const apiResponse = await apiRequest('GET', `/api/email-contacts/${contactId}/activity?${params.toString()}`);
       const data = await apiResponse.json();
       return data;
     },
@@ -99,6 +117,26 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
 
   const handleRefresh = () => {
     refetch();
+  };
+
+  const clearDateFilter = () => {
+    setDateRange({});
+    setIsDatePickerOpen(false);
+  };
+
+  const hasDateFilter = dateRange.from || dateRange.to;
+  
+  const formatDateRange = () => {
+    if (!hasDateFilter) return "Filter by date";
+    
+    if (dateRange.from && dateRange.to) {
+      return `${format(dateRange.from, "MMM d")} - ${format(dateRange.to, "MMM d, yyyy")}`;
+    } else if (dateRange.from) {
+      return `From ${format(dateRange.from, "MMM d, yyyy")}`;
+    } else if (dateRange.to) {
+      return `Until ${format(dateRange.to, "MMM d, yyyy")}`;
+    }
+    return "Filter by date";
   };
 
   const formatLastUpdated = (timestamp: number) => {
@@ -182,6 +220,11 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
             <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Recent email activities for this contact
+                {hasDateFilter && (
+                  <span className="ml-2 text-blue-600 dark:text-blue-400 font-medium">
+                    • Filtered
+                  </span>
+                )}
               </p>
               {dataUpdatedAt && (
                 <p className="text-xs text-gray-500 dark:text-gray-500">
@@ -190,16 +233,90 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
               )}
             </div>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isLoading}
-            className="ml-auto"
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2 ml-auto">
+            <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={hasDateFilter ? "default" : "outline"}
+                  size="sm"
+                  className="relative"
+                >
+                  <CalendarDays className="w-4 h-4 mr-2" />
+                  {formatDateRange()}
+                  {hasDateFilter && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        clearDateFilter();
+                      }}
+                      className="ml-2 hover:bg-white hover:bg-opacity-20 rounded-full p-0.5"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange?.from}
+                  selected={dateRange}
+                  onSelect={(range) => {
+                    setDateRange(range || {});
+                    if (range?.from && range?.to) {
+                      setIsDatePickerOpen(false);
+                    }
+                  }}
+                  numberOfMonths={2}
+                />
+                <div className="p-3 border-t">
+                  <div className="flex items-center justify-between">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const today = new Date();
+                        const lastWeek = addDays(today, -7);
+                        setDateRange({ from: lastWeek, to: today });
+                        setIsDatePickerOpen(false);
+                      }}
+                    >
+                      Last 7 days
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const today = new Date();
+                        const lastMonth = addDays(today, -30);
+                        setDateRange({ from: lastMonth, to: today });
+                        setIsDatePickerOpen(false);
+                      }}
+                    >
+                      Last 30 days
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={clearDateFilter}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isLoading}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>

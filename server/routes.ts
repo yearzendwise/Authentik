@@ -3886,8 +3886,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { contactId } = req.params;
       const limit = req.query.limit ? parseInt(req.query.limit) : 50;
+      const fromDate = req.query.from ? new Date(req.query.from) : undefined;
+      const toDate = req.query.to ? new Date(req.query.to) : undefined;
+      
+      // Adjust toDate to include the entire day
+      if (toDate) {
+        toDate.setHours(23, 59, 59, 999);
+      }
 
-      const activities = await storage.getContactActivity(contactId, req.user.tenantId, limit);
+      const activities = await storage.getContactActivity(contactId, req.user.tenantId, limit, fromDate, toDate);
       res.json({ activities });
     } catch (error) {
       console.error("Get contact activity error:", error);

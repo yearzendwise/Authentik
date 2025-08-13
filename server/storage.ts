@@ -78,7 +78,7 @@ import {
   type CreateEmailActivityData
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gt, lt, desc, ne, or, ilike, count, sql, inArray } from "drizzle-orm";
+import { eq, and, gt, lt, gte, lte, desc, ne, or, ilike, count, sql, inArray } from "drizzle-orm";
 
 export interface DeviceInfo {
   deviceId?: string;
@@ -2114,14 +2114,24 @@ export class DatabaseStorage implements IStorage {
     return activity;
   }
 
-  async getContactActivity(contactId: string, tenantId: string, limit?: number): Promise<EmailActivity[]> {
+  async getContactActivity(contactId: string, tenantId: string, limit?: number, fromDate?: Date, toDate?: Date): Promise<EmailActivity[]> {
+    const whereConditions = [
+      eq(emailActivity.contactId, contactId),
+      eq(emailActivity.tenantId, tenantId)
+    ];
+    
+    if (fromDate) {
+      whereConditions.push(gte(emailActivity.occurredAt, fromDate));
+    }
+    
+    if (toDate) {
+      whereConditions.push(lte(emailActivity.occurredAt, toDate));
+    }
+    
     const query = db
       .select()
       .from(emailActivity)
-      .where(and(
-        eq(emailActivity.contactId, contactId),
-        eq(emailActivity.tenantId, tenantId)
-      ))
+      .where(and(...whereConditions))
       .orderBy(desc(emailActivity.occurredAt));
     
     if (limit) {

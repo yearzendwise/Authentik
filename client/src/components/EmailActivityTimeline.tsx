@@ -307,7 +307,8 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                     }}
                     numberOfMonths={2}
                     components={{
-                      Day: ({ date, ...dayProps }) => {
+                      Day: (props) => {
+                        const { date } = props;
                         const dateStr = format(date, 'yyyy-MM-dd');
                         const dayActivities = allActivities.filter(activity => 
                           format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr
@@ -326,7 +327,11 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
 
                         return (
                           <div className="relative group">
-                            <button {...dayProps} className="relative w-9 h-9 p-0 font-normal hover:bg-accent hover:text-accent-foreground rounded-md">
+                            <button 
+                              {...props}
+                              className={`${props.className} relative`}
+                              style={{ position: 'relative' }}
+                            >
                               {date.getDate()}
                               {hasActivity && (
                                 <div className={`absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 rounded-full ${getPrimaryColor()}`} />
@@ -343,10 +348,9 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                                   {uniqueActivityTypes.map(activityType => {
                                     const count = dayActivities.filter(a => a.activityType === activityType).length;
                                     const color = getDotColorForActivityType(activityType);
-                                    const bgColor = color.replace('bg-', 'bg-');
                                     return (
                                       <div key={activityType} className="flex items-center gap-2">
-                                        <div className={`w-2 h-2 rounded-full ${bgColor}`} />
+                                        <div className={`w-2 h-2 rounded-full ${color}`} />
                                         <span className="capitalize text-xs">
                                           {activityType} ({count})
                                         </span>
@@ -496,7 +500,8 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                   }}
                   numberOfMonths={2}
                   components={{
-                    Day: ({ date, ...dayProps }) => {
+                    Day: (props) => {
+                      const { date } = props;
                       const dateStr = format(date, 'yyyy-MM-dd');
                       const dayActivities = allActivities.filter(activity => 
                         format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr
@@ -515,7 +520,11 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
 
                       return (
                         <div className="relative group">
-                          <button {...dayProps} className="relative w-9 h-9 p-0 font-normal hover:bg-accent hover:text-accent-foreground rounded-md">
+                          <button 
+                            {...props}
+                            className={`${props.className} relative`}
+                            style={{ position: 'relative' }}
+                          >
                             {date.getDate()}
                             {hasActivity && (
                               <div className={`absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 rounded-full ${getPrimaryColor()}`} />
@@ -532,10 +541,9 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                                 {uniqueActivityTypes.map(activityType => {
                                   const count = dayActivities.filter(a => a.activityType === activityType).length;
                                   const color = getDotColorForActivityType(activityType);
-                                  const bgColor = color.replace('bg-', 'bg-');
                                   return (
                                     <div key={activityType} className="flex items-center gap-2">
-                                      <div className={`w-2 h-2 rounded-full ${bgColor}`} />
+                                      <div className={`w-2 h-2 rounded-full ${color}`} />
                                       <span className="capitalize text-xs">
                                         {activityType} ({count})
                                       </span>

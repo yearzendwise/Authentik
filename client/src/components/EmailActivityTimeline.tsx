@@ -101,7 +101,7 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
       const data = await apiResponse.json();
       return data;
     },
-    enabled: !!contactId && isDatePickerOpen,
+    enabled: !!contactId,
   });
   
   const { data: response, isLoading, error, refetch, dataUpdatedAt } = useQuery({
@@ -152,6 +152,19 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
 
   // Get dates with activities for calendar indicators
   const allActivities: EmailActivity[] = allActivitiesResponse?.activities || [];
+  
+  // Debug logging
+  console.log('Calendar Debug:', {
+    allActivitiesResponse,
+    allActivities,
+    activitiesCount: allActivities.length,
+    sampleDates: allActivities.slice(0, 3).map(a => ({
+      date: a.occurredAt,
+      formatted: format(new Date(a.occurredAt), 'yyyy-MM-dd'),
+      type: a.activityType
+    }))
+  });
+  
   const activityDates = new Set(
     allActivities.map(activity => format(new Date(activity.occurredAt), 'yyyy-MM-dd'))
   );
@@ -485,14 +498,17 @@ export default function EmailActivityTimeline({ contactId, limit = 50 }: EmailAc
                     modifiers={{
                       hasActivity: (date) => {
                         const dateStr = format(date, 'yyyy-MM-dd');
-                        return allActivities.some(activity => 
+                        const hasAct = allActivities.some(activity => 
                           format(new Date(activity.occurredAt), 'yyyy-MM-dd') === dateStr
                         );
+                        console.log(`Checking date ${dateStr}:`, hasAct);
+                        return hasAct;
                       }
                     }}
                     modifiersClassNames={{
                       hasActivity: "font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                     }}
+
                   />
                   
                   {/* Activity Legend */}

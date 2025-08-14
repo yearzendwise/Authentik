@@ -4464,8 +4464,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`[Newsletter Send] Failed emails:`, failed.map(f => ({ email: f.email, error: f.error })));
       }
 
-      // Update newsletter status to sent
-      await storage.updateNewsletter(id, { status: "sent" }, req.user.tenantId);
+      // Update newsletter status and metadata after queuing sends
+      await storage.updateNewsletter(
+        id,
+        { 
+          status: "sent",
+          sentAt: new Date(),
+          recipientCount: recipients.length,
+        },
+        req.user.tenantId
+      );
 
       res.json({
         message: "Newsletter sending initiated",

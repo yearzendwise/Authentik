@@ -1040,7 +1040,8 @@ export const createNewsletterSchema = z.object({
   title: z.string().min(1, "Title is required"),
   subject: z.string().min(1, "Subject is required"),
   content: z.string().min(1, "Content is required"),
-  status: z.enum(['draft', 'scheduled', 'sent']).default('draft'),
+  // On create, disallow setting status to "sent"; use the send endpoint instead
+  status: z.enum(['draft', 'scheduled']).default('draft'),
   scheduledAt: z.date().optional(),
   recipientType: z.enum(['all', 'selected', 'tags']).default('all'),
   selectedContactIds: z.array(z.string()).optional(),
@@ -1053,9 +1054,11 @@ export const updateNewsletterSchema = z.object({
   content: z.string().min(1, "Content is required").optional(),
   status: z.enum(['draft', 'scheduled', 'sent']).optional(),
   scheduledAt: z.date().optional(),
+  sentAt: z.date().optional(),
   recipientType: z.enum(['all', 'selected', 'tags']).optional(),
   selectedContactIds: z.array(z.string()).optional(),
   selectedTagIds: z.array(z.string()).optional(),
+  recipientCount: z.number().int().nonnegative().optional(),
 });
 
 export const insertNewsletterSchema = createInsertSchema(newsletters).omit({

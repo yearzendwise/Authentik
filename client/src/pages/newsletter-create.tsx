@@ -85,10 +85,14 @@ export default function NewsletterCreatePage() {
   // Send newsletter mutation
   const sendNewsletterMutation = useMutation({
     mutationFn: async (newsletterId: string) => {
+      console.log('[Newsletter Frontend] Sending newsletter:', newsletterId);
       const response = await apiRequest('POST', `/api/newsletters/${newsletterId}/send`);
-      return response.json();
+      const result = await response.json();
+      console.log('[Newsletter Frontend] Send response:', result);
+      return result;
     },
     onSuccess: (response) => {
+      console.log('[Newsletter Frontend] Send successful:', response);
       queryClient.invalidateQueries({ queryKey: ['/api/newsletters'] });
       queryClient.invalidateQueries({ queryKey: ['/go-server-tracking'] });
       toast({
@@ -98,6 +102,7 @@ export default function NewsletterCreatePage() {
       setLocation('/newsletter');
     },
     onError: (error: any) => {
+      console.error('[Newsletter Frontend] Send failed:', error);
       toast({
         title: "Failed to Send Newsletter",
         description: error.message || "Failed to send newsletter",
@@ -172,10 +177,15 @@ export default function NewsletterCreatePage() {
       status: "draft" as const, // Create as draft first
     };
     
+    console.log('[Newsletter Frontend] Creating newsletter with data:', newsletterData);
     createNewsletterMutation.mutate(newsletterData, {
       onSuccess: (response) => {
+        console.log('[Newsletter Frontend] Newsletter created:', response);
         // After creating, send the newsletter
         sendNewsletterMutation.mutate(response.newsletter.id);
+      },
+      onError: (error) => {
+        console.error('[Newsletter Frontend] Failed to create newsletter:', error);
       }
     });
   };

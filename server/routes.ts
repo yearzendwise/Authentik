@@ -4358,11 +4358,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       
+      console.log(`[Newsletter Send] Starting send for newsletter ID: ${id}, tenant: ${req.user.tenantId}`);
+      
       // Get newsletter details
       const newsletter = await storage.getNewsletter(id, req.user.tenantId);
       if (!newsletter) {
+        console.log(`[Newsletter Send] Newsletter not found: ${id}`);
         return res.status(404).json({ message: "Newsletter not found" });
       }
+      
+      console.log(`[Newsletter Send] Newsletter found:`, {
+        id: newsletter.id,
+        title: newsletter.title,
+        recipientType: newsletter.recipientType,
+        selectedContactIds: newsletter.selectedContactIds?.length || 0,
+        selectedTagIds: newsletter.selectedTagIds?.length || 0
+      });
 
       // Get recipients based on newsletter segmentation
       let recipients: any[] = [];
@@ -4385,7 +4396,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
       }
 
+      console.log(`[Newsletter Send] Found ${recipients.length} recipients`);
+      
       if (recipients.length === 0) {
+        console.log(`[Newsletter Send] No recipients found for newsletter ${id}`);
         return res.status(400).json({ message: "No recipients found for this newsletter" });
       }
 
@@ -4444,6 +4458,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const results = await Promise.all(sendPromises);
       const successful = results.filter(r => r.success);
       const failed = results.filter(r => !r.success);
+
+      console.log(`[Newsletter Send] Results: ${successful.length} successful, ${failed.length} failed`);
+      if (failed.length > 0) {
+        console.log(`[Newsletter Send] Failed emails:`, failed.map(f => ({ email: f.email, error: f.error })));
+      }
 
       // Update newsletter status to sent
       await storage.updateNewsletter(id, { status: "sent" }, req.user.tenantId);

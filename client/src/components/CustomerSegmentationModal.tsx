@@ -216,7 +216,7 @@ export function CustomerSegmentationModal({
                         >
                           <Checkbox
                             checked={tempSelectedContacts.includes(contact.id)}
-                            readOnly
+                            onChange={() => {}} // Controlled by parent click
                           />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
@@ -304,7 +304,7 @@ export function CustomerSegmentationModal({
                         >
                           <div
                             className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: tag.color }}
+                            style={{ backgroundColor: tag.color || '#gray' }}
                           />
                           <span className="text-sm font-medium flex-1">{tag.name}</span>
                           {tempSelectedTags.includes(tag.id) && (
